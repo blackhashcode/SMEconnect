@@ -18,3 +18,6 @@ node_modules/
 out/
 *.tsbuildinfo
 npm-debug.log*
+
+# Claude Code local config
+.claude/
