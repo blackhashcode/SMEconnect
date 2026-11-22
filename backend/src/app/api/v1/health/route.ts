@@ -1,0 +1,8 @@
+import { handleRequest, ok } from "@/server/http/response";
+import { getHealthStatus } from "@/server/services/health";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  return handleRequest(async () => ok(await getHealthStatus()));
+}

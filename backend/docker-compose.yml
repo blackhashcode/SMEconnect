@@ -1,0 +1,31 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: smeconnect-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: smeconnect
+      POSTGRES_PASSWORD: smeconnect
+      POSTGRES_DB: smeconnect
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smeconnect"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    # Catches all outgoing emails locally (OTP, verification, notifications)
+    # Web UI: http://localhost:8025   SMTP: localhost:1025
+    image: axllent/mailpit:latest
+    container_name: smeconnect-mail
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:
