@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import type { AgreementView, Business, LoanOfferView, LoanRequestView, Person, ThreadView } from "@/data/types";
 
 /**
- * Server-side client for the Express API (server/). Use only from Server
+ * Server-side client for the API (the stand-in lives in mock-api/). Use only from Server
  * Components, layouts and route handlers: it forwards the visitor's cookies so
  * the API sees their session. The browser talks to the same API through the
  * `/api/*` rewrite in next.config.mjs.

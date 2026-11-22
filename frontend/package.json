@@ -5,13 +5,13 @@
   "scripts": {
     "dev": "concurrently -k -n web,api -c blue,magenta \"npm:dev:web\" \"npm:dev:api\"",
     "dev:web": "next dev",
-    "dev:api": "npm --prefix server run dev",
+    "dev:api": "npm --prefix mock-api run dev",
     "build": "next build",
     "start": "next start",
-    "start:api": "npm --prefix server start",
-    "typecheck": "tsc --noEmit && npm --prefix server run typecheck",
-    "seed": "npm --prefix server run seed",
-    "postinstall": "npm --prefix server install",
+    "start:api": "npm --prefix mock-api start",
+    "typecheck": "tsc --noEmit && npm --prefix mock-api run typecheck",
+    "seed": "npm --prefix mock-api run seed",
+    "postinstall": "npm --prefix mock-api install",
     "fetch:images": "node scripts/download-images.mjs"
   },
   "dependencies": {
