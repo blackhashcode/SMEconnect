@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const serverRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// Load server/.env if present (KEY=value lines). Real environment variables win.
+// Load mock-api/.env if present (KEY=value lines). Real environment variables win.
 const envFile = path.join(serverRoot, ".env");
 if (fs.existsSync(envFile)) {
   for (const line of fs.readFileSync(envFile, "utf8").split(/\r?\n/)) {

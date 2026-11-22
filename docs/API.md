@@ -1,13 +1,13 @@
 # SME Connect API contract
 
 This is the contract the Next.js front end is built against. The Express server in
-[`server/`](../server/) implements it as a working stand-in. A replacement backend that
+[`frontend/mock-api/`](../frontend/mock-api/) implements it as a working stand-in. A replacement backend that
 matches this document will work with the front end without changes. If it differs,
 the only frontend files to touch are:
 
-- [`src/lib/api.ts`](../src/lib/api.ts): server-side fetchers used by pages
-- [`src/lib/client-api.ts`](../src/lib/client-api.ts): browser-side calls (forms, buttons, chat)
-- [`src/data/types.ts`](../src/data/types.ts): response shapes (the "API views" section)
+- [`frontend/src/lib/api.ts`](../frontend/src/lib/api.ts): server-side fetchers used by pages
+- [`frontend/src/lib/client-api.ts`](../frontend/src/lib/client-api.ts): browser-side calls (forms, buttons, chat)
+- [`frontend/src/data/types.ts`](../frontend/src/data/types.ts): response shapes (the "API views" section)
 
 Point the front end at another server with `API_URL=https://… npm run dev:web`.
 
@@ -34,7 +34,7 @@ field names must match the request body keys below.
 
 ## Types
 
-Defined in [`src/data/types.ts`](../src/data/types.ts):
+Defined in [`frontend/src/data/types.ts`](../frontend/src/data/types.ts):
 
 - `Person`: public profile (never includes email or phone). For investors, `offersMade` (offers not withdrawn) and `committed` (sum of accepted offers) are computed live.
 - `SessionUser`: `Person` plus `email`, `phone?` and `businessId?`

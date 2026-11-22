@@ -31,7 +31,7 @@ const nextConfig = {
     optimizePackageImports: ["lucide-react"],
   },
   // The browser calls /api/* on this origin; Next forwards it to the Express API
-  // in server/. Same origin means the session cookie just works, no CORS needed.
+  // in mock-api/. Same origin means the session cookie just works, no CORS needed.
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }];
   },
