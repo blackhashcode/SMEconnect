@@ -1,0 +1,8 @@
+# Contains a Stitch API key — keep it local.
+opencode.json
+
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+npm-debug.log*
