@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-error-container": "#93000a",
+          "surface-container-highest": "#d3e4fe",
+          "surface-container-lowest": "#ffffff",
+          "on-secondary-fixed-variant": "#8c1900",
+          "background": "#f8f9ff",
+          "inverse-primary": "#b4c5ff",
+          "tertiary-fixed-dim": "#f4bf32",
+          "tertiary": "#6c5100",
+          "inverse-surface": "#213145",
+          "error": "#ba1a1a",
+          "on-secondary-fixed": "#3d0600",
+          "on-secondary": "#ffffff",
+          "surface-dim": "#cbdbf5",
+          "error-container": "#ffdad6",
+          "primary": "#004ac6",
+          "outline": "#737686",
+          "on-tertiary-fixed-variant": "#5a4300",
+          "on-background": "#0b1c30",
+          "on-tertiary": "#ffffff",
+          "inverse-on-surface": "#eaf1ff",
+          "tertiary-fixed": "#ffdf9a",
+          "surface-container-high": "#dce9ff",
+          "primary-fixed": "#dbe1ff",
+          "surface": "#f8f9ff",
+          "on-tertiary-fixed": "#251a00",
+          "on-primary-container": "#eeefff",
+          "surface-tint": "#0053db",
+          "secondary-fixed": "#ffdad2",
+          "on-surface-variant": "#434655",
+          "on-primary-fixed-variant": "#003ea8",
+          "surface-container-low": "#eff4ff",
+          "on-secondary-container": "#640f00",
+          "primary-container": "#2563eb",
+          "surface-bright": "#f8f9ff",
+          "secondary-container": "#fd6a49",
+          "on-primary": "#ffffff",
+          "primary-fixed-dim": "#b4c5ff",
+          "on-surface": "#0b1c30",
+          "secondary-fixed-dim": "#ffb4a3",
+          "surface-container": "#e5eeff",
+          "on-tertiary-container": "#ffefd1",
+          "on-primary-fixed": "#00174b",
+          "tertiary-container": "#8a6800",
+          "outline-variant": "#c3c6d7",
+          "secondary": "#ae3115",
+          "on-error": "#ffffff",
+          "surface-variant": "#d3e4fe"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "space-xs": "0.25rem",
+          "margin-tablet": "2rem",
+          "margin": "1rem",
+          "space-xl": "2.5rem",
+          "gutter": "1rem",
+          "space-md": "1rem",
+          "gutter-desktop": "1.5rem",
+          "margin-desktop": "3rem",
+          "space-lg": "1.5rem",
+          "space-sm": "0.5rem"
+        },
+        "fontFamily": {
+          "numeric-stat": ["Plus Jakarta Sans"],
+          "label-sm": ["Plus Jakarta Sans"],
+          "headline-xl": ["Plus Jakarta Sans"],
+          "body-lg": ["Plus Jakarta Sans"],
+          "body-sm": ["Plus Jakarta Sans"],
+          "headline-lg-mobile": ["Plus Jakarta Sans"],
+          "headline-md": ["Plus Jakarta Sans"],
+          "headline-lg": ["Plus Jakarta Sans"],
+          "headline-sm": ["Plus Jakarta Sans"],
+          "body-md": ["Plus Jakarta Sans"],
+          "label-md": ["Plus Jakarta Sans"],
+          "headline-xl-mobile": ["Plus Jakarta Sans"]
+        },
+        "fontSize": {
+          "numeric-stat": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+          "label-sm": ["11px", {"lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "700"}],
+          "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800"}],
+          "body-lg": ["16px", {"lineHeight": "26px", "fontWeight": "400"}],
+          "body-sm": ["12px", {"lineHeight": "18px", "fontWeight": "400"}],
+          "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+          "headline-md": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+          "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+          "headline-sm": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+          "body-md": ["14px", {"lineHeight": "22px", "fontWeight": "400"}],
+          "label-md": ["13px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+          "headline-xl-mobile": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "800"}]
+        }
+      }
+    }
+  };</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 w-full z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="h-20 w-full px-gutter-desktop max-w-[1400px] mx-auto flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg shrink-0"><div class="flex items-center gap-space-sm"><img alt="SME Connect Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/ALJJyrDZmPTUzVEA_3CXP-u_RevqwPyQ3yzH7T_-07HtMZUSZ0V7gHVaxyzBW68DoD6nirOqVaTK67ERKoF_hEjvLg7ITyFOO9KpH1zFLOmFXk7-iS9lmWUrPmE_Hwn89RNT_kB96Vdn6zrTLKhVS6zBgGBiy5M6Jh_3w3jL94RGzku7gzhDs20MaGewBf9xLVRvTf-pYprM2Yx1OoRiuZGn1yAI9htVtJ8gPqOAwKpQgTcP"/><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold hidden sm:inline-block">SME Connect</span></div><div class="relative hidden xl:block w-64"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span><input class="w-full pl-9 pr-4 py-2 bg-surface-container-low rounded-full font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none focus:bg-surface-container-lowest focus:shadow-[0_0_0_2px_#2563eb] transition-all" placeholder="Search verified shops, lenders..." type="text"/></div></div><nav class="hidden lg:flex items-center gap-space-xs px-2 py-1.5 rounded-full bg-surface-container-low" data-active-classes="text-primary font-bold bg-surface-container"><a class="px-space-md py-2 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="sme-connect-home-feed" href="#">Feed</a><a class="px-space-md py-2 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="sme-connect-explore-search" href="#">Explore Shops</a><a class="px-space-md py-2 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="lenders" href="#">Lenders</a><a class="px-space-md py-2 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="my-loans" href="#">My Loans</a><a class="px-space-md py-2 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="sme-connect-business-owner-dashboard" href="#">Dashboard</a><a class="px-space-md py-2 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" data-path="messages" href="#">Messages</a></nav><div class="flex items-center gap-space-md shrink-0"><button class="flex items-center gap-1.5 px-space-md py-2.5 rounded-full bg-gradient-to-r from-secondary-container to-secondary text-on-primary font-label-md text-label-md shadow-[0_4px_14px_rgba(253,106,73,0.35)] hover:opacity-95 transition-all" data-path="request-loan"><span class="material-symbols-outlined text-[18px]">add_circle</span><span>Request Loan</span></button><button class="relative p-2 rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-secondary"></span></button><div class="relative flex items-center gap-2 pl-2"><div class="relative"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCthqvvFXkoU6iAIGbfxUQnNavCCMdLVvIyB6XzJ_6WT8I7ICyGtel4O0WnGJQlIsIzAVQSv3VNEAaPb_t8YWJk_QL_OVJGzA930QWTRU74mM4yKssZFPUn9uSsAMgpNiHqmvArEnJC7h_eOFm4YBOret_s3TuyxsGcV685yDOSJEelPUfX1VmenB8v_0wHf2ftqQMfqL_C4_PMl9hjXxGTuaz8fsfHjPFhYYnWKTZe"/><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#22c55e] ring-2 ring-surface"></span></div></div></div></div></header><main class="w-full pt-20 bg-surface min-h-[calc(100vh-80px)]"><div class="flex flex-col w-full">
+<!-- Top Workspace Shell Container -->
+<div class="w-full max-w-[1360px] mx-auto px-margin md:px-margin-tablet lg:px-margin-desktop py-space-lg flex flex-col gap-space-lg">
+<!-- 1. Header / Welcome Banner Card -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container-lowest p-space-lg shadow-sm">
+<div class="absolute -right-20 -top-24 w-96 h-96 rounded-full bg-gradient-to-br from-primary-fixed/40 via-surface-container/20 to-transparent blur-3xl pointer-events-none"></div>
+<div class="absolute -left-12 -bottom-20 w-80 h-80 rounded-full bg-gradient-to-tr from-secondary-fixed/30 to-transparent blur-2xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<!-- Identity & Status Badges -->
+<div class="flex items-start gap-space-md">
+<div class="relative shrink-0">
+<!-- Merchant Story Avatar Ring -->
+<div class="w-16 h-16 rounded-full p-[2.5px] bg-gradient-to-tr from-secondary-container to-tertiary-fixed-dim">
+<div class="w-full h-full rounded-full bg-surface-container-lowest p-[2px]">
+<img class="w-full h-full object-cover rounded-full" data-alt="Close up portrait photograph of Nusrat Jahan, a confident Bangladeshi female baker and entrepreneur wearing a pastel kitchen apron in a sunlit artisanal bakery kitchen in Dhanmondi Dhaka, warm authentic morning natural lighting, modern professional finish" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCi-ZzLNMLAEPFqcYhWjNdUtihCOpjqtuapXs15JvfLis0akJVg2YTG097MKQdhEvUunpb5tzpMBIL46SjD71ScGdGMy5ZcpfQNiEnBfGUUlZTuZWM6PAK5uQxnaYY2kPGne-UOHkl5tRZcae0L3i763J8eWEToOPyKDLJo0tgPt0YtmFB4Pk1wPmFSNAKnu7PvnmUQ-yMtni0x1uqwkyTNWN6279iZzk07B743jke"/>
+</div>
+</div>
+<span class="absolute bottom-0 right-0 w-4 h-4 rounded-full bg-surface-container-lowest flex items-center justify-center">
+<span class="w-3 h-3 rounded-full bg-[#22c55e]"></span>
+</span>
+</div>
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex flex-wrap items-center gap-space-xs">
+<h1 class="font-headline-md text-headline-md text-on-surface">Welcome back, Nusrat Jahan 👋</h1>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d] font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
+                Trade License Verified
+              </span>
+</div>
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 font-body-sm text-body-sm text-on-surface-variant">
+<span class="font-label-md text-label-md text-on-surface">Nusrat's Home Kitchen</span>
+<span>•</span>
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-outline">storefront</span>
+                F-Commerce Artisan Bakery (Dhanmondi, Dhaka)
+              </span>
+<span>•</span>
+<span class="text-outline">TIN: 489-291-8840</span>
+</div>
+<!-- Trust rating badge & MFS Pill -->
+<div class="flex flex-wrap items-center gap-space-xs mt-1">
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container font-label-md text-label-md text-primary">
+<span class="material-symbols-outlined text-[16px]">speed</span>
+<span>Trust Score <strong class="text-on-surface">810</strong>/850 (Grade A)</span>
+</div>
+<div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#fce7f3] text-[#9d174d] font-label-md text-label-md">
+<span class="material-symbols-outlined text-[16px]">account_balance_wallet</span>
+<span>bKash Merchant Gateway Active (01712-••••88)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Role Toggle & Primary Trigger Actions -->
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm shrink-0">
+<div class="flex items-center bg-surface-container p-1 rounded-full self-start sm:self-auto">
+<button class="px-3.5 py-1.5 rounded-full bg-surface-container-lowest font-label-md text-label-md text-on-surface shadow-sm flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+              Business Owner
+            </button>
+<button class="px-3.5 py-1.5 rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1">
+              Switch to Investor
+              <span class="material-symbols-outlined text-[16px]">swap_horiz</span>
+</button>
+</div>
+<div class="flex items-center gap-space-xs">
+<a class="px-4 py-2.5 rounded-full bg-surface-container-low hover:bg-surface-container text-primary font-label-md text-label-md transition-colors flex items-center gap-1.5" href="#">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+              Public Shop
+            </a>
+<button class="px-5 py-2.5 rounded-full bg-gradient-to-r from-secondary-container to-secondary text-on-primary font-label-md text-label-md shadow-[0_4px_16px_rgba(253,106,73,0.35)] hover:opacity-95 transition-all flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+              New Loan Request
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- 2. KPI Metric Cards (Grid of 4) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- KPI 1 -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-sm hover:-translate-y-0.5 transition-transform duration-200">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Active Principal Disbursed</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">payments</span>
+</div>
+</div>
+<div>
+<div class="font-numeric-stat text-numeric-stat text-on-surface">৳ 45,000</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate mt-0.5">Italian Convection Oven Loan</p>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-[#15803d]">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span>Disbursed via City Bank Escrow</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-sm hover:-translate-y-0.5 transition-transform duration-200">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Next Bi-Weekly Installment</span>
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-numeric-stat text-numeric-stat text-secondary">৳ 4,003</span>
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold">Due in 6 Days</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Due Monday, 14 Apr 2025</p>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-[#15803d]">
+<span class="w-2 h-2 rounded-full bg-[#22c55e] animate-pulse"></span>
+<span>bKash Auto-Debit Scheduled</span>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-sm hover:-translate-y-0.5 transition-transform duration-200">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Crowdfund Campaign</span>
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">campaign</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-numeric-stat text-numeric-stat text-on-surface">70%</span>
+<span class="font-body-sm text-body-sm text-outline">of ৳ 1,50,000</span>
+</div>
+<div class="w-full bg-surface-container rounded-full h-1.5 mt-2 overflow-hidden">
+<div class="bg-gradient-to-r from-primary to-secondary-container h-full rounded-full" style="width: 70%"></div>
+</div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>14 Community Backers</span>
+<span class="text-secondary font-bold">5 Days Left</span>
+</div>
+</div>
+<!-- KPI 4 -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-sm hover:-translate-y-0.5 transition-transform duration-200">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-outline">Lender Syndicate Offers</span>
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined text-[18px]">local_offer</span>
+</div>
+</div>
+<div>
+<div class="flex items-baseline gap-2">
+<span class="font-numeric-stat text-numeric-stat text-on-surface">3 Pending</span>
+<span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate mt-0.5">Latest: Rafiq Ahmed @ 13.5%</p>
+</div>
+<div class="flex items-center gap-1 font-label-sm text-label-sm text-primary">
+<span class="material-symbols-outlined text-[14px]">draw</span>
+<span>1 Ready for Digital Sign-off</span>
+</div>
+</div>
+</div>
+<!-- 3. Current Loan & Repayment Overview (Hero Split Module) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-start">
+<!-- Left Column: Circular Progress Ring & Loan Metadata (5 Cols) -->
+<div class="lg:col-span-5 rounded-xl bg-surface-container-lowest p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary">Covenant #LN-2025-DH-4409</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface mt-0.5">Repayment Health Matrix</h2>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-[#dcfce7] text-[#15803d] font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">format_image_left</span>
+            In Good Standing
+          </span>
+</div>
+<!-- SVG Circular Ring & Stats -->
+<div class="flex flex-col sm:flex-row items-center gap-space-lg py-space-sm bg-surface-container-low rounded-xl px-space-md">
+<div class="relative w-36 h-36 shrink-0 flex items-center justify-center">
+<svg class="w-full h-full -rotate-90 transform" viewbox="0 0 120 120">
+<circle class="text-surface-container-highest" cx="60" cy="60" fill="transparent" r="50" stroke="currentColor" stroke-width="10"></circle>
+<!-- 33.3% progress dashoffset (Circumference ~ 314.15; 33.3% = ~104.7 filled, offset = 209.4) -->
+<circle class="text-primary-container" cx="60" cy="60" fill="transparent" r="50" stroke="currentColor" stroke-dasharray="314.15" stroke-dashoffset="209.4" stroke-linecap="round" stroke-width="10"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+<span class="font-headline-md text-headline-md text-on-surface">33.3%</span>
+<span class="font-label-sm text-label-sm text-outline">REPAID</span>
+</div>
+</div>
+<div class="flex flex-col gap-2 w-full">
+<div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Total Covenant Volume</p>
+<div class="flex items-baseline gap-1.5 mt-0.5">
+<span class="font-headline-sm text-headline-sm text-on-surface">৳ 16,012</span>
+<span class="font-body-sm text-body-sm text-outline">/ ৳ 48,038</span>
+</div>
+</div>
+<div class="h-1.5 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 33.3%;"></div>
+</div>
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span><strong>4</strong> Cycles Cleared</span>
+<span><strong>8</strong> Cycles Remaining</span>
+</div>
+</div>
+</div>
+<!-- Loan Metadata Details Strip -->
+<div class="grid grid-cols-2 gap-space-sm bg-surface-bright rounded-lg p-space-md">
+<div>
+<span class="font-label-sm text-label-sm text-outline">Syndicate Lead</span>
+<p class="font-label-md text-label-md text-on-surface mt-0.5">Rafiq Ahmed (Dhaka Angel)</p>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline">Agreed Profit / APR</span>
+<p class="font-label-md text-label-md text-on-surface mt-0.5">13.5% Fixed p.a.</p>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline">Repayment Frequency</span>
+<p class="font-label-md text-label-md text-on-surface mt-0.5">Bi-Weekly (14-day cycles)</p>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline">Disbursement Date</span>
+<p class="font-label-md text-label-md text-on-surface mt-0.5">31 Jan 2025</p>
+</div>
+</div>
+<!-- Next Installment Fast-Action Bar -->
+<div class="rounded-xl bg-surface-container p-space-md flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[18px]">notification_important</span>
+<span class="font-label-md text-label-md text-on-surface">Installment #5 Due</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">৳ 4,003 on Monday, 14 Apr 2025</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-4 py-2 rounded-full bg-surface-container-lowest text-primary hover:bg-surface-container-high font-label-md text-label-md transition-colors shadow-sm">
+              Pay Early
+            </button>
+<button class="px-4 py-2 rounded-full bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-colors shadow-sm">
+              Fund Wallet
+            </button>
+</div>
+</div>
+</div>
+<!-- Right Column: Interactive 12-Cycle Timeline & Auto-Debit Tracker (7 Cols) -->
+<div class="lg:col-span-7 rounded-xl bg-surface-container-lowest p-space-lg shadow-sm flex flex-col gap-space-md">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-xs">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Repayment Cycle Schedule</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">12 Scheduled Bi-Weekly Installments • Auto-settled via Escrow</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-[#22c55e]"></span>
+              Auto-Sync: Live
+            </span>
+</div>
+</div>
+<!-- Auto Debit Status Banner -->
+<div class="flex items-center gap-space-sm p-3.5 rounded-xl bg-[#ecfdf5] text-[#065f46]">
+<div class="w-8 h-8 rounded-full bg-[#10b981] text-surface-container-lowest flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">verified</span>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-label-md text-label-md font-bold">Auto-Debit Active on bKash Merchant (01712-••••88)</span>
+<span class="font-body-sm text-body-sm text-[#047857]">Sufficient available balance (৳ 34,290) verified by bKash Open API for Cycle #5.</span>
+</div>
+</div>
+<!-- Visual 12-Cycle Stepper Matrix -->
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 pt-1">
+<!-- Cycle 1 (Completed) -->
+<div class="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 01</span>
+<span class="material-symbols-outlined text-[18px] text-[#15803d]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-[#15803d]">Paid 14 Feb</span>
+</div>
+<!-- Cycle 2 (Completed) -->
+<div class="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 02</span>
+<span class="material-symbols-outlined text-[18px] text-[#15803d]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-[#15803d]">Paid 28 Feb</span>
+</div>
+<!-- Cycle 3 (Completed) -->
+<div class="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 03</span>
+<span class="material-symbols-outlined text-[18px] text-[#15803d]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-[#15803d]">Paid 14 Mar</span>
+</div>
+<!-- Cycle 4 (Completed) -->
+<div class="p-3 rounded-lg bg-surface-container-low flex flex-col gap-1 relative overflow-hidden">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 04</span>
+<span class="material-symbols-outlined text-[18px] text-[#15803d]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-[#15803d]">Paid 28 Mar</span>
+</div>
+<!-- Cycle 5 (UPCOMING / ACTIVE) -->
+<div class="p-3 rounded-lg bg-secondary-fixed flex flex-col gap-1 relative overflow-hidden shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm font-bold text-on-secondary-fixed">Cycle 05</span>
+<span class="w-2.5 h-2.5 rounded-full bg-secondary animate-ping"></span>
+</div>
+<span class="font-label-md text-label-md font-bold text-on-secondary-fixed">৳ 4,003</span>
+<span class="font-label-sm text-label-sm font-bold text-secondary">Due 14 Apr</span>
+</div>
+<!-- Cycle 6 (Scheduled) -->
+<div class="p-3 rounded-lg bg-surface-bright flex flex-col gap-1 opacity-80">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 06</span>
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-outline">28 Apr 2025</span>
+</div>
+<!-- Cycle 7 (Scheduled) -->
+<div class="p-3 rounded-lg bg-surface-bright flex flex-col gap-1 opacity-80">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 07</span>
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-outline">12 May 2025</span>
+</div>
+<!-- Cycle 8 (Scheduled) -->
+<div class="p-3 rounded-lg bg-surface-bright flex flex-col gap-1 opacity-80">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 08</span>
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-outline">26 May 2025</span>
+</div>
+<!-- Cycle 9 (Scheduled) -->
+<div class="p-3 rounded-lg bg-surface-bright flex flex-col gap-1 opacity-70">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 09</span>
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-outline">09 Jun 2025</span>
+</div>
+<!-- Cycle 10 (Scheduled) -->
+<div class="p-3 rounded-lg bg-surface-bright flex flex-col gap-1 opacity-70">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 10</span>
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-outline">23 Jun 2025</span>
+</div>
+<!-- Cycle 11 (Scheduled) -->
+<div class="p-3 rounded-lg bg-surface-bright flex flex-col gap-1 opacity-60">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 11</span>
+<span class="material-symbols-outlined text-[16px] text-outline">schedule</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,003</span>
+<span class="font-body-sm text-body-sm text-outline">07 Jul 2025</span>
+</div>
+<!-- Cycle 12 (Scheduled - Final) -->
+<div class="p-3 rounded-lg bg-surface-bright flex flex-col gap-1 opacity-60">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-outline">Cycle 12 (End)</span>
+<span class="material-symbols-outlined text-[16px] text-primary">flag</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface">৳ 4,005</span>
+<span class="font-body-sm text-body-sm text-outline">21 Jul 2025</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-outline font-body-sm text-body-sm pt-2">
+<span>Escrow Partner: City Bank PLC (Sub-account #0928-883)</span>
+<button class="text-primary font-label-md text-label-md hover:underline flex items-center gap-1">
+            Download Full Statement (PDF)
+            <span class="material-symbols-outlined text-[16px]">download</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 4. Active Requests & Incoming Offers Received Module -->
+<div class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Live Campaign &amp; Incoming Lender Offers</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Review syndicate terms, counter proposals, or accept to disburse funds to your wallet</p>
+</div>
+<span class="font-label-md text-label-md text-secondary font-bold flex items-center gap-1">
+<span class="material-symbols-outlined text-[18px]">hourglass_top</span>
+          3 Offers Expiring Soon
+        </span>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-stretch">
+<!-- Live Crowdfund Campaign Card (4 cols) -->
+<div class="lg:col-span-4 rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-sm">
+<div class="relative w-full h-44 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="High quality commercial kitchen equipment photo showcasing a stainless steel Italian convection deck oven and imported Dutch processed cocoa powder containers neatly arranged on a bakery worktop in Dhaka Bangladesh, crisp ambient studio light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrR1KkYfu2RnBD7sQm3vmV7XkP324l0Nm0iSnmytAFF3xdfAGsElihfvkEm0yvI-JE_WXL4yCAlnV1K60hYPVnYEPJBPB7OYIOxqkqo71bbHe3EXE1taeqZLkMW5jOUaJIs0h-Q6kqIZbdpZAxIkyWJtGp_HQ1sEcu8sQyn9GIbLeYltKQ9cGOJluj5eZ4FULaU7Ot7MuLgwvwE9-KKmhEnq88wm-RRSe21rTz98tQ"/>
+<div class="absolute top-2 left-2 px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur-md font-label-sm text-label-sm text-primary font-bold">
+                Pitch #CR-992
+              </div>
+<div class="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-secondary text-on-primary font-label-sm text-label-sm">
+                5 Days Left
+              </div>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Equipment &amp; Inventory</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mt-0.5">Italian Convection Oven &amp; Cocoa Restock</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mt-1">
+                Scaling production from 40 cakes/day to 120 cakes/day for upcoming Eid catering contracts with Dhaka corporates.
+              </p>
+</div>
+<!-- Progress section -->
+<div class="flex flex-col gap-1.5 pt-1">
+<div class="flex justify-between items-baseline font-body-sm text-body-sm">
+<span class="font-label-md text-label-md text-on-surface">৳ 1,05,000 <span class="text-outline font-normal">raised</span></span>
+<span class="font-numeric-stat text-numeric-stat text-primary">70%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary-container rounded-full" style="width: 70%;"></div>
+</div>
+<div class="flex justify-between text-outline font-body-sm text-body-sm">
+<span>Target: ৳ 1,50,000</span>
+<span>14 Backers</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 pt-2">
+<button class="w-full py-2.5 rounded-full bg-surface-container-low hover:bg-surface-container font-label-md text-label-md text-primary transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">edit_note</span>
+              Update Pitch
+            </button>
+<button class="w-full py-2.5 rounded-full bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md transition-colors flex items-center justify-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[16px]">share</span>
+              Boost Feed
+            </button>
+</div>
+</div>
+<!-- Incoming Offers List (8 cols) -->
+<div class="lg:col-span-8 flex flex-col gap-space-sm justify-between">
+<!-- Offer 1 (Ready to sign - Highlighted) -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-sm">
+<div class="w-12 h-12 rounded-full shrink-0 p-[2px] bg-gradient-to-tr from-primary to-tertiary-fixed-dim">
+<img class="w-full h-full object-cover rounded-full" data-alt="Professional headshot of Rafiq Ahmed, a middle aged Bangladeshi angel investor wearing spectacles and a smart casual navy blazer, soft neutral studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWFXI8UnPKeRvdKUCqDy3cefirHdV03Onp_MGZB6e7IZTVny_dKVzvfUwLziiFyLGTA_prcXyBMLP-Dp5KtOdfkhGJBvFdQpd91H-L2yd2fe2SN9kHdIBnJxuUU7_O5mFJulo5piF0oGkA5KghkVAfnMc7CuMHO7Eh6omCDR6IJFbAkWiuqx-ITSUukYsMfCd7n-BKRJdxqLC8lDdo_JwVyxYMfA9L4XI8lbV0-Z7z"/>
+</div>
+<div class="flex flex-col">
+<div class="flex flex-wrap items-center gap-2">
+<h4 class="font-label-md text-label-md text-on-surface font-bold">Rafiq Ahmed</h4>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-primary font-label-sm text-label-sm">Dhaka Angel Club Lead</span>
+<span class="px-2 py-0.5 rounded-full bg-[#fef9c3] text-[#854d0e] font-label-sm text-label-sm font-bold">Awaiting Your Signature</span>
+</div>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-1 font-body-sm text-body-sm text-on-surface-variant mt-1">
+<span>Offering: <strong class="text-on-surface">৳ 45,000</strong></span>
+<span>•</span>
+<span>APR: <strong class="text-primary">13.5% p.a.</strong></span>
+<span>•</span>
+<span>Tenure: <strong>6 Months (12 Bi-weekly cycles)</strong></span>
+<span>•</span>
+<span>Est. Bi-weekly: <strong>৳ 4,003</strong></span>
+</div>
+<p class="font-body-sm text-body-sm text-outline mt-1 italic">“Approved following your steady March bKash merchant turnover. Can disburse immediately.”</p>
+</div>
+</div>
+<!-- Action buttons -->
+<div class="flex items-center gap-2 shrink-0 self-end md:self-center">
+<button class="px-3 py-2 rounded-full bg-surface-container-low hover:bg-surface-container text-error font-label-md text-label-md transition-colors">
+                Decline
+              </button>
+<button class="px-3.5 py-2 rounded-full bg-surface-container-low hover:bg-surface-container text-primary font-label-md text-label-md transition-colors">
+                Counter
+              </button>
+<button class="px-4 py-2 rounded-full bg-[#15803d] hover:bg-[#166534] text-on-primary font-label-md text-label-md transition-all shadow-sm flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">draw</span>
+                Review &amp; Accept
+              </button>
+</div>
+</div>
+<!-- Offer 2 -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-sm">
+<div class="w-12 h-12 rounded-full shrink-0 p-[2px] bg-surface-container">
+<img class="w-full h-full object-cover rounded-full" data-alt="Profile portrait of Samira Khan, a young Bangladeshi corporate executive and peer micro investor wearing professional attire, bright natural indoor lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcwc_cnyoXwRAv3zqQOPO3HG7CXa_OJEtCRuJeCg2xVYp3-C3VVcU71wGupEFgs1ndpHOrR6ltE0j-2YbgWVC6F-xz_AZ82mvNkpYFDEEg5w47_PIsZcRgkh85ppCrlxRuQ8EhhszKVncHdfLKOEgNWwJD4vOIY5VG4-BQn7sCEzfrRmZFTHT7rm7vVyd_9fncfsadePq25nq2PEfTqI7_aQSKF2TIm1-r3jRS0lat"/>
+</div>
+<div class="flex flex-col">
+<div class="flex flex-wrap items-center gap-2">
+<h4 class="font-label-md text-label-md text-on-surface font-bold">Samira Khan</h4>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-outline font-label-sm text-label-sm">Retail Micro-Lender</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm">In Negotiation</span>
+</div>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-1 font-body-sm text-body-sm text-on-surface-variant mt-1">
+<span>Offering: <strong class="text-on-surface">৳ 30,000</strong></span>
+<span>•</span>
+<span>APR: <strong class="text-secondary">14.0% p.a.</strong></span>
+<span>•</span>
+<span>Tenure: <strong>4 Months (8 Cycles)</strong></span>
+<span>•</span>
+<span>Est. Bi-weekly: <strong>৳ 3,920</strong></span>
+</div>
+<p class="font-body-sm text-body-sm text-outline mt-1">“Requested 4-month rapid turnover cycle. Counter-offer under review.”</p>
+</div>
+</div>
+<!-- Action buttons -->
+<div class="flex items-center gap-2 shrink-0 self-end md:self-center">
+<button class="px-4 py-2 rounded-full bg-surface-container-low hover:bg-surface-container text-primary font-label-md text-label-md transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">chat</span>
+                Chat &amp; View
+              </button>
+</div>
+</div>
+<!-- Offer 3 -->
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md">
+<div class="flex items-start gap-space-sm">
+<div class="w-12 h-12 rounded-full shrink-0 p-[2px] bg-tertiary-fixed">
+<img class="w-full h-full object-cover rounded-full" data-alt="Portrait photograph of Tanzeem Huq, an overseas Bangladeshi expatriate professional living in London UK, warm smiling expression, modern urban background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhGe_PF_5lQRWigjvjTj3B0wS3Kl6D4gM7wrXumYlLaj8EgLsYrRP-mLjm6j07VuSMfMjYH-IBC4iJH0ypg7ieYwmfccpcLesEpM_XKmjh8v6mXF5F6n4SukFIJF_NhZg2L_c7EkLasZwsRnXgqKwEyjxD62lGWPVO4ALeK8hKxpBnH1-Zy70HXl1cq3MYBIvDw-C4euwiyVygYbMpset91q9ZQGm3EiAtl0U7CdTI"/>
+</div>
+<div class="flex flex-col">
+<div class="flex flex-wrap items-center gap-2">
+<h4 class="font-label-md text-label-md text-on-surface font-bold">Tanzeem Huq</h4>
+<span class="px-2 py-0.5 rounded-full bg-[#ffdf9a] text-[#5a4300] font-label-sm text-label-sm">Diaspora Backer (UK NRB)</span>
+<span class="px-2 py-0.5 rounded-full bg-[#dbe1ff] text-primary font-label-sm text-label-sm font-bold">New Offer</span>
+</div>
+<div class="flex flex-wrap items-center gap-x-4 gap-y-1 font-body-sm text-body-sm text-on-surface-variant mt-1">
+<span>Offering: <strong class="text-on-surface">৳ 20,000</strong></span>
+<span>•</span>
+<span>APR: <strong class="text-[#15803d]">13.0% p.a. (Competitive)</strong></span>
+<span>•</span>
+<span>Tenure: <strong>6 Months</strong></span>
+<span>•</span>
+<span>Direct Remittance Disbursed</span>
+</div>
+<p class="font-body-sm text-body-sm text-outline mt-1">“Passionate about supporting female home-bakers from Dhanmondi. Ready to wire.”</p>
+</div>
+</div>
+<!-- Action buttons -->
+<div class="flex items-center gap-2 shrink-0 self-end md:self-center">
+<button class="px-4 py-2 rounded-full bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md transition-colors flex items-center gap-1.5 shadow-sm">
+<span class="material-symbols-outlined text-[16px]">visibility</span>
+                Review Terms
+              </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 5. Cash Flow & Performance Health Strip -->
+<div class="rounded-xl bg-surface-container-low p-space-md sm:p-space-lg shadow-sm flex flex-col md:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[24px]">query_stats</span>
+</div>
+<div class="flex flex-col">
+<div class="flex flex-wrap items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface font-bold">Monthly Bakery Gross Revenue: ৳ 2,85,000</span>
+<span class="px-2 py-0.5 rounded-full bg-[#dcfce7] text-[#15803d] font-label-sm text-label-sm font-semibold">Debt Burden: 2.8% (Very Safe)</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+            Verified through connected bKash Merchant API &amp; Bank statements. You qualify for up to <strong>৳ 3,00,000</strong> in unsecured inventory credit.
+          </p>
+</div>
+</div>
+<div class="flex items-center gap-space-md shrink-0 w-full md:w-auto justify-between md:justify-end">
+<div class="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-[#22c55e] text-[20px]">trending_up</span>
+<span class="font-label-md text-label-md text-on-surface"><strong>+15 Trust Score</strong> on completion</span>
+</div>
+<a class="px-4 py-2 rounded-full bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md transition-colors flex items-center gap-1" href="#">
+          Detailed Financials
+          <span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</a>
+</div>
+</div>
+</div>
+</div></main><footer class="w-full bg-surface-container-low mt-space-xl shadow-[0_-1px_6px_rgba(0,0,0,0.02)]"><div class="w-full max-w-[1400px] mx-auto px-gutter-desktop py-space-xl"><div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-space-lg pb-space-lg"><div class="flex items-center gap-space-sm"><div class="p-2 rounded-full bg-surface-container-highest text-primary"><span class="material-symbols-outlined text-[20px]">verified_user</span></div><div><p class="font-label-md text-label-md text-on-surface">Bangladesh SME Community Trust Network</p><p class="font-body-sm text-body-sm text-on-surface-variant">Secured with NID authentication, smart repayment trails, and trade license verification.</p></div></div><div class="flex flex-wrap items-center gap-space-lg text-on-surface-variant font-label-md text-label-md"><a class="hover:text-primary transition-colors" data-path="borrower-support" href="#">Borrower Support</a><a class="hover:text-primary transition-colors" data-path="investor-guarantee" href="#">Investor Protection Guarantee</a><a class="hover:text-primary transition-colors" data-path="dispute-resolution" href="#">Dispute Resolution</a><a class="hover:text-primary transition-colors" data-path="terms-and-privacy" href="#">Terms &amp; Privacy</a></div></div><div class="pt-space-md flex flex-col sm:flex-row items-center justify-between gap-space-sm font-body-sm text-body-sm text-outline"><p>© 2025 SME Connect Bangladesh. Democratizing micro-capital for digital businesses.</p><div class="flex items-center gap-space-sm"><span class="inline-block w-2 h-2 rounded-full bg-[#22c55e]"></span><span>Operational across 64 Districts</span></div></div></div></footer></body></html>
