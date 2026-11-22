@@ -5,15 +5,55 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Anchor links (/#how-it-works) land below the fixed header. */
+    scroll-padding-top: 6rem;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
     @apply bg-surface font-sans text-on-surface antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   ::selection {
     @apply bg-primary-fixed text-on-primary-fixed;
   }
+}
+
+@layer components {
+  /* Interactive card: lifts on hover, settles on press. */
+  .card-interactive {
+    @apply transition-[transform,box-shadow] duration-300 ease-out-expo hover:-translate-y-1 hover:shadow-card-hover active:translate-y-0;
+  }
+
+  /* Animated underline for text links in headers and footers. */
+  .link-underline {
+    @apply relative;
+  }
+  .link-underline::after {
+    content: "";
+    @apply absolute -bottom-1 left-0 h-0.5 w-full origin-left scale-x-0 rounded-full bg-primary transition-transform duration-300 ease-out-expo;
+  }
+  .link-underline:hover::after {
+    @apply scale-x-100;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, #e5eeff 25%, #eff4ff 37%, #e5eeff 63%);
+    background-size: 400% 100%;
+    @apply animate-shimmer;
+  }
+
+  /* Children fade up one after another. */
+  .stagger > * {
+    @apply animate-fade-in;
+  }
+  .stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .stagger > *:nth-child(6) { animation-delay: 300ms; }
+  .stagger > *:nth-child(n + 7) { animation-delay: 360ms; }
 }
 
 @layer utilities {
@@ -32,5 +72,36 @@
 
   .card-shadow-lg {
     box-shadow: 0 16px 36px rgba(0, 47, 135, 0.08);
+  }
+}
+
+/*
+ * Scroll reveal. Content is only hidden when scripting is on, so the page is
+ * fully readable without JS; the <Reveal> component adds .is-visible.
+ */
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  .reveal {
+    transition:
+      opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+      transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  .reveal:not(.is-visible) {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
   }
 }

@@ -1,89 +1,111 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, MessageCircle, Search, Settings, UserRound } from "lucide-react";
+import { Bell, MessageCircle, Search } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
-import { Avatar } from "@/components/ui/Avatar";
-import { appNav } from "@/data/nav";
-import { images } from "@/data/images";
+import { useScrolled } from "./useScrolled";
+import { UserMenu } from "./UserMenu";
+import { appNavFor, isActivePath, unreadCounts } from "@/data/nav";
+import type { SessionUser } from "@/data/types";
 import { cn } from "@/lib/cn";
 
-export function AppHeader() {
+export function AppHeader({ user, unreadMessages }: { user: SessionUser; unreadMessages: number }) {
   const pathname = usePathname();
+  const scrolled = useScrolled();
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-surface-container-high/70 bg-surface/90 backdrop-blur-xl shadow-header">
-      <div className="mx-auto flex h-20 w-full max-w-shell items-center justify-between gap-space-md px-gutter-desktop">
-        <div className="flex min-w-0 items-center gap-space-lg">
-          <BrandLogo />
-          <label className="relative hidden xl:block w-64 2xl:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-outline" aria-hidden />
-            <input
-              type="search"
-              placeholder="Search verified shops and investors…"
-              className="w-full rounded-full bg-surface-container-low py-2 pl-9 pr-4 text-body-sm text-on-surface placeholder:text-outline focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary"
-              aria-label="Search SME Connect"
-            />
-          </label>
-        </div>
+    <header
+      className={cn(
+        "fixed inset-x-0 top-0 z-50 border-b bg-surface/85 backdrop-blur-xl transition-[box-shadow,border-color,background-color] duration-300",
+        scrolled ? "border-surface-container-high shadow-header" : "border-transparent",
+      )}
+    >
+      <div className="mx-auto flex h-16 w-full max-w-shell items-center gap-space-md px-margin md:px-gutter-desktop lg:h-20">
+        <BrandLogo href="/feed" />
 
-        <nav className="no-scrollbar hidden items-center gap-space-xs overflow-x-auto rounded-full bg-surface-container-low p-1.5 lg:flex" aria-label="App navigation">
-          {appNav.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        <label className="relative ml-space-sm hidden w-56 xl:block 2xl:w-72">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-outline" aria-hidden />
+          <input
+            type="search"
+            placeholder="Search shops and investors…"
+            className="w-full rounded-full bg-surface-container-low py-2 pl-9 pr-4 text-body-sm text-on-surface transition-shadow placeholder:text-outline focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Search SME Connect"
+          />
+        </label>
+
+        <nav
+          className="mx-auto hidden items-center gap-1 rounded-full bg-surface-container-low p-1 lg:flex"
+          aria-label="App navigation"
+        >
+          {appNavFor(user.role).map((item) => {
+            const active = isActivePath(pathname, item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full px-space-md py-2 text-label-md transition-colors",
+                  "whitespace-nowrap rounded-full px-space-md py-2 text-label-md transition-all duration-200",
                   active
                     ? "bg-surface-container-lowest font-bold text-primary shadow-sm"
                     : "font-medium text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
                 )}
               >
                 {item.label}
-                {item.badge && (
-                  <span className="rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-on-secondary">
-                    {item.badge}
-                  </span>
-                )}
               </Link>
             );
           })}
         </nav>
 
-        <div className="flex items-center gap-space-sm">
-          <Link
-            href="/messages"
-            aria-label="Messages"
-            className="relative rounded-full p-2.5 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
-          >
-            <MessageCircle className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-secondary ring-2 ring-surface" />
-          </Link>
-          <Link
+        <div className="ml-auto flex items-center gap-1 lg:ml-0">
+          <HeaderIcon href="/messages" label="Messages" active={isActivePath(pathname, "/messages")} count={unreadMessages}>
+            <MessageCircle className="h-5 w-5" aria-hidden />
+          </HeaderIcon>
+          <HeaderIcon
             href="/notifications"
-            aria-label="Notifications"
-            className="relative rounded-full p-2.5 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-primary"
+            label="Notifications"
+            active={isActivePath(pathname, "/notifications")}
+            count={unreadCounts.notifications}
           >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-on-secondary">
-              3
-            </span>
-          </Link>
-          <Link href="/investors/rafiq" aria-label="Your profile" className="hidden sm:block">
-            <Avatar src={images["rafiq-portrait"]} alt="Rafiq Ahmed" size="sm" />
-          </Link>
-          <Link href="/signup" aria-label="Account settings" className="hidden text-on-surface-variant hover:text-primary md:block">
-            <Settings className="h-5 w-5" />
-          </Link>
-          <Link href="/signup" aria-label="Account" className="text-on-surface-variant hover:text-primary sm:hidden">
-            <UserRound className="h-5 w-5" />
-          </Link>
+            <Bell className="h-5 w-5" aria-hidden />
+          </HeaderIcon>
+          <UserMenu user={user} />
         </div>
       </div>
     </header>
+  );
+}
+
+function HeaderIcon({
+  href,
+  label,
+  active,
+  count,
+  children,
+}: {
+  href: string;
+  label: string;
+  active: boolean;
+  count: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={`${label}${count ? ` (${count} unread)` : ""}`}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative flex h-10 w-10 items-center justify-center rounded-full transition-colors duration-200",
+        active ? "bg-primary-fixed text-primary" : "text-on-surface-variant hover:bg-surface-container-high hover:text-primary",
+      )}
+    >
+      {children}
+      {count > 0 && (
+        <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold leading-none text-on-secondary ring-2 ring-surface">
+          {count}
+        </span>
+      )}
+    </Link>
   );
 }

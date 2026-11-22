@@ -5,35 +5,42 @@ import { Tabs } from "@/components/ui/Tabs";
 import { LoanCard } from "./LoanCard";
 import { BusinessCard } from "./BusinessCard";
 import { InvestorCard } from "./InvestorCard";
-import { loanRequests } from "@/data/loans";
-import { businesses } from "@/data/businesses";
-import { people } from "@/data/users";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { FileSearch } from "lucide-react";
+import type { Business, LoanRequestView, Person } from "@/data/types";
 
-const items = [
-  { id: "requests", label: "Loan requests", count: loanRequests.length },
-  { id: "businesses", label: "Businesses" },
-  { id: "investors", label: "Investors" },
-] as const;
+type TabId = "requests" | "businesses" | "investors";
 
-export function FeedTabs() {
-  const [active, setActive] = useState<(typeof items)[number]["id"]>("requests");
+export function FeedTabs({ loans, businesses, members }: { loans: LoanRequestView[]; businesses: Business[]; members: Person[] }) {
+  const investors = members.filter((person) => person.role === "investor");
+  const [active, setActive] = useState<TabId>("requests");
+  const items: { id: TabId; label: string; count?: number }[] = [
+    { id: "requests", label: "Loan requests", count: loans.length },
+    { id: "businesses", label: "Businesses" },
+    { id: "investors", label: "Investors" },
+  ];
 
   return (
     <div>
-      <Tabs items={[...items]} active={active} onChange={setActive} className="mb-space-md" />
+      <Tabs items={items} active={active} onChange={setActive} className="mb-space-md" />
       {active === "requests" && (
-        <div className="space-y-space-md">
-          {loanRequests.map((loan) => <LoanCard key={loan.id} loan={loan} featured={loan.id === "lr-1"} />)}
+        <div key="requests" className="stagger space-y-space-md">
+          {loans.length === 0 && (
+            <EmptyState icon={FileSearch} title="No open requests right now" description="New loan requests from verified businesses will appear here." />
+          )}
+          {loans.map((loan, index) => <LoanCard key={loan.id} loan={loan} featured={index === 0 && Boolean(loan.image)} />)}
         </div>
       )}
       {active === "businesses" && (
-        <div className="grid gap-space-md sm:grid-cols-2">
-          {businesses.map((business) => <BusinessCard key={business.id} business={business} />)}
+        <div key="businesses" className="stagger grid gap-space-md sm:grid-cols-2">
+          {businesses.map((business) => (
+            <BusinessCard key={business.id} business={business} ownerName={members.find((person) => person.id === business.ownerId)?.name} />
+          ))}
         </div>
       )}
       {active === "investors" && (
-        <div className="grid gap-space-md">
-          {people.filter((person) => person.role === "investor").map((investor) => (
+        <div key="investors" className="stagger grid gap-space-md">
+          {investors.map((investor) => (
             <InvestorCard key={investor.id} investor={investor} />
           ))}
         </div>

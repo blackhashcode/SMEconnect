@@ -1,50 +1,64 @@
-/* eslint-disable @next/next/no-img-element */
+"use client";
+
 import Link from "next/link";
 import { ArrowUpRight, Building2, Handshake, MapPin, TrendingUp } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
 import { Badge, VerifiedBadge } from "@/components/ui/Badge";
+import { LinkButton } from "@/components/ui/Button";
+import { Photo } from "@/components/ui/Photo";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { businessById } from "@/data/businesses";
-import { formatBDT } from "@/data/loans";
-import { personById } from "@/data/users";
-import type { LoanRequest } from "@/data/types";
+import { TimeAgo } from "@/components/ui/TimeAgo";
+import { useSessionUser } from "@/components/auth/SessionProvider";
+import { formatBDT } from "@/lib/format";
+import { isActiveLoan } from "@/lib/loans";
+import type { LoanRequestView } from "@/data/types";
 import { cn } from "@/lib/cn";
 
-export function LoanCard({ loan, featured = false, className }: { loan: LoanRequest; featured?: boolean; className?: string }) {
-  const business = businessById(loan.businessId);
-  const owner = business ? personById(business.ownerId) : undefined;
+const statusBadge = {
+  open: { tone: "primary", label: "Open" },
+  offers_received: { tone: "warning", label: "Offers received" },
+  agreed: { tone: "success", label: "Agreed" },
+  closed: { tone: "neutral", label: "Closed" },
+} as const;
+
+export function LoanCard({ loan, featured = false, className }: { loan: LoanRequestView; featured?: boolean; className?: string }) {
+  const viewer = useSessionUser();
+  const { business, owner } = loan;
+  const isOwner = viewer?.id === owner.id;
+  const canOffer = viewer?.role === "investor" && !isOwner && isActiveLoan(loan);
+  const badge = statusBadge[loan.status];
 
   return (
-    <article className={cn("overflow-hidden rounded-2xl bg-surface-container-lowest card-shadow", className)}>
-      {featured && loan.image && (
-        <div className="relative h-52 overflow-hidden bg-surface-container">
-          <img src={loan.image} alt="" className="h-full w-full object-cover" />
+    <article className={cn("group overflow-hidden rounded-2xl bg-surface-container-lowest card-shadow card-interactive", className)}>
+      {featured && (
+        <Photo src={loan.image} alt="" className="h-52 sm:h-60" sizes="(min-width: 1024px) 640px, 100vw" zoomOnHover>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-inverse-surface/70 to-transparent p-space-md">
-            <Badge tone="secondary" className="bg-white/90 text-secondary">Open request</Badge>
+            <Badge tone="secondary" className="bg-white/90 text-secondary">{isActiveLoan(loan) ? "Open request" : badge.label}</Badge>
           </div>
-        </div>
+        </Photo>
       )}
       <div className="p-space-lg">
         <div className="flex items-start gap-space-md">
-          {owner && (
-            <Link href={`/businesses/${business?.id}`}>
-              <img src={owner.avatar} alt={owner.name} className="h-12 w-12 rounded-full object-cover ring-2 ring-surface" />
-            </Link>
-          )}
+          <Link href={`/businesses/${business.id}`} className="shrink-0 rounded-full">
+            <Avatar src={owner.avatar} alt={owner.name} size="md" />
+          </Link>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <Link href={`/businesses/${business?.id}`} className="text-label-md font-bold text-on-surface hover:text-primary">
-                {business?.name}
+              <Link href={`/businesses/${business.id}`} className="text-label-md font-bold text-on-surface hover:text-primary">
+                {business.name}
               </Link>
-              {business?.verified && <VerifiedBadge compact />}
+              {business.verified && <VerifiedBadge compact />}
             </div>
-            <p className="mt-0.5 flex items-center gap-1 text-body-sm text-outline">
-              <MapPin className="h-3.5 w-3.5" aria-hidden />
-              {business?.location}
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-body-sm text-outline">
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" aria-hidden />
+                {business.location}
+              </span>
+              <span aria-hidden>·</span>
+              <TimeAgo iso={loan.createdAt} />
             </p>
           </div>
-          <Badge tone={loan.status === "open" ? "primary" : "warning"}>
-            {loan.status === "open" ? "Open" : "Offers received"}
-          </Badge>
+          <Badge tone={badge.tone} className="shrink-0">{badge.label}</Badge>
         </div>
 
         <h3 className="mt-space-md text-headline-sm text-on-surface">{loan.title}</h3>
@@ -71,19 +85,23 @@ export function LoanCard({ loan, featured = false, className }: { loan: LoanRequ
 
         <div className="mt-space-md flex flex-wrap items-center justify-between gap-space-sm border-t border-surface-container-high pt-space-md">
           <div className="flex items-center gap-space-md text-body-sm text-on-surface-variant">
-            <span className="flex items-center gap-1"><Handshake className="h-4 w-4 text-primary" aria-hidden /> {loan.offersCount} offers</span>
-            <span className="flex items-center gap-1"><Building2 className="h-4 w-4 text-primary" aria-hidden /> {loan.connectionsCount} connections</span>
+            <span className="flex items-center gap-1 whitespace-nowrap"><Handshake className="h-4 w-4 text-primary" aria-hidden /> {loan.offersCount} {loan.offersCount === 1 ? "offer" : "offers"}</span>
+            <span className="flex items-center gap-1 whitespace-nowrap"><Building2 className="h-4 w-4 text-primary" aria-hidden /> {loan.connectionsCount} connections</span>
           </div>
           <div className="flex items-center gap-space-sm">
-            <Link href={`/businesses/${business?.id}`} className="flex items-center gap-1 text-label-md font-semibold text-primary hover:underline">
+            <Link href={`/businesses/${business.id}`} className="flex items-center gap-1 whitespace-nowrap text-label-md font-semibold text-primary hover:underline">
               View profile <ArrowUpRight className="h-4 w-4" aria-hidden />
             </Link>
-            <Link
-              href={`/loans/offers/new?request=${loan.id}`}
-              className="rounded-full bg-primary px-space-md py-2 text-label-md font-semibold text-on-primary transition-colors hover:bg-primary-container"
-            >
-              Make an offer
-            </Link>
+            {canOffer && (
+              <LinkButton href={`/loans/offers/new?request=${loan.id}`} size="sm">
+                Make an offer
+              </LinkButton>
+            )}
+            {isOwner && (
+              <LinkButton href="/business-dashboard" size="sm" variant="soft">
+                Manage offers
+              </LinkButton>
+            )}
           </div>
         </div>
       </div>
@@ -91,8 +109,7 @@ export function LoanCard({ loan, featured = false, className }: { loan: LoanRequ
   );
 }
 
-export function LoanCardCompact({ loan }: { loan: LoanRequest }) {
-  const business = businessById(loan.businessId);
+export function LoanCardCompact({ loan }: { loan: LoanRequestView }) {
   return (
     <Link
       href={`/loans/offers/new?request=${loan.id}`}
@@ -102,7 +119,7 @@ export function LoanCardCompact({ loan }: { loan: LoanRequest }) {
         <TrendingUp className="h-5 w-5" aria-hidden />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-label-md font-semibold text-on-surface">{business?.name}</span>
+        <span className="block truncate text-label-md font-semibold text-on-surface">{loan.business.name}</span>
         <span className="block truncate text-body-sm text-outline">{loan.purpose}</span>
       </span>
       <span className="shrink-0 text-label-md font-bold text-primary">{formatBDT(loan.amount)}</span>

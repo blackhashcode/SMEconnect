@@ -122,6 +122,5 @@ export const loanRequests: LoanRequest[] = [
 export const loanById = (id: string) => loanRequests.find((loan) => loan.id === id);
 export const loansByBusiness = (businessId: string) => loanRequests.filter((loan) => loan.businessId === businessId);
 
-export function formatBDT(value: number) {
-  return `৳${value.toLocaleString("en-IN")}`;
-}
+// Kept for the seed and landing page; app code imports it from @/lib/format.
+export { formatBDT } from "../lib/format";

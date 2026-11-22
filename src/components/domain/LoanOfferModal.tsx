@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CalendarDays, CheckCircle2, Percent, Wallet } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { formatBDT } from "@/data/loans";
+import { formatBDT } from "@/lib/format";
 import type { LoanRequest } from "@/data/types";
 
 export function LoanOfferModal({

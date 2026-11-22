@@ -57,7 +57,7 @@ export type LoanRequest = {
   highlights: string[];
 };
 
-export type OfferStatus = "pending" | "negotiating" | "accepted" | "declined";
+export type OfferStatus = "pending" | "negotiating" | "accepted" | "declined" | "withdrawn";
 
 export type LoanOffer = {
   id: string;
@@ -70,6 +70,10 @@ export type LoanOffer = {
   status: OfferStatus;
   note: string;
   createdAt: string;
+  /** Terms proposed back by the business owner while negotiating. */
+  counter?: { amount: number; rate: number; tenureMonths: number; note: string };
+  /** Who acted last, so each side knows whose turn it is. */
+  lastActionBy?: "investor" | "owner";
 };
 
 export type Connection = {
@@ -127,4 +131,46 @@ export type VerificationCase = {
   documents: string[];
   risk: "low" | "medium" | "high";
   status: "pending" | "approved" | "rejected";
+};
+
+/** The signed-in member returned by the API: public profile plus private account fields. */
+export type SessionUser = Person & { email: string; phone?: string; businessId?: string };
+
+// ---------- API views ----------
+// Shapes returned by the API (see docs/API.md). Related records are embedded so
+// pages don't need follow-up requests. Timestamps are ISO 8601 strings.
+
+export type LoanRequestView = LoanRequest & { business: Business; owner: Person };
+
+export type LoanOfferView = LoanOffer & {
+  investor: Person;
+  request: Pick<LoanRequest, "id" | "title" | "amount" | "status"> & { business: Pick<Business, "id" | "name" | "category" | "ownerId"> };
+};
+
+export type AgreementView = {
+  status: "draft" | "agreed";
+  loan: LoanRequestView;
+  offer: LoanOfferView;
+};
+
+export type ThreadView = {
+  id: string;
+  subject: string;
+  other: Person;
+  /** The other member's business, when they are a business owner. */
+  business: Pick<Business, "id" | "name"> | null;
+  loanRequestId: string | null;
+  lastMessage: string;
+  lastMessageAt: string;
+  unread: number;
+};
+
+export type MessageView = {
+  id: string;
+  threadId: string;
+  senderId: string;
+  text: string;
+  kind: "text" | "offer" | "system";
+  offerId: string | null;
+  createdAt: string;
 };

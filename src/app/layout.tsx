@@ -1,5 +1,14 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+
+// Self-hosted at build time: no render-blocking request to Google Fonts and no layout shift.
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-jakarta",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -8,19 +17,16 @@ export const metadata: Metadata = {
   },
   description:
     "Connect verified Bangladeshi small businesses with investors. Make direct loan offers, negotiate terms and track repayments.",
+  icons: { icon: "/images/logo.svg" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f8f9ff",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" className={jakarta.variable}>
       <body>{children}</body>
     </html>
   );

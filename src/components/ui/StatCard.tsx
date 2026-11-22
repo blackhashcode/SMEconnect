@@ -24,14 +24,19 @@ export function StatCard({
   };
 
   return (
-    <div className={cn("flex items-start gap-space-md rounded-2xl bg-surface-container-lowest p-space-lg card-shadow", className)}>
+    <div
+      className={cn(
+        "flex items-start gap-space-md rounded-2xl bg-surface-container-lowest p-space-md card-shadow transition-shadow duration-300 hover:shadow-card-hover md:p-space-lg",
+        className,
+      )}
+    >
       <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tones[tone])}>
         <Icon className="h-5 w-5" aria-hidden />
       </span>
       <div className="min-w-0">
-        <p className="text-label-sm font-semibold text-outline">{label}</p>
-        <p className="mt-0.5 text-numeric-stat text-on-surface">{value}</p>
-        {hint && <p className="mt-0.5 text-body-sm text-on-surface-variant">{hint}</p>}
+        <p className="text-label-sm font-semibold uppercase tracking-wide text-outline">{label}</p>
+        <p className="mt-1 whitespace-nowrap text-numeric-stat text-on-surface">{value}</p>
+        {hint && <p className="mt-0.5 line-clamp-2 text-body-sm text-on-surface-variant">{hint}</p>}
       </div>
     </div>
   );

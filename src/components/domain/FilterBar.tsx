@@ -1,6 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
 import { Search, SlidersHorizontal } from "lucide-react";
-import { images } from "@/data/images";
 
 export function FilterBar({
   placeholder = "Search verified shops, investors and loans…",
@@ -21,7 +19,6 @@ export function FilterBar({
       <button type="button" className="flex items-center gap-2 rounded-full bg-surface-container-lowest px-space-md py-2.5 text-label-md font-semibold text-on-surface-variant card-shadow hover:text-primary">
         <SlidersHorizontal className="h-4 w-4" aria-hidden /> Filters
       </button>
-      <img src={images["nusrat-avatar"]} alt="Your profile" className="h-10 w-10 rounded-full object-cover ring-2 ring-surface" />
     </div>
   );
 }

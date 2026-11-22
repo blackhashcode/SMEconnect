@@ -7,9 +7,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { BusinessCard } from "./BusinessCard";
 import { InvestorCard } from "./InvestorCard";
 import { LoanCard } from "./LoanCard";
-import { businesses } from "@/data/businesses";
-import { people } from "@/data/users";
-import { loanRequests, formatBDT } from "@/data/loans";
+import type { Business, LoanRequestView, Person } from "@/data/types";
 import { cn } from "@/lib/cn";
 
 const tabs = [
@@ -21,11 +19,11 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-export function ExploreBrowser() {
+export function ExploreBrowser({ businesses, people, loans }: { businesses: Business[]; people: Person[]; loans: LoanRequestView[] }) {
   const [active, setActive] = useState<TabId>("all");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All categories");
-  const categories = useMemo(() => ["All categories", ...new Set(businesses.map((business) => business.category))], []);
+  const categories = useMemo(() => ["All categories", ...new Set(businesses.map((business) => business.category))], [businesses]);
 
   const filteredBusinesses = businesses.filter((business) => {
     const matchesQuery = `${business.name} ${business.category} ${business.location} ${business.tagline}`.toLowerCase().includes(query.toLowerCase());
@@ -35,10 +33,9 @@ export function ExploreBrowser() {
     const matchesQuery = `${person.name} ${person.headline} ${person.location}`.toLowerCase().includes(query.toLowerCase());
     return person.role === "investor" && matchesQuery;
   });
-  const filteredLoans = loanRequests.filter((loan) => {
-    const matchesQuery = `${loan.title} ${loan.purpose}`.toLowerCase().includes(query.toLowerCase());
-    const business = businesses.find((item) => item.id === loan.businessId);
-    return matchesQuery && (category === "All categories" || business?.category === category);
+  const filteredLoans = loans.filter((loan) => {
+    const matchesQuery = `${loan.title} ${loan.purpose} ${loan.business.name}`.toLowerCase().includes(query.toLowerCase());
+    return matchesQuery && (category === "All categories" || loan.business.category === category);
   });
 
   const showBusinesses = active === "all" || active === "businesses";
@@ -55,7 +52,7 @@ export function ExploreBrowser() {
             <h1 className="mt-1 text-headline-lg text-on-surface">Find verified businesses and investors</h1>
             <p className="mt-1 text-body-md text-on-surface-variant">Search by shop, founder, location or loan purpose. All profiles are identity checked.</p>
           </div>
-          <Badge tone="success"><Star className="h-3.5 w-3.5 fill-current" aria-hidden /> {businesses.length} verified shops</Badge>
+          <Badge tone="success"><Star className="h-3.5 w-3.5 fill-current" aria-hidden /> {businesses.filter((business) => business.verified).length} verified shops</Badge>
         </div>
 
         <div className="mt-space-md flex flex-col gap-space-sm sm:flex-row">
@@ -83,7 +80,7 @@ export function ExploreBrowser() {
         </div>
       </div>
 
-      <div className="mt-space-md grid gap-space-lg lg:grid-cols-[260px_1fr]">
+      <div className="mt-space-md grid gap-space-lg lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="space-y-space-md">
           <div className="rounded-2xl bg-surface-container-lowest p-space-md card-shadow">
             <p className="mb-space-sm text-label-sm font-bold uppercase tracking-wider text-outline">Browse by</p>
@@ -120,7 +117,9 @@ export function ExploreBrowser() {
               <section>
                 {active !== "all" && <h2 className="mb-space-sm flex items-center gap-2 text-headline-sm text-on-surface"><Building2 className="h-5 w-5 text-primary" aria-hidden /> Businesses</h2>}
                 <div className="grid gap-space-md sm:grid-cols-2 xl:grid-cols-3">
-                  {filteredBusinesses.map((business) => <BusinessCard key={business.id} business={business} />)}
+                  {filteredBusinesses.map((business) => (
+                    <BusinessCard key={business.id} business={business} ownerName={people.find((person) => person.id === business.ownerId)?.name} />
+                  ))}
                 </div>
               </section>
             )}
@@ -157,4 +156,3 @@ export function ExploreBrowser() {
   );
 }
 
-export const exploreTotalValue = formatBDT(loanRequests.reduce((sum, loan) => sum + loan.amount, 0));
