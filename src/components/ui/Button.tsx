@@ -6,23 +6,25 @@ type Variant = "primary" | "secondary" | "outline" | "ghost" | "soft" | "success
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-on-primary hover:bg-primary-container shadow-sm",
+  primary: "bg-primary text-on-primary shadow-sm hover:bg-primary-container hover:shadow-card-hover",
   secondary:
-    "bg-gradient-to-r from-secondary-container to-secondary text-on-primary shadow-cta hover:shadow-cta-hover",
-  outline: "border border-outline-variant bg-surface-container-lowest text-primary hover:bg-surface-container-low",
+    "bg-gradient-to-r from-secondary-container to-secondary text-on-secondary shadow-cta hover:shadow-cta-hover hover:brightness-105",
+  outline:
+    "border border-outline-variant bg-surface-container-lowest text-primary hover:border-primary/40 hover:bg-surface-container-low",
   ghost: "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
   soft: "bg-surface-container-high text-primary hover:bg-surface-container-highest",
-  success: "bg-success-container text-success hover:bg-success/10",
+  success: "bg-success-container text-success hover:bg-success hover:text-white",
 };
 
+// Fixed heights keep buttons aligned when placed side by side, whatever their contents.
 const sizes: Record<Size, string> = {
-  sm: "px-3.5 py-2 text-label-sm",
-  md: "px-space-md py-2.5 text-label-md",
-  lg: "px-space-xl py-3.5 text-label-md",
+  sm: "h-9 px-4 text-label-md",
+  md: "h-11 px-5 text-label-md",
+  lg: "h-12 px-7 text-body-md font-bold",
 };
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex shrink-0 select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold leading-none transition-all duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&>svg]:shrink-0";
 
 type CommonProps = {
   variant?: Variant;
@@ -32,19 +34,23 @@ type CommonProps = {
 };
 
 type ButtonProps = CommonProps & ButtonHTMLAttributes<HTMLButtonElement>;
-type LinkButtonProps = CommonProps & { href: string; onClick?: () => void };
+type LinkButtonProps = CommonProps & { href: string; onClick?: () => void; prefetch?: boolean };
 
-export function Button({ variant = "primary", size = "md", className, children, ...props }: ButtonProps) {
+export function buttonClasses({ variant = "primary", size = "md", className }: { variant?: Variant; size?: Size; className?: string } = {}) {
+  return cn(base, variants[variant], sizes[size], className);
+}
+
+export function Button({ variant = "primary", size = "md", className, children, type = "button", ...props }: ButtonProps) {
   return (
-    <button className={cn(base, variants[variant], sizes[size], className)} {...props}>
+    <button type={type} className={buttonClasses({ variant, size, className })} {...props}>
       {children}
     </button>
   );
 }
 
-export function LinkButton({ variant = "primary", size = "md", className, href, children, onClick }: LinkButtonProps) {
+export function LinkButton({ variant = "primary", size = "md", className, href, children, onClick, prefetch }: LinkButtonProps) {
   return (
-    <Link href={href} onClick={onClick} className={cn(base, variants[variant], sizes[size], className)}>
+    <Link href={href} onClick={onClick} prefetch={prefetch} className={buttonClasses({ variant, size, className })}>
       {children}
     </Link>
   );

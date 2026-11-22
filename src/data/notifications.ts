@@ -73,8 +73,8 @@ export const notifications: AppNotification[] = [
     body: "Your ৳150,000 loan for the first kitchen expansion is fully repaid. Thank you for the on-time record.",
     time: "1 week ago",
     unread: false,
-    actionLabel: "View agreement",
-    href: "/loans/lr-completed/agreement",
+    actionLabel: "View repayment record",
+    href: "/business-dashboard",
   },
   {
     id: "nt-8",

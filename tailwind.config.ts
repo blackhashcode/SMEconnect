@@ -57,8 +57,8 @@ const config: Config = {
         warning: "#f59e0b",
       },
       fontFamily: {
-        sans: ["Plus Jakarta Sans", "ui-sans-serif", "system-ui", "sans-serif"],
-        "numeric-stat": ["Plus Jakarta Sans", "ui-sans-serif", "sans-serif"],
+        sans: ["var(--font-jakarta)", "Plus Jakarta Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+        "numeric-stat": ["var(--font-jakarta)", "Plus Jakarta Sans", "ui-sans-serif", "sans-serif"],
       },
       fontSize: {
         "numeric-stat": ["24px", { lineHeight: "30px", letterSpacing: "-0.02em", fontWeight: "800" }],
@@ -102,14 +102,47 @@ const config: Config = {
         cta: "0 8px 24px rgba(253, 106, 73, 0.32)",
         "cta-hover": "0 12px 28px rgba(253, 106, 73, 0.45)",
       },
+      transitionTimingFunction: {
+        "out-expo": "cubic-bezier(0.16, 1, 0.3, 1)",
+      },
       keyframes: {
         "fade-in": {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "page-in": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          from: { opacity: "0", transform: "translateY(12px) scale(0.97)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "overlay-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "grow-x": {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+        shimmer: {
+          from: { backgroundPosition: "200% 0" },
+          to: { backgroundPosition: "-200% 0" },
+        },
       },
       animation: {
-        "fade-in": "fade-in 240ms ease-out",
+        "fade-in": "fade-in 280ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "page-in": "page-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "scale-in": "scale-in 320ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "overlay-in": "overlay-in 200ms ease-out both",
+        "grow-x": "grow-x 900ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        float: "float 6s ease-in-out infinite",
+        shimmer: "shimmer 1.6s linear infinite",
       },
     },
   },

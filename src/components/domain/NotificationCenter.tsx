@@ -26,7 +26,7 @@ export function NotificationCenter() {
   const unread = notifications.filter((item) => item.unread).length;
 
   return (
-    <div className="grid gap-space-lg lg:grid-cols-[1fr_300px]">
+    <div className="grid gap-space-lg lg:grid-cols-[minmax(0,1fr)_300px]">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-space-sm">
           <Tabs items={[...tabs]} active={active} onChange={setActive} className="max-w-full flex-1" />

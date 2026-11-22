@@ -2,12 +2,12 @@ import Link from "next/link";
 import { ArrowUpRight, MapPin, Star } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { VerifiedBadge } from "@/components/ui/Badge";
-import { formatBDT } from "@/data/loans";
+import { formatBDT } from "@/lib/format";
 import type { Person } from "@/data/types";
 
 export function InvestorCard({ investor }: { investor: Person }) {
   return (
-    <article className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
+    <article className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow card-interactive">
       <div className="flex items-start gap-space-md">
         <Avatar src={investor.avatar} alt={investor.name} size="lg" />
         <div className="min-w-0 flex-1">

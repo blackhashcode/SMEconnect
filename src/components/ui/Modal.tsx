@@ -27,7 +27,13 @@ export function Modal({
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    // Lock background scroll while the dialog is open.
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -38,14 +44,14 @@ export function Modal({
         type="button"
         aria-label="Close dialog"
         onClick={onClose}
-        className="absolute inset-0 bg-inverse-surface/50 backdrop-blur-sm"
+        className="absolute inset-0 animate-overlay-in bg-inverse-surface/50 backdrop-blur-sm"
       />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-3xl bg-surface-container-lowest shadow-card-hover animate-fade-in",
+          "relative z-10 max-h-[90vh] w-full animate-scale-in overflow-y-auto overscroll-contain rounded-3xl bg-surface-container-lowest shadow-card-hover",
           size === "lg" ? "max-w-3xl" : "max-w-xl",
         )}
       >
