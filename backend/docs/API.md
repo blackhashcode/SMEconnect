@@ -40,6 +40,12 @@ Reports API and PostgreSQL connectivity. No authentication required.
 }
 ```
 
+## Data model
+
+The Phase 1 relational model, ER diagram and schema decisions are documented in
+[`docs/DATABASE.md`](./DATABASE.md). No auth or business endpoints were added in
+Phase 1.
+
 ## Modules (added in later phases)
 
 Auth & verification, profiles, loan requests, feed/networking, discovery, messaging,
