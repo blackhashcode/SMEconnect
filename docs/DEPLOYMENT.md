@@ -45,6 +45,13 @@ real business, move to Vercel Pro or another host. The code doesn't depend on Ve
    Both should end in `?sslmode=require`.
 3. Nothing else to do here: the backend's build applies the migrations automatically.
 
+**Using the Neon CLI instead** (already done for this repo): `neon.ts` and `.neon` link the repo to
+the project. `neon env pull` writes `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct)
+to a git-ignored root `.env.local`. The backend accepts either `DIRECT_URL` or
+`DATABASE_URL_UNPOOLED` for migrations, so on Vercel you can use Neon's names directly. To apply
+migrations from your machine: load `.env.local` into the shell, then run
+`pnpm exec prisma migrate deploy` in `backend/`.
+
 ## 2. Email: Brevo
 
 1. Sign up at [brevo.com](https://www.brevo.com) (free plan).

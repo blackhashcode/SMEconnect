@@ -11,6 +11,7 @@ export default defineConfig({
     // CLI only (migrate/seed/studio). Hosted Postgres poolers (e.g. Neon's "-pooler"
     // host) don't suit migrations, so DIRECT_URL can point at the direct host.
     // The running app always uses DATABASE_URL (src/server/db.ts).
-    url: process.env.DIRECT_URL || process.env.DATABASE_URL || "",
+    // `neon env pull` names the direct string DATABASE_URL_UNPOOLED.
+    url: process.env.DIRECT_URL || process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "",
   },
 });
