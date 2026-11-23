@@ -1,3 +1,4 @@
+import "@/server/openapi/setup";
 import { z } from "zod";
 import { isoDateTimeSchema } from "@/server/validators/common";
 

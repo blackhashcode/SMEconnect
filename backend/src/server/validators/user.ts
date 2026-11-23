@@ -1,3 +1,4 @@
+import "@/server/openapi/setup";
 import { z } from "zod";
 import { optionalTextSchema, shortTextSchema, urlSchema } from "@/server/validators/common";
 import { userStatusSchema } from "@/server/validators/enums";

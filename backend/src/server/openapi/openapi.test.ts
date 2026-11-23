@@ -9,8 +9,15 @@ import {
   isApiDocsEnabled,
 } from "@/server/openapi/config";
 import { generateOpenApiDocument } from "@/server/openapi/document";
+import {
+  AUTH_PATHS,
+  GET_SESSION_PATH,
+  SIGN_UP_EMAIL_PATH,
+  UPDATE_USER_PATH,
+} from "@/server/openapi/routes/auth";
 import { HEALTH_OPERATION_ID, HEALTH_PATH } from "@/server/openapi/routes/health";
 import {
+  authErrorSchema,
   errorEnvelopeSchema,
   healthSuccessEnvelopeSchema,
   paginationQuerySchema,
@@ -146,14 +153,18 @@ describe("OpenAPI document generation", () => {
     expect(document.components?.parameters?.IdPathParam).toBeDefined();
     expect(document.components?.responses?.ValidationErrorResponse).toBeDefined();
     expect(document.components?.responses?.DatabaseUnavailableResponse).toBeDefined();
+    expect(document.components?.responses?.AuthErrorResponse).toBeDefined();
   });
 });
 
 describe("health endpoint documentation", () => {
-  it("documents only the real health route", () => {
+  it("documents the real health and auth routes only", () => {
     const document = generate();
 
-    expect(Object.keys(document.paths ?? {})).toEqual([HEALTH_PATH]);
+    expect(Object.keys(document.paths ?? {})).toEqual([
+      HEALTH_PATH,
+      ...AUTH_PATHS,
+    ]);
     expect(document.paths?.[HEALTH_PATH]?.get).toBeDefined();
   });
 
@@ -199,6 +210,59 @@ describe("health endpoint documentation", () => {
 
     expect(source).toContain("export async function GET");
     expect(generate().paths?.[HEALTH_PATH]?.get).toBeDefined();
+  });
+});
+
+describe("Better Auth endpoint documentation", () => {
+  it("documents every enabled product auth path with its actual method", () => {
+    const document = generate();
+
+    for (const path of AUTH_PATHS) {
+      const expectedMethod = path === GET_SESSION_PATH ? "get" : "post";
+      const methods = Object.keys(document.paths?.[path] ?? {});
+
+      expect(methods).toEqual([expectedMethod]);
+    }
+  });
+
+  it("documents signup role restrictions and native Better Auth errors", () => {
+    const document = generate();
+    const signUp = document.paths?.[SIGN_UP_EMAIL_PATH]?.post;
+    const requestBody = signUp?.requestBody as
+      | { content?: Record<string, { schema?: { $ref?: string } }> }
+      | undefined;
+
+    expect(signUp?.tags).toEqual(["Authentication"]);
+    expect(signUp?.security).toEqual([]);
+    expect(signUp?.summary).toContain("OWNER or INVESTOR");
+    expect(requestBody?.content?.["application/json"]?.schema?.$ref).toBe(
+      "#/components/schemas/SignUpEmailRequest",
+    );
+    expect(document.components?.schemas?.SignupRole).toBeDefined();
+
+    const authErrorResponse = document.components?.responses?.AuthErrorResponse as
+      | { content?: Record<string, { example?: unknown }> }
+      | undefined;
+    expect(
+      authErrorSchema.safeParse(
+        authErrorResponse?.content?.["application/json"]?.example,
+      ).success,
+    ).toBe(true);
+  });
+
+  it("uses the session cookie for authenticated endpoints", () => {
+    const document = generate();
+    const expected = [{ [SECURITY_SCHEME_NAME]: [] }];
+
+    expect(document.paths?.[GET_SESSION_PATH]?.get?.security).toEqual(expected);
+    expect(document.paths?.[UPDATE_USER_PATH]?.post?.security).toEqual(expected);
+  });
+
+  it("does not document disabled token-based auth paths", () => {
+    const document = generate();
+
+    expect(document.paths?.["/api/v1/auth/verify-email"]).toBeUndefined();
+    expect(document.paths?.["/api/v1/auth/reset-password"]).toBeUndefined();
   });
 });
 
