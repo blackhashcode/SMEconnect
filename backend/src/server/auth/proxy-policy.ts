@@ -17,6 +17,8 @@ export const PROTECTED_API_PREFIXES = [
   "/api/v1/messages",
   "/api/v1/offers",
   "/api/v1/agreements",
+  "/api/v1/repayments",
+  "/api/v1/loans",
 ] as const;
 
 export function isProtectedApiPath(pathname: string): boolean {

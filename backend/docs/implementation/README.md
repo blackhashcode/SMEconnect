@@ -20,7 +20,8 @@ as proof that a report exists.
 | 5 — Feed, networking & discovery | [PHASE_05_FEED_NETWORKING_DISCOVERY.md](./PHASE_05_FEED_NETWORKING_DISCOVERY.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
 | 6 — Messaging | [PHASE_06_MESSAGING.md](./PHASE_06_MESSAGING.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
 | 7 — Offers and agreements | [PHASE_07_OFFERS_AGREEMENTS.md](./PHASE_07_OFFERS_AGREEMENTS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 8+ — Repayments, reputation, admin | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
+| 8 — Repayment tracking | [PHASE_08_REPAYMENT_TRACKING.md](./PHASE_08_REPAYMENT_TRACKING.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
+| 9+ — Reputation, notifications, admin | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
 
 Related reading:
 

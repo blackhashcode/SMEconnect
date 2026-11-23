@@ -17,6 +17,8 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
+    "job:overdue": "tsx src/jobs/overdue.ts",
+    "job:reminders": "tsx src/jobs/reminders.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

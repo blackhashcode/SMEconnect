@@ -33,6 +33,11 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/offers/off_1/accept",
     "/api/v1/agreements/agr_1",
     "/api/v1/agreements/agr_1/confirm",
+    "/api/v1/repayments",
+    "/api/v1/repayments/rep_1",
+    "/api/v1/repayments/rep_1/mark-paid",
+    "/api/v1/repayments/rep_1/confirm",
+    "/api/v1/loans/loan_1",
   ])("pre-filters %s", (path) => {
     expect(isProtectedApiPath(path)).toBe(true);
   });
