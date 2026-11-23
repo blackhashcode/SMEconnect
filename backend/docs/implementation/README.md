@@ -23,7 +23,7 @@ as proof that a report exists.
 | 8 — Repayment tracking | [PHASE_08_REPAYMENT_TRACKING.md](./PHASE_08_REPAYMENT_TRACKING.md) | Implemented | `5790c8e` |
 | 9 — Reputation, notifications & dashboards | [PHASE_09_REPUTATION_NOTIFICATIONS_DASHBOARDS.md](./PHASE_09_REPUTATION_NOTIFICATIONS_DASHBOARDS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
 | 10 — Admin | [PHASE_10_ADMIN.md](./PHASE_10_ADMIN.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 11 — Seed, final docs & hardening | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
+| 11 — Seed, final docs & hardening | [PHASE_11_SEED_DOCS_HARDENING.md](./PHASE_11_SEED_DOCS_HARDENING.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
 
 Related reading:
 

@@ -17,15 +17,17 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
     const visibility = fileVisibilitySchema.parse(rawVisibility);
     const fileId = fileIdSchema.parse(rawFileId);
 
-    const file = await getStorageProvider().read(visibility, fileId);
-    if (!file) throw new NotFoundError("File not found");
-
+    // Authorize before touching storage so unauthenticated/foreign private
+    // requests cannot probe the filesystem at all.
     if (visibility === "private") {
       const session = await requireSession();
       const url = `/api/v1/files/private/${fileId}`;
       const allowed = await canAccessPrivateFile(url, session.user as Actor);
       if (!allowed) throw new ForbiddenError("You do not own this file");
     }
+
+    const file = await getStorageProvider().read(visibility, fileId);
+    if (!file) throw new NotFoundError("File not found");
 
     return new NextResponse(new Uint8Array(file.data), {
       status: 200,

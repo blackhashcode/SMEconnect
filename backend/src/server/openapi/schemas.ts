@@ -384,6 +384,23 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["AdminCommentRecord", validators.adminCommentRecordSchema],
   ["AdminDeleteResult", validators.adminDeleteResultSchema],
   ["AdminStats", validators.adminStatsSchema],
+  ["AdminUserListSuccessEnvelope", adminUserListSuccessEnvelopeSchema],
+  ["AdminUserDetailSuccessEnvelope", adminUserDetailSuccessEnvelopeSchema],
+  [
+    "AdminUserStatusResultSuccessEnvelope",
+    adminUserStatusResultSuccessEnvelopeSchema,
+  ],
+  ["AdminReportListSuccessEnvelope", adminReportListSuccessEnvelopeSchema],
+  ["AdminReportDetailSuccessEnvelope", adminReportDetailSuccessEnvelopeSchema],
+  [
+    "AdminReportResolutionSuccessEnvelope",
+    adminReportResolutionSuccessEnvelopeSchema,
+  ],
+  ["AdminModerationActionSuccessEnvelope", adminModerationActionSuccessEnvelopeSchema],
+  ["AdminPostListSuccessEnvelope", adminPostListSuccessEnvelopeSchema],
+  ["AdminCommentListSuccessEnvelope", adminCommentListSuccessEnvelopeSchema],
+  ["AdminDeleteResultSuccessEnvelope", adminDeleteResultSuccessEnvelopeSchema],
+  ["AdminStatsSuccessEnvelope", adminStatsSuccessEnvelopeSchema],
 
   // Profile requests and responses
   ["ProfileImageUrl", validators.profileImageUrlSchema],

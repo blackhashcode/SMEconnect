@@ -141,17 +141,34 @@ OTP values are never logged.
   or verification state to alter authorization.
 - Roles: `OWNER` and `INVESTOR` act on their own resources; `ADMIN` can review verifications
   and read private verification files. Admin bypass of ownership is always explicit.
-- `requireVerifiedUser(...roles)` is the gate for future actions that require KYC approval.
-  It checks `UserVerification.status === "APPROVED"` for the actor's role. Verification
-  submission itself is deliberately available to unverified users.
+- `requireVerifiedUser(...roles)` is the gate for KYC-required actions such as publishing a
+  loan request or sending an offer. It checks `UserVerification.status === "APPROVED"` for the
+  actor's role. Verification submission itself is deliberately available to unverified users.
 - Public endpoints remain `/api/v1/health`, `/api/v1/auth/*`, `/api/docs`, `/docs`, public
   files, public profiles (`/api/v1/profiles/{userId}`), public loan requests
   (`/api/v1/loan-requests*`), public review reads (`/api/v1/reviews*`) and the root page.
-  Owner-scoped loan request paths under `/api/v1/me/loan-requests*`, the Phase 8 prefixes
-  `/api/v1/repayments*` and `/api/v1/loans/*`, and the Phase 9 prefixes
-  `/api/v1/reports*`, `/api/v1/notifications*`, `/api/v1/blocks*` and `/api/v1/dashboard/*`
+  Owner-scoped loan request paths under `/api/v1/me/loan-requests*`, the lending prefixes
+  `/api/v1/repayments*`, `/api/v1/loans/*`, `/api/v1/offers*` and `/api/v1/agreements*`, and the
+  reputation prefixes `/api/v1/reports*`, `/api/v1/notifications*`, `/api/v1/blocks*` and
+  `/api/v1/dashboard/*`
   are protected by the same prefilter as the rest of the private API. Review writes have their
   own `requireRole` guard even though review reads are public.
+
+## Rate limiting and input sanitization
+
+- Better Auth rate-limits all `/api/v1/auth/*` routes (10 requests/10 seconds by default, with
+  tighter sign-up and sign-in rules). Email OTP sends and verifications use the OTP service's
+  cooldown and attempt limits.
+- Message sends (`POST /api/v1/conversations/{id}/messages`) are limited per authenticated
+  user to 30 requests per 60 seconds by default. Tune with `MESSAGE_RATE_LIMIT_MAX` and
+  `MESSAGE_RATE_LIMIT_WINDOW_SECONDS`. Exceeding any limit returns 429 with
+  `{ "error": { "code": "RATE_LIMITED", "message": "...", "details": { "retryAfterSeconds": 12 } } }`.
+  The message limiter is in-process; use a shared store when running multiple API instances.
+- Every client-authored text field (posts, comments, messages, offers, reviews, reports,
+  profiles and notes) is trimmed of HTML-like markup and control characters by shared Zod
+  schemas before it reaches a service. Stored content is plain text, never rendered as HTML.
+- Unknown query keys and client-sent `userId`, `role`, `status` or server-computed amounts are
+  rejected by strict validators. Pagination is capped at 50 items per page.
 
 ## Phone OTP
 
@@ -192,14 +209,18 @@ Verify:
 
 - Files are written under `UPLOAD_DIR` (default `./uploads`), outside `public/`, behind a
   `StorageProvider`. `STORAGE_PROVIDER=local` is the only implemented provider.
-- Allowed types: JPEG, PNG, WebP and PDF. Maximum size: 5 MB. Filenames are randomized UUIDs
-  with an extension derived from the MIME type; client filenames are ignored.
+- Allowed types: JPEG, PNG, WebP and PDF. Maximum size: 5 MB. Oversized requests are rejected
+  from the `Content-Length` header before the multipart body is buffered, and again from the
+  parsed `File.size`. Filenames are randomized UUIDs with an extension derived from the MIME
+  type; client filenames are ignored.
 - `purpose` determines visibility: `ID_DOCUMENT` and `SALES_PROOF` are private;
   `AVATAR` and `PRODUCT_IMAGE` are public.
 - The upload response contains a relative `url`. Private URLs are under
   `/api/v1/files/private/...` and are never exposed through a public static path.
-- Public files are served without a session with immutable cache headers. Private files
-  require the authenticated verification owner or an ADMIN; all other callers get 403.
+- Public files are served without a session with immutable cache headers. Private files are
+  authorized before storage is read. They are readable only by the authenticated verification
+  owner, a party to the loan whose repayment proof it is, or an ADMIN; all other callers get
+  403. Randomized URLs are never treated as authorization by themselves.
 
 Upload example (multipart fields):
 
@@ -417,7 +438,7 @@ Request example:
 }
 ```
 
-## Feed, posts, networking and discovery (Phase 5)
+## Feed, posts, networking and discovery
 
 ### Feed and posts
 
@@ -529,7 +550,7 @@ duplicating it here.
 No new endpoint was added. `GET /api/v1/loan-requests` remains the canonical public listing of
 OPEN requests with category/location/amount/tenure filters, sorting and cursor pagination.
 
-## Conversations and messaging (Phase 6)
+## Conversations and messaging
 
 All endpoints below require an authenticated `OWNER` or `INVESTOR` session. The acting user is
 always taken from the session; client-supplied `senderId`, `userId`, `role` or `conversationId`
@@ -593,7 +614,7 @@ curl -X POST http://localhost:3000/api/v1/conversations/con_123/read
 curl -X DELETE http://localhost:3000/api/v1/messages/msg_123
 ```
 
-## Offers and agreements (Phase 7)
+## Offers and agreements
 
 All endpoints below require an authenticated `OWNER` or `INVESTOR` session. The acting user is
 always the session user; client-supplied `investorId`, `ownerId`, `proposedBy`, `status`,
@@ -682,7 +703,7 @@ curl http://localhost:3000/api/v1/agreements/agr_123
 curl -X POST http://localhost:3000/api/v1/agreements/agr_123/confirm
 ```
 
-## Repayments and loan history (Phase 8)
+## Repayments and loan history
 
 All endpoints below require an authenticated, role-`APPROVED` `OWNER` or `INVESTOR` session and
 verify that the session user is a participant of the underlying loan. A non-participant receives
@@ -759,7 +780,7 @@ curl -X POST http://localhost:3000/api/v1/repayments/rep_1/confirm
 curl http://localhost:3000/api/v1/loans/loan_123
 ```
 
-## Reputation, notifications and dashboards (Phase 9)
+## Reputation, notifications and dashboards
 
 ### Reviews and trust score
 
@@ -903,7 +924,7 @@ Reports API and PostgreSQL connectivity. No authentication required.
 }
 ```
 
-## Administration (Phase 10)
+## Administration
 
 All endpoints below require `requireRole("ADMIN")` at the route and `assertRole("ADMIN")` in the
 service. `OWNER` and `INVESTOR` sessions receive `403 FORBIDDEN`; missing sessions receive
@@ -998,23 +1019,24 @@ moderation/report/suspension value, so these admin actions emit no new notificat
 
 ## Data model
 
-The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–9 endpoints reuse that schema without Prisma
+The relational model, ER diagram and schema decisions are documented in
+[`docs/DATABASE.md`](./DATABASE.md). All implemented endpoints reuse that schema without Prisma
 changes: `UserVerification` stores KYC state, `Verification` stores phone OTP challenges,
 `Notification` stores verification and lending events, `BusinessProfile`, `InvestorProfile` and
 `ProductImage` store profile data, `LoanRequest` stores requests, `Post` stores both
 auto-generated and user-created feed entries, `Comment`, `Like`, `Follow` and `Connection`
-store Phase 5 interactions, `Conversation`, `Message` and `MessageDeletion` store Phase 6
-threads and per-user soft deletions, `Offer`, `Loan`, `Agreement` and `Repayment` store the
-Phase 7 lending flow and Phase 8 repayment tracking, and `Review`, `Report` and `Block` store the
-Phase 9 reputation and safety features. The one-active-request rule is enforced by the existing partial unique
-index `loan_request_one_active_per_owner`; the one-pending-offer rule uses
+store social interactions, `Conversation`, `Message` and `MessageDeletion` store threads and
+per-user soft deletions, `Offer`, `Loan`, `Agreement` and `Repayment` store the lending flow and
+repayment tracking, and `Review`, `Report` and `Block` store reputation and safety features. The
+one-active-request rule is enforced by the partial unique index
+`loan_request_one_active_per_owner`; the one-pending-offer rule uses
 `offer_one_pending_per_investor_per_request`.
 
-## Modules (added in later phases)
+## Module status
 
-Messaging (Phase 6), offers & agreement (Phase 7), repayment tracking (Phase 8), Phase 9
-reviews, reports, blocks, notification inbox endpoints and role dashboards, and Phase 10
-administration are implemented above. Repayment schedule generation remains shared by Phase 7's agreement confirmation; Phase 8 adds the
-tracking endpoints and jobs but does not add a payment gateway. Block/unblock endpoints are Phase 9
-and are intentionally not implemented in Phase 6.
+Every module in the functional checklist is implemented above: registration/authentication,
+verification and trust, owner and investor profiles, loan requests, feed and networking,
+discovery, messaging, offers and agreements, repayment tracking, reputation, notifications,
+dashboards and administration. Repayment schedule generation is shared by agreement confirmation
+and the tracking endpoints. No payment gateway is integrated; repayments are recorded by the
+owner and confirmed by the investor.

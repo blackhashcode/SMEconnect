@@ -1,5 +1,6 @@
 import "@/server/openapi/setup";
 import { z } from "zod";
+import { sanitizePlainText } from "@/lib/sanitize";
 
 /** PostgreSQL INTEGER upper bound; BDT amounts are whole-taka Int values. */
 export const MAX_BDT = 2_147_483_647;
@@ -18,9 +19,23 @@ export const plainDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD");
 
-export const shortTextSchema = z.string().trim().min(1).max(200);
-export const longTextSchema = z.string().trim().min(1).max(5000);
-export const optionalTextSchema = z.string().trim().max(5000).optional();
+/** All client-authored text is sanitized before it reaches the service layer. */
+export const shortTextSchema = z
+  .string()
+  .max(200)
+  .transform(sanitizePlainText)
+  .pipe(z.string().min(1).max(200));
+export const longTextSchema = z
+  .string()
+  .max(5000)
+  .transform(sanitizePlainText)
+  .pipe(z.string().min(1).max(5000));
+export const optionalTextSchema = z
+  .string()
+  .max(5000)
+  .transform(sanitizePlainText)
+  .pipe(z.string().max(5000))
+  .optional();
 
 export const bdtAmountSchema = z.number().int().min(0).max(MAX_BDT);
 export const positiveBdtSchema = z.number().int().positive().max(MAX_BDT);

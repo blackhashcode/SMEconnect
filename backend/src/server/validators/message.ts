@@ -1,17 +1,11 @@
 import "@/server/openapi/setup";
 import { z } from "zod";
+import { sanitizePlainText } from "@/lib/sanitize";
 import { idSchema, isoDateTimeSchema } from "@/server/validators/common";
 import { postAuthorSchema } from "@/server/validators/social";
 
-/** Removes HTML-like tags, control characters and excessive blank lines from plain text. */
-export function sanitizeMessageBody(value: string): string {
-  return value
-    .replace(/<[^>]*>/g, "")
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
+/** Backwards-compatible name for the shared plain-text sanitizer. */
+export const sanitizeMessageBody = sanitizePlainText;
 
 export const messageBodySchema = z
   .string()
