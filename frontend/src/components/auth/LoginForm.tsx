@@ -16,7 +16,7 @@ export function LoginForm({
 }: {
   nextPath: string;
   notice?: string;
-  /** Shows "Continue with Google" when the backend has Google sign-in configured. */
+  /** Whether the backend has Google sign-in configured (the button always shows). */
   googleEnabled?: boolean;
 }) {
   const router = useRouter();
@@ -61,12 +61,8 @@ export function LoginForm({
       {notice && !error && <FormAlert tone="success">{notice}</FormAlert>}
       {error && <FormAlert>{error}</FormAlert>}
 
-      {googleEnabled && (
-        <>
-          <GoogleButton nextPath={nextPath} />
-          <OrDivider />
-        </>
-      )}
+      <GoogleButton nextPath={nextPath} available={googleEnabled} />
+      <OrDivider />
 
       <FormField
         label="Email address"

@@ -27,15 +27,26 @@ export function GoogleButton({
   role,
   nextPath = "/feed",
   label = "Continue with Google",
+  available = true,
 }: {
   role?: "OWNER" | "INVESTOR";
   nextPath?: string;
   label?: string;
+  /** False until the backend has Google credentials; the button then explains instead of failing. */
+  available?: boolean;
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function start() {
+    if (!available) {
+      setError(
+        process.env.NODE_ENV === "production"
+          ? "Google sign-in is coming soon. Please use your email for now."
+          : "Google sign-in isn't configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to backend/.env and restart the backend (see docs/GOOGLE_AUTH.md).",
+      );
+      return;
+    }
     setPending(true);
     setError(null);
     const secure = window.location.protocol === "https:" ? "; Secure" : "";

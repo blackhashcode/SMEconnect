@@ -20,7 +20,8 @@ const roles = [
     description: "Show verified sales records, request the capital you need and compare direct offers.",
     perks: ["NID & trade licence verification", "Post a transparent loan request", "Connect with relevant investors"],
     icon: Building2,
-    image: images["textile-fair"],
+    image: images["signup-business"],
+    imagePosition: "object-[center_40%]",
     cta: "Create business profile",
   },
   {
@@ -29,7 +30,8 @@ const roles = [
     description: "Discover verified local shops, make direct loan offers and follow agreed repayments.",
     perks: ["Browse verified businesses", "Make offers with your own terms", "Track repayments in one dashboard"],
     icon: TrendingUp,
-    image: images["fruit-vendor"],
+    image: images["signup-investor"],
+    imagePosition: "object-[center_25%]",
     cta: "Create investor profile",
   },
 ] as const;
@@ -110,7 +112,7 @@ export function RoleSelector({ googleEnabled = false }: { googleEnabled?: boolea
             )}
           >
             <div className="relative h-44">
-              <Photo src={item.image} alt="" className="absolute inset-0" sizes="(min-width: 768px) 50vw, 100vw" priority zoomOnHover />
+              <Photo src={item.image} alt="" className="absolute inset-0" imgClassName={item.imagePosition} sizes="(min-width: 768px) 50vw, 100vw" priority zoomOnHover />
               <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface/70 via-inverse-surface/10 to-transparent" />
               <span className="absolute bottom-space-md left-space-md flex h-11 w-11 items-center justify-center rounded-xl bg-white/90 text-primary">
                 <item.icon className="h-5 w-5" aria-hidden />
@@ -161,12 +163,10 @@ export function RoleSelector({ googleEnabled = false }: { googleEnabled?: boolea
           </div>
         )}
 
-        {googleEnabled && (
-          <div className="mt-space-lg space-y-space-md">
-            <GoogleButton role={selected === "business" ? "OWNER" : "INVESTOR"} nextPath="/onboarding" label={`Sign up with Google as ${selected === "business" ? "a business owner" : "an investor"}`} />
-            <OrDivider />
-          </div>
-        )}
+        <div className="mt-space-lg space-y-space-md">
+          <GoogleButton available={googleEnabled} role={selected === "business" ? "OWNER" : "INVESTOR"} nextPath="/onboarding" label={`Sign up with Google as ${selected === "business" ? "a business owner" : "an investor"}`} />
+          <OrDivider />
+        </div>
 
         <div className="mt-space-lg grid gap-space-md sm:grid-cols-2">
           <FormField label="Full name" name="name" autoComplete="name" placeholder="e.g. Ayesha Rahman" value={form.name} onChange={update("name")} error={fields.name?.[0]} required />
