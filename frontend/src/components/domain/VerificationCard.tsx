@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ExternalLink, FileText, LoaderCircle, X } from "lucide-react";
+import { Check, ExternalLink, LoaderCircle, X } from "lucide-react";
+import { DocumentViewer } from "@/components/admin/DocumentViewer";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { TimeAgo } from "@/components/ui/TimeAgo";
@@ -52,11 +53,7 @@ export function VerificationCard({ item, applicant }: { item: AdminVerification;
       </div>
 
       <div className="mt-space-md flex flex-wrap gap-space-sm">
-        {documents.map((doc) => (
-          <a key={doc.href} href={doc.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-space-md py-1.5 text-body-sm font-medium text-on-surface-variant transition-colors hover:bg-primary-fixed hover:text-primary">
-            <FileText className="h-3.5 w-3.5" aria-hidden /> {doc.label}
-          </a>
-        ))}
+        <DocumentViewer documents={documents} />
         {item.shopLinks.map((href) => (
           <a key={href} href={href} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-space-md py-1.5 text-body-sm font-medium text-on-surface-variant transition-colors hover:bg-primary-fixed hover:text-primary">
             <ExternalLink className="h-3.5 w-3.5" aria-hidden /> {new URL(href).hostname}

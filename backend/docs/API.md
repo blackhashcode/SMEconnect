@@ -225,6 +225,11 @@ Verify:
   `AVATAR` and `PRODUCT_IMAGE` are public.
 - The upload response contains a relative `url`. Private URLs are under
   `/api/v1/files/private/...` and are never exposed through a public static path.
+- Files are served `inline` (shown in the browser, not downloaded) with a restrictive
+  `Content-Security-Policy` and `X-Frame-Options: SAMEORIGIN`, so the admin panel can show
+  them in its viewer. Only magic-byte-checked JPEG/PNG/WebP/PDF files are ever stored.
+- Every time an ADMIN opens a private file, an `admin.document_viewed` entry is written to
+  the activity log.
 - Public files are served without a session with immutable cache headers. Private files are
   authorized before storage is read. They are readable only by the authenticated verification
   owner, a party to the loan whose repayment proof it is, or an ADMIN; all other callers get
@@ -953,6 +958,7 @@ service. `OWNER` and `INVESTOR` sessions receive `403 FORBIDDEN`; missing sessio
 | GET | `/api/v1/admin/comments?postId=&includeDeleted=&cursor=&limit=` | Comment queue |
 | DELETE | `/api/v1/admin/comments/{commentId}` | Soft-delete one comment |
 | GET | `/api/v1/admin/stats` | Aggregated platform analytics |
+| GET | `/api/v1/admin/users/{userId}/verification-history` | Every verification submission with its documents and decision (kept after resubmission) |
 | DELETE | `/api/v1/admin/users/{userId}/sessions` | Sign a member out of every device (suspending does this too) |
 | GET | `/api/v1/admin/audit-logs?category=&action=&actorId=&targetId=&cursor=&limit=` | Activity log: sign-ups, sign-ins, lending events and admin actions |
 | GET | `/api/v1/admin/loan-requests?status=&q=&cursor=&limit=` | Every loan request, any status |

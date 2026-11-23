@@ -712,3 +712,26 @@ model AuditLog {
   @@index([targetId])
   @@map("audit_log")
 }
+
+/// Permanent record of every verification submission and its review. The
+/// user_verification row holds only the latest state (resubmitting after a
+/// rejection overwrites it); this table keeps each set of documents and the
+/// decision made on it, so admins can always see what was submitted before.
+model VerificationSubmission {
+  id             String             @id @default(cuid())
+  verificationId String
+  userId         String
+  type           VerificationType
+  idDocumentUrl  String
+  salesProofUrls String[]           @default([])
+  shopLinks      String[]           @default([])
+  status         VerificationStatus @default(PENDING)
+  reviewerId     String?
+  reviewNote     String?
+  submittedAt    DateTime           @default(now())
+  reviewedAt     DateTime?
+
+  @@index([userId, submittedAt])
+  @@index([verificationId, submittedAt])
+  @@map("verification_submission")
+}

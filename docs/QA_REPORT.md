@@ -61,6 +61,7 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 | 27 | Security | Append-only `audit_log`: sign-ups, sign-ins (with IP and browser), lending steps and every admin action. Logging can never block the action it records. |
 | 28 | Auth | Google sign-in (Better Auth social provider), hidden until configured. The role chosen on sign-up is carried in a short-lived cookie (never ADMIN). New Google members can switch role until they save a profile. Same-email accounts are linked. |
 | 29 | Performance | Bot test showed the 5-connection pool and Node's 4 hashing threads were bottlenecks. Default pool is now 10; `UV_THREADPOOL_SIZE=16` documented. p95 714 → 153 ms at the same load. |
+| 30 | Admin / security | Verification documents downloaded instead of opening, and a resubmission after rejection overwrote the earlier documents and decision. Documents now open in an in-panel viewer (served `inline` with a strict CSP); every submission and its review is kept in a new `verification_submission` table (backfilled); each time an admin opens a private document it's logged as `admin.document_viewed`. |
 
 ## Scalability and performance measures
 

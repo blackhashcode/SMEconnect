@@ -281,7 +281,13 @@ async function main() {
   check("admin suspends a member", suspended.status === 200, brief(suspended));
   check("suspension signs the member out", (await outsider.http("GET", "/me")).status === 401);
   check("admin reactivates the member", (await admin.http("POST", `/admin/users/${outsider.id}/reactivate`)).status === 200);
+  const history = await admin.http("GET", `/admin/users/${owner.id}/verification-history`);
+  check("verification history keeps the owner's submission", history.status === 200 && history.json?.data?.[0]?.status === "APPROVED" && Boolean(history.json?.data?.[0]?.idDocumentUrl), brief(history));
+  const docPath = (history.json?.data?.[0]?.idDocumentUrl ?? "").replace("/api/v1", "");
+  const doc = await admin.http("GET", docPath);
+  check("admin views a document inline (not as a download)", doc.status === 200 && (doc.headers.get("content-disposition") ?? "").startsWith("inline") && /default-src 'none'/.test(doc.headers.get("content-security-policy") ?? ""), `${doc.status} ${doc.headers.get("content-disposition")}`);
   const adminLog = await admin.http("GET", "/admin/audit-logs?category=admin.");
+  check("opening a private document is logged", (adminLog.json?.data ?? []).some((e) => e.action === "admin.document_viewed"), brief(adminLog));
   check("admin actions are in the activity log", (adminLog.json?.data ?? []).some((e) => e.action === "admin.user_suspended" && e.targetId === outsider.id), brief(adminLog));
 
   section("Rate limiting");

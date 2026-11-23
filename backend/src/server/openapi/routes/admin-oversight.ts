@@ -9,6 +9,7 @@ export const ADMIN_OVERSIGHT_PATHS = [
   "/api/v1/admin/loan-requests/{id}/{action}",
   "/api/v1/admin/loans",
   "/api/v1/admin/users/{userId}/sessions",
+  "/api/v1/admin/users/{userId}/verification-history",
   "/api/v1/me/role",
   "/api/v1/auth-options",
 ] as const;
@@ -62,6 +63,12 @@ export function registerAdminOversightRoutes() {
     summary: "Sign a member out everywhere", description: "ADMIN only. Deletes every session for the member.",
     security, parameters: [path("userId")],
     responses: { 200: single("Sessions revoked"), ...errors, 404: STANDARD_ERROR_RESPONSES[404] },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/admin/users/{userId}/verification-history", operationId: "listVerificationHistory", tags: ["Administration"],
+    summary: "Verification submission history", description: "ADMIN only. Every submission a member has made (documents, decision, reviewer), newest first, including ones replaced after a rejection.",
+    security, parameters: [path("userId")],
+    responses: { 200: page("Submission history"), ...errors },
   });
   registry.registerPath({
     method: "patch", path: "/api/v1/me/role", operationId: "switchOwnRole", tags: ["Users"],

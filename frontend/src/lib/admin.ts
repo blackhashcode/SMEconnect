@@ -67,6 +67,23 @@ export const adminStats = async () => (await backendGet<AdminStats>("/admin/stat
 export const adminUsers = (params: { q?: string; role?: string; status?: string; cursor?: string }) =>
   page<AdminUserRecord>(`/admin/users${qs({ ...params, limit: 25 })}`);
 
+export type VerificationSubmission = {
+  id: string;
+  verificationId: string;
+  type: "OWNER" | "INVESTOR";
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  idDocumentUrl: string;
+  salesProofUrls: string[];
+  shopLinks: string[];
+  submittedAt: string;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  reviewer: { id: string; name: string } | null;
+};
+
+export const verificationHistory = async (userId: string) =>
+  (await backendGet<VerificationSubmission[]>(`/admin/users/${encodeURIComponent(userId)}/verification-history`)).data ?? [];
+
 export const adminUser = async (id: string) => (await backendGet<AdminUserDetail>(`/admin/users/${encodeURIComponent(id)}`)).data;
 
 export const auditLogs = (params: { category?: string; action?: string; actorId?: string; targetId?: string; cursor?: string; limit?: number }) =>
@@ -103,6 +120,7 @@ export function describeAction(action: string): string {
     "repayment.confirmed": "Confirmed a repayment",
     "report.created": "Reported something",
     "admin.verification_reviewed": "Reviewed a verification",
+    "admin.document_viewed": "Opened a private document",
     "admin.user_suspended": "Suspended a member",
     "admin.user_reactivated": "Reactivated a member",
     "admin.sessions_revoked": "Signed a member out everywhere",
