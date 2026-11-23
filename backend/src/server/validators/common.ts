@@ -1,3 +1,4 @@
+import "@/server/openapi/setup";
 import { z } from "zod";
 
 /** PostgreSQL INTEGER upper bound; BDT amounts are whole-taka Int values. */

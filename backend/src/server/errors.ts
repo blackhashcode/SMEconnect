@@ -57,6 +57,18 @@ export class DatabaseUnavailableError extends AppError {
   }
 }
 
+export class EmailConfigurationError extends AppError {
+  constructor(message = "Email is not configured") {
+    super("EMAIL_CONFIGURATION_ERROR", message, 500);
+  }
+}
+
+export class EmailDeliveryError extends AppError {
+  constructor() {
+    super("EMAIL_DELIVERY_FAILED", "Could not deliver email", 500);
+  }
+}
+
 export interface ErrorPayload {
   error: {
     code: string;

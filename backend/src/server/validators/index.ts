@@ -1,5 +1,6 @@
 export * from "@/server/validators/common";
 export * from "@/server/validators/enums";
+export * from "@/server/validators/auth";
 export * from "@/server/validators/user";
 export * from "@/server/validators/verification";
 export * from "@/server/validators/profile";

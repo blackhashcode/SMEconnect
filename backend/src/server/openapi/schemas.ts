@@ -35,6 +35,20 @@ export const errorEnvelopeSchema = z
   })
   .strict();
 
+/** Better Auth returns `{ code, message }`, not the project's error envelope. */
+export const authErrorSchema = z
+  .object({
+    code: z.string().openapi({
+      description: "Better Auth error code",
+      example: "INVALID_SIGNUP_ROLE",
+    }),
+    message: z.string().openapi({
+      description: "Human-readable, non-sensitive error message",
+      example: "Choose OWNER or INVESTOR when signing up",
+    }),
+  })
+  .passthrough();
+
 export const healthSuccessEnvelopeSchema = successEnvelope(
   validators.healthStatusSchema,
 );
@@ -141,6 +155,26 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["NotificationType", validators.notificationTypeSchema],
   ["ReportTargetType", validators.reportTargetTypeSchema],
   ["ReportStatus", validators.reportStatusSchema],
+
+  // Better Auth responses and requests
+  ["AuthError", authErrorSchema],
+  ["AuthUser", validators.authUserSchema],
+  ["AuthSession", validators.authSessionSchema],
+  ["SignUpEmailRequest", validators.signUpEmailRequestSchema],
+  ["SignInEmailRequest", validators.signInEmailRequestSchema],
+  ["AuthUserResult", validators.authUserResultSchema],
+  ["AuthSuccessResponse", validators.authSuccessResponseSchema],
+  ["AuthStatusResponse", validators.authStatusResponseSchema],
+  ["GetSessionResponse", validators.getSessionResponseSchema],
+  ["SendVerificationOtpRequest", validators.sendVerificationOtpRequestSchema],
+  ["VerifyEmailOtpRequest", validators.verifyEmailOtpRequestSchema],
+  ["VerifyEmailOtpResponse", validators.verifyEmailOtpResponseSchema],
+  [
+    "RequestPasswordResetOtpRequest",
+    validators.requestPasswordResetOtpRequestSchema,
+  ],
+  ["ResetPasswordOtpRequest", validators.resetPasswordOtpRequestSchema],
+  ["UpdateAuthUserRequest", validators.updateAuthUserRequestSchema],
 
   // User and verification requests
   ["UpdateUserRequest", validators.updateUserSchema],
@@ -260,6 +294,19 @@ registry.registerComponent(
   ),
 );
 
+registry.registerComponent("responses", "AuthErrorResponse", {
+  description: "Better Auth rejected the request",
+  content: {
+    "application/json": {
+      schema: { $ref: "#/components/schemas/AuthError" },
+      example: {
+        code: "INVALID_SIGNUP_ROLE",
+        message: "Choose OWNER or INVESTOR when signing up",
+      },
+    },
+  },
+});
+
 /** Reusable references for future operations. Health uses only 503 today. */
 export const STANDARD_ERROR_RESPONSES = {
   400: { $ref: "#/components/responses/ValidationErrorResponse" },
@@ -270,4 +317,14 @@ export const STANDARD_ERROR_RESPONSES = {
   422: { $ref: "#/components/responses/BusinessRuleResponse" },
   500: { $ref: "#/components/responses/InternalErrorResponse" },
   503: { $ref: "#/components/responses/DatabaseUnavailableResponse" },
+} as const;
+
+/** Better Auth endpoints use their own native error body. */
+export const AUTH_ERROR_RESPONSES = {
+  400: { $ref: "#/components/responses/AuthErrorResponse" },
+  401: { $ref: "#/components/responses/AuthErrorResponse" },
+  403: { $ref: "#/components/responses/AuthErrorResponse" },
+  404: { $ref: "#/components/responses/AuthErrorResponse" },
+  422: { $ref: "#/components/responses/AuthErrorResponse" },
+  429: { $ref: "#/components/responses/AuthErrorResponse" },
 } as const;

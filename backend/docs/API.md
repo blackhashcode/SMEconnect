@@ -4,8 +4,10 @@ Base path: `/api/v1`
 
 ## Conventions
 
-- Success: `{ "data": ..., "meta": ... }` (`meta` is optional).
-- Error: `{ "error": { "code": "...", "message": "...", "details": ... } }`.
+- Success: `{ "data": ..., "meta": ... }` (`meta` is optional). Better Auth endpoints under
+  `/api/v1/auth/*` are the exception and keep Better Auth's native JSON bodies.
+- Error: `{ "error": { "code": "...", "message": "...", "details": ... } }`. Better Auth
+  endpoints return their native `{ "code": "...", "message": "..." }` error body instead.
 - Cursor pagination: `?cursor=&limit=`, default limit 20, max 50.
 - Dates are ISO 8601 UTC. Money is an integer number of BDT (whole taka) in fields ending in `Bdt`.
 - Status codes: 200/201 success, 400 validation, 401 unauthenticated, 403 forbidden,
@@ -72,6 +74,62 @@ the single source of truth for both runtime validation and documentation.
 6. Examples use placeholder values only. Never put real credentials, NIDs, phone numbers or
    environment secrets into OpenAPI examples.
 
+## Authentication (Better Auth)
+
+The Better Auth catch-all is mounted at `/api/v1/auth/[...all]` and delegates to the existing
+`auth` instance. There are no hand-written auth endpoints. The documented session mechanism is
+the httpOnly cookie `better-auth.session_token`; no bearer token is introduced.
+
+### Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/auth/sign-up/email` | Create an OWNER or INVESTOR account |
+| POST | `/api/v1/auth/sign-in/email` | Sign in and receive the session cookie |
+| POST | `/api/v1/auth/sign-out` | Clear the session cookie |
+| GET | `/api/v1/auth/get-session` | Read the current session; returns `null` when unauthenticated |
+| POST | `/api/v1/auth/update-user` | Update only `name` or `image` for the current user |
+| POST | `/api/v1/auth/email-otp/send-verification-otp` | Send a verification or password-reset OTP by email |
+| POST | `/api/v1/auth/email-otp/verify-email` | Verify email with the six-digit OTP |
+| POST | `/api/v1/auth/email-otp/request-password-reset` | Send a password-reset OTP |
+| POST | `/api/v1/auth/email-otp/reset-password` | Set a new password with the OTP |
+
+### Signup and role protection
+
+`POST /api/v1/auth/sign-up/email` requires:
+
+```json
+{
+  "name": "Shamima Akter",
+  "email": "owner@example.com",
+  "password": "example-password",
+  "signupRole": "OWNER"
+}
+```
+
+`signupRole` accepts only `OWNER` or `INVESTOR`. `ADMIN` is rejected. The value is a transport-only
+field: a request hook maps it onto the existing server-owned `role` column, discards any client-sent
+`role`/`status`, and database hooks enforce the final values. No `signupRole` column is stored.
+Clients may not set `role`, `status`, or `signupRole` through `POST /api/v1/auth/update-user`; those
+fields are rejected or stripped. Successful password resets revoke existing sessions.
+
+### Email verification and password reset
+
+Email delivery uses the project's existing notification service and Mailpit locally. Both flows
+use six-digit OTPs with a 300-second expiry:
+
+1. `POST /api/v1/auth/email-otp/send-verification-otp` with
+   `{ "email": "owner@example.com", "type": "email-verification" }`.
+2. `POST /api/v1/auth/email-otp/verify-email` with `{ "email": "...", "otp": "123456" }`.
+   This marks the email verified and sets a session cookie.
+
+For password reset, use `type: "forget-password"` on the send endpoint, then post
+`{ "email": "...", "otp": "123456", "password": "new-example-password" }` to
+`/api/v1/auth/email-otp/reset-password`.
+
+Token-based verification/reset paths are disabled; the OTP paths above are the supported flows.
+OTP values are never logged.
+
 ## System
 
 ### `GET /api/v1/health`
@@ -104,10 +162,11 @@ Reports API and PostgreSQL connectivity. No authentication required.
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). No auth or business endpoints were added in
-Phase 1.
+[`docs/DATABASE.md`](./DATABASE.md). Phase 2 auth endpoints reuse that schema without
+Prisma changes.
 
 ## Modules (added in later phases)
 
-Auth & verification, profiles, loan requests, feed/networking, discovery, messaging,
-offers & agreement, repayments, reputation/notifications/dashboards, admin.
+Profiles, KYC verification submission/admin review, loan requests, feed/networking,
+discovery, messaging, offers & agreement, repayments, reputation/notifications/dashboards,
+admin.
