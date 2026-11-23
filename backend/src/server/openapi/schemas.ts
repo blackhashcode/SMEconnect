@@ -83,6 +83,18 @@ export const productImageDeleteSuccessEnvelopeSchema = successEnvelope(
     .object({ id: z.string(), deleted: z.literal(true) })
     .strict(),
 );
+export const loanRequestSuccessEnvelopeSchema = successEnvelope(
+  validators.loanRequestRecordSchema,
+);
+export const loanRequestListSuccessEnvelopeSchema = successEnvelope(
+  z.array(validators.loanRequestRecordSchema),
+);
+export const publicLoanRequestSuccessEnvelopeSchema = successEnvelope(
+  validators.publicLoanRequestSchema,
+);
+export const publicLoanRequestListSuccessEnvelopeSchema = successEnvelope(
+  validators.publicLoanRequestListSchema,
+);
 
 const cursorSchema = z.string().min(1).openapi({
   param: {
@@ -253,6 +265,13 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["CreateLoanRequestRequest", validators.createLoanRequestSchema],
   ["UpdateLoanRequestRequest", validators.updateLoanRequestSchema],
   ["LoanRequestActionRequest", validators.loanRequestActionSchema],
+  ["MyLoanRequestFilters", validators.myLoanRequestFiltersSchema],
+  ["PublicLoanRequestFilters", validators.publicLoanRequestFiltersSchema],
+  ["LoanRequestSort", validators.loanRequestSortSchema],
+  ["LoanRequestRecord", validators.loanRequestRecordSchema],
+  ["PublicLoanRequestOwner", validators.publicLoanRequestOwnerSchema],
+  ["PublicLoanRequest", validators.publicLoanRequestSchema],
+  ["PublicLoanRequestList", validators.publicLoanRequestListSchema],
   ["CreateOfferRequest", validators.createOfferSchema],
   ["CounterOfferRequest", validators.counterOfferSchema],
   ["OfferActionRequest", validators.offerActionSchema],

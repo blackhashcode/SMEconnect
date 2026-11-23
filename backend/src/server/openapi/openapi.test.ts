@@ -16,6 +16,7 @@ import {
   UPDATE_USER_PATH,
 } from "@/server/openapi/routes/auth";
 import { HEALTH_OPERATION_ID, HEALTH_PATH } from "@/server/openapi/routes/health";
+import { LOAN_REQUEST_PATHS } from "@/server/openapi/routes/loan-requests";
 import { PHONE_OTP_PATHS } from "@/server/openapi/routes/phone-otp";
 import { PROFILE_PATHS } from "@/server/openapi/routes/profiles";
 import { STORAGE_PATHS } from "@/server/openapi/routes/storage";
@@ -162,7 +163,7 @@ describe("OpenAPI document generation", () => {
 });
 
 describe("health endpoint documentation", () => {
-  it("documents only the implemented Phase 3 routes", () => {
+  it("documents only the implemented Phase 4 routes", () => {
     const document = generate();
 
     expect(Object.keys(document.paths ?? {})).toEqual([
@@ -170,6 +171,7 @@ describe("health endpoint documentation", () => {
       ...AUTH_PATHS,
       ...PHONE_OTP_PATHS,
       ...PROFILE_PATHS,
+      ...LOAN_REQUEST_PATHS,
       ...STORAGE_PATHS,
       ...VERIFICATION_PATHS,
     ]);

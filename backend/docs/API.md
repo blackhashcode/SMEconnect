@@ -145,7 +145,9 @@ OTP values are never logged.
   It checks `UserVerification.status === "APPROVED"` for the actor's role. Verification
   submission itself is deliberately available to unverified users.
 - Public endpoints remain `/api/v1/health`, `/api/v1/auth/*`, `/api/docs`, `/docs`, public
-  files, public profiles (`/api/v1/profiles/{userId}`), and the root page.
+  files, public profiles (`/api/v1/profiles/{userId}`), public loan requests
+  (`/api/v1/loan-requests*`), and the root page. Owner-scoped loan request paths under
+  `/api/v1/me/loan-requests*` are protected by the same prefilter as the rest of `/me`.
 
 ## Phone OTP
 
@@ -330,6 +332,86 @@ Request (INVESTOR):
   profiles include the bio, location, preferred categories and preferred lending range.
 - Returns 404 when the user does not exist, is suspended, is an ADMIN, or has no profile.
 
+## Loan requests
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/me/loan-requests` | Authenticated OWNER's own requests (all statuses), cursor-paginated |
+| POST | `/api/v1/me/loan-requests` | Create a DRAFT request |
+| GET | `/api/v1/me/loan-requests/{id}` | Own request detail (full owner-only fields) |
+| PATCH | `/api/v1/me/loan-requests/{id}` | Edit a DRAFT or PAUSED request |
+| POST | `/api/v1/me/loan-requests/{id}/publish` | DRAFT → OPEN |
+| POST | `/api/v1/me/loan-requests/{id}/pause` | OPEN / IN_DISCUSSION → PAUSED |
+| POST | `/api/v1/me/loan-requests/{id}/resume` | PAUSED → OPEN |
+| POST | `/api/v1/me/loan-requests/{id}/cancel` | DRAFT / OPEN / IN_DISCUSSION / PAUSED → CANCELLED |
+| GET | `/api/v1/loan-requests` | Public listing of OPEN requests (cursor pagination) |
+| GET | `/api/v1/loan-requests/{id}` | Public detail of an OPEN request |
+
+All owner-scoped paths sit under `/api/v1/me`, so they are session-protected and resolved
+against the session user id. The two `/api/v1/loan-requests` paths are public.
+
+### Creating and editing
+
+- OWNER role only. `POST` creates a `DRAFT`; clients cannot send `ownerId`, `status`,
+  `publishedAt`, `trustScore` or any other server-controlled field (strict Zod objects reject
+  unknown keys). The rate is normalized to the `Decimal(5,2)` string Prisma expects.
+- Fields: `amountBdt` (positive whole taka), `purpose`, `fundUsage`, `tenureDays` (1–3650),
+  `repaymentFrequency` (`WEEKLY` | `BIWEEKLY` | `MONTHLY`), `proposedRatePct` (0–100, ≤2 dp)
+  and up to 10 HTTP(S) `proofUrls`. No funding is calculated or promised at this stage.
+- Only `DRAFT` and `PAUSED` requests are editable; attempts on other statuses return 409.
+
+### State transitions
+
+The service layer accepts only these transitions; anything else returns 409 `CONFLICT`.
+Explicit actions are the only way to change status — arbitrary `status` updates are rejected.
+
+```
+DRAFT → OPEN | CANCELLED
+OPEN → IN_DISCUSSION | PAUSED | CANCELLED
+IN_DISCUSSION → PAUSED | CANCELLED      (first offer is a Phase 7 trigger; no route yet)
+PAUSED → OPEN | CANCELLED
+FUNDED / REPAYING / COMPLETED / CANCELLED → (terminal in this phase)
+```
+
+- `publish` requires an **APPROVED** OWNER verification (403 otherwise), a complete business
+  profile and no other active request (422 otherwise). It sets `publishedAt` and creates a
+  `LOAN_REQUEST` feed post in the same transaction.
+- `resume` re-runs the same checks; `pause`/`cancel` hide the feed post via `deletedAt`.
+- At most one request per OWNER may be `OPEN`, `IN_DISCUSSION`, `FUNDED` or `REPAYING`. This is
+  checked in the service and backed by the existing partial unique index
+  `loan_request_one_active_per_owner`; a concurrent publish that loses the race returns 422.
+- Verification submission and profile management remain separate (see above). No offers,
+  agreements, loans or repayments are implemented in this phase.
+
+### Public listing and detail
+
+- `GET /api/v1/loan-requests` returns only `OPEN` requests. Filters: `category`, `district`
+  (case-insensitive exact matches on the owner's business profile), `minAmountBdt`,
+  `maxAmountBdt`, `maxTenureDays`, `frequency`, and `sort` (`newest` | `amountAsc` |
+  `amountDesc`). `cursor` + `limit` use the standard convention (default 20, max 50);
+  `meta` contains `limit`, `nextCursor` and `hasMore`. Invalid or inverted filters return 400.
+- `GET /api/v1/loan-requests/{id}` returns 404 unless the request is `OPEN`.
+- Public responses contain only: request terms, `publishedAt`, `createdAt`, and an owner
+  mini-profile (name, avatar, shop name/slug/category/location/logo, trust score, `verified`
+  badge). They never include account email/phone, `ownerId`, proof URLs, verification records,
+  internal image IDs or status history. `status` is omitted because public requests are OPEN.
+- The owner-only endpoints return the full request including `status`, `proofUrls` and
+  timestamps, but never another user's data.
+
+Request example:
+
+```json
+{
+  "amountBdt": 50000,
+  "purpose": "Buy a second oven",
+  "fundUsage": "Expand weekend meal prep capacity",
+  "tenureDays": 90,
+  "repaymentFrequency": "WEEKLY",
+  "proposedRatePct": "14.5",
+  "proofUrls": []
+}
+```
+
 ## System
 
 ### `GET /api/v1/health`
@@ -362,12 +444,14 @@ Reports API and PostgreSQL connectivity. No authentication required.
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). All Phase 2 and Phase 3 endpoints reuse that schema
-without Prisma changes: `UserVerification` stores KYC state, `Verification` stores phone OTP
-challenges, `Notification` stores verification results, and `BusinessProfile`,
-`InvestorProfile` and `ProductImage` store profile data.
+[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–4 endpoints reuse that schema without Prisma
+changes: `UserVerification` stores KYC state, `Verification` stores phone OTP challenges,
+`Notification` stores verification results, `BusinessProfile`, `InvestorProfile` and
+`ProductImage` store profile data, `LoanRequest` stores requests, and `Post` stores the
+auto-generated feed announcement. The one-active-request rule is enforced by the existing
+partial unique index `loan_request_one_active_per_owner`.
 
 ## Modules (added in later phases)
 
-Loan requests, feed/networking, discovery, messaging, offers & agreement, repayments,
-dashboards/analytics, and the remaining admin moderation endpoints.
+Feed/networking, discovery, messaging, offers & agreement, repayments, dashboards/analytics,
+and the remaining admin moderation endpoints.
