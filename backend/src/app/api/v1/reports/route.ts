@@ -3,6 +3,7 @@ import { parsePagination } from "@/lib/pagination";
 import { requireRole, requireSession } from "@/server/auth/guards";
 import type { Actor } from "@/server/auth/policy";
 import { created, handleRequest, ok } from "@/server/http/response";
+import { clientIp, recordAudit } from "@/server/services/audit-log";
 import { createReport, listReports } from "@/server/services/reports";
 import { createReportSchema, reportListQuerySchema } from "@/server/validators/social";
 
@@ -28,6 +29,8 @@ export async function POST(request: NextRequest) {
   return handleRequest(async () => {
     const session = await requireRole("OWNER", "INVESTOR");
     const input = createReportSchema.parse(await request.json());
-    return created(await createReport(session.user as Actor, input));
+    const result = await createReport(session.user as Actor, input);
+    await recordAudit({ actorId: session.user.id, action: "report.created", targetType: "REPORT", targetId: (result as { id?: string }).id ?? null, detail: null, ipAddress: clientIp(request.headers) });
+    return created(result);
   });
 }

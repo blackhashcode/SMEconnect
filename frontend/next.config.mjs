@@ -29,6 +29,8 @@ const nextConfig = {
     // Demo photos ship in public/images; uploads are served by the backend
     // through the /api/v1 rewrite below.
     localPatterns: [{ pathname: "/images/**" }, { pathname: "/api/v1/files/public/**" }],
+    // Profile photos of members who signed up with Google.
+    remotePatterns: [{ protocol: "https", hostname: "lh3.googleusercontent.com" }],
   },
   experimental: {
     // Tree-shake icon imports so only the icons actually used are bundled.

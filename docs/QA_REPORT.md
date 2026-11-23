@@ -1,15 +1,16 @@
 # QA report — backend review, integration and hardening
 
-**Branch:** `tausif_dev` (merged with `main` at `29d3576`) · **Date:** 24 Nov 2026
+**Branch:** `tausif_dev` · **Date:** 24 Nov 2026 (two rounds)
 
 ## Summary
 
 | Area | Result |
 | --- | --- |
-| Backend unit and service tests (Vitest) | **578 / 578 pass** |
+| Backend unit and service tests (Vitest) | **All pass** (round 2 adds 17 for admin oversight, audit log and Google role handling) |
 | Backend typecheck and ESLint | Pass |
-| End-to-end journey, direct to backend (`pnpm smoke`) | **67 / 67 pass** |
-| Same journey through the frontend proxy (`:3000/api/v1`) | **67 / 67 pass** |
+| End-to-end journey, direct to backend (`pnpm smoke`) | **86 / 86 pass** (67 in round 1) |
+| Same journey through the frontend proxy (`:3000/api/v1`) | **Pass** |
+| Bot-user load test (`pnpm bots`, up to 120 simultaneous users) | **0 errors**, 311 req/s, p95 308 ms (see [PERFORMANCE_TEST.md](PERFORMANCE_TEST.md)) |
 | Frontend typecheck and production build | Pass |
 | Backend production build | Pass |
 | Frontend ↔ backend connection | **Was not connected** (frontend ran on a mock Express/SQLite API). Now fully connected; mock removed. |
@@ -43,9 +44,23 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 | 15 | Low | Public loan-request responses omitted the owner's ID, so clients couldn't link to the owner's profile. | Owner `id` added to the public shape. | Loan tests |
 | 16 | Low | Seed referenced remote image URLs. | Seed uses images shipped in `frontend/public/images`. | Seed tests |
 | 17 | Low | Missing indexes on `session.userId` and `account.userId` (used on every session lookup by user). | Indexes added (migration `20261124000000`). | Migration applied |
-| 18 | Low | Unbounded database pool per instance would exhaust free-tier connection limits on serverless. | `DATABASE_POOL_MAX` (default 5), idle timeout 10 s. | Config review |
+| 18 | Low | Unbounded database pool per instance would exhaust free-tier connection limits on serverless. | `DATABASE_POOL_MAX` (default 10 after the bot test), idle timeout 10 s. | Bot load test |
 | 19 | Low | Public read endpoints were never cached. | `Cache-Control: public, s-maxage, stale-while-revalidate` on public lists/profiles (CDN caches, users get instant responses). | Smoke cache-header check |
 | 20 | Low | Docker Postgres fixed to host port 5432, clashing with a local Postgres install. | `POSTGRES_PORT` override. | Local run |
+
+## Round 2: launch preparation
+
+| # | Area | Change |
+| --- | --- | --- |
+| 21 | Content | Replaced every AI-generated Stitch image with real photos of Bangladeshi small businesses (compressed, ~1.3 MB total for 9 photos). Removed the Stitch exports and remaining references. Businesses without a cover get a category-matched photo. |
+| 22 | Content | Removed every invented figure from the site ("2,400+ verified businesses", "18,000+ investors", "৳42 Cr", 4.9 stars, "64 districts", a scripted chat). Replaced them with how verification, document privacy, two-sided agreements, repayment confirmation and moderation actually work, plus an honest "good to know" (we don't hold money, loans carry risk). |
+| 23 | Data | Removed the 1,700-line demo dataset and the demo-login buttons. `pnpm db:seed` now creates only the first admin from environment variables. |
+| 24 | UI | Business profile: stat values overflowed their cards, the name crowded the cover, the description appeared twice, and "Connect with Md." used an honorific as the first name. All fixed (compact ৳ amounts, wrapping, `firstName()` helper used app-wide). |
+| 25 | Onboarding | New Step 1, Profile photo: upload one, or choose a blank photo (initials). Upload errors are now shown instead of failing silently. |
+| 26 | Admin | Full admin panel: overview, member search and detail (documents, activity, IP addresses), suspend (also signs the member out), reactivate, sign out everywhere, loan-request moderation with a reason the owner is notified of, agreed-loan oversight, reports with the reported content, post/comment removal, activity log. |
+| 27 | Security | Append-only `audit_log`: sign-ups, sign-ins (with IP and browser), lending steps and every admin action. Logging can never block the action it records. |
+| 28 | Auth | Google sign-in (Better Auth social provider), hidden until configured. The role chosen on sign-up is carried in a short-lived cookie (never ADMIN). New Google members can switch role until they save a profile. Same-email accounts are linked. |
+| 29 | Performance | Bot test showed the 5-connection pool and Node's 4 hashing threads were bottlenecks. Default pool is now 10; `UV_THREADPOOL_SIZE=16` documented. p95 714 → 153 ms at the same load. |
 
 ## Scalability and performance measures
 
@@ -71,7 +86,10 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 
 ## Known limitations
 
-- **Phone OTP** has no SMS gateway yet; codes go by email (fine for a showcase).
+- **Phone OTP** has no SMS gateway yet; codes go by email.
+- **Photo rights:** some of the supplied photos look like press or stock images (one filename
+  mentions Shutterstock, another The Daily Star). Confirm you have permission to use them on
+  a public site, or swap them via `frontend/public/images` and `src/data/images.ts`.
 - **Files in Postgres** are fine at demo scale, but Neon's free tier has 0.5 GB. Move to an
   object store (Cloudflare R2 or Cloudinary, both free tiers) through the existing
   `StorageProvider` interface if uploads grow.
@@ -79,8 +97,9 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
   takes about a second longer.
 - **No browser-automation tests** for the frontend. The smoke script covers the full API
   journey through the frontend proxy, and every page was checked manually.
-- The local development database holds smoke-test records (for example "Smoke Bakery");
-  `pnpm db:reset` gives a clean seed.
+- The local development database still holds the old demo members and smoke/bot test
+  records, whose demo photos no longer exist. `pnpm db:reset` gives an empty database with
+  just the admin. Production starts empty.
 
 ## How to reproduce
 

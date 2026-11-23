@@ -67,5 +67,5 @@ AGENTS.md
 BACKEND_PROMPT.md
 backend/docs/implementation/
 
-# ── Original Stitch design exports (local reference only) ──────────────────
-frontend/stitch-export/
+# ── Source photos before compression (optimised copies live in frontend/public/images) ──
+/Photos/

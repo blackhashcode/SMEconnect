@@ -1,5 +1,6 @@
 import type { components } from "@/lib/backend/schema";
 import type { ApiRole, Business, LoanRequestView, MeResponse, Person, Role, SessionUser } from "@/data/types";
+import { fallbackCover } from "@/data/images";
 import { formatBDT } from "@/lib/format";
 
 /**
@@ -45,7 +46,7 @@ export function discoveryBusiness(b: S["DiscoveryBusiness"]): Business {
     ordersRange: null,
     salesMin: null,
     salesMax: null,
-    image: b.logoUrl ?? b.image ?? "",
+    image: b.logoUrl ?? b.image ?? fallbackCover(b.category),
     logo: b.logoUrl ?? "",
     gallery: [],
     description: b.description ?? "",
@@ -117,7 +118,7 @@ export function profileBusiness(id: string, p: S["PublicProfile"]): Business | n
     ordersRange: b.monthlyOrdersRange ?? null,
     salesMin: b.monthlySalesMinBdt ?? null,
     salesMax: b.monthlySalesMaxBdt ?? null,
-    image: b.coverUrl ?? b.logoUrl ?? "",
+    image: b.coverUrl ?? fallbackCover(b.category),
     logo: b.logoUrl ?? "",
     gallery: (b.productImages ?? []).map((image) => image.url),
     description: b.description ?? "",
@@ -159,7 +160,7 @@ export function loanRequestView(r: S["PublicLoanRequest"]): LoanRequestView {
       slug: o.slug,
       category: o.category,
       location: place(o.district, o.city),
-      image: o.logoUrl ?? o.image ?? "",
+      image: o.logoUrl ?? o.image ?? fallbackCover(o.category),
       logo: o.logoUrl ?? "",
       verified: o.verified,
       trustScore: o.trustScore,

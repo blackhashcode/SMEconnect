@@ -103,6 +103,7 @@ enum NotificationType {
   REPAYMENT_CONFIRMED
   NEW_COMMENT
   NEW_LIKE
+  ADMIN_NOTICE
 }
 
 enum ReportTargetType {
@@ -691,4 +692,23 @@ model StoredFile {
   createdAt   DateTime @default(now())
 
   @@map("stored_file")
+}
+
+/// Append-only activity log: sign-ups, sign-ins, key lending events and every
+/// admin action. No foreign keys, so entries survive account deletion.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  detail     Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetId])
+  @@map("audit_log")
 }

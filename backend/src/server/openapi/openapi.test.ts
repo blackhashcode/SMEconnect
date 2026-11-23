@@ -18,6 +18,7 @@ import {
   ADMIN_USER_SUSPEND_PATH,
   ADMIN_USERS_PATH,
 } from "@/server/openapi/routes/admin";
+import { ADMIN_OVERSIGHT_PATHS } from "@/server/openapi/routes/admin-oversight";
 import {
   BETTER_AUTH_SESSION_COOKIE,
   API_TAGS,
@@ -244,6 +245,7 @@ describe("health endpoint documentation", () => {
       ...LOAN_PATHS,
       ...PHASE9_PATHS,
       ...ADMIN_PATHS,
+      ...ADMIN_OVERSIGHT_PATHS,
     ]);
     expect(document.paths?.[HEALTH_PATH]?.get).toBeDefined();
   });

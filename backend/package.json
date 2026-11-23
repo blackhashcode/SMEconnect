@@ -21,6 +21,7 @@
     "job:reminders": "tsx src/jobs/reminders.ts",
     "postinstall": "prisma generate",
     "smoke": "node scripts/smoke.mjs",
+    "bots": "node scripts/bots.mjs",
     "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {

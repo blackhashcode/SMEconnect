@@ -11,7 +11,7 @@ export default async function VerifyEmailPage({ searchParams }: { searchParams: 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) redirect("/signup");
 
   return (
-    <AuthShell title="Check your email" subtitle="Enter the code we sent to confirm it's you. It expires after a few minutes." image={images["nusrat-bakery"]}>
+    <AuthShell title="Check your email" subtitle="Enter the code we sent to confirm it's you. It expires after a few minutes." image={images["bakery-workers"]}>
       <VerifyEmailForm email={email} nextPath={safeNextPath(next, "/onboarding")} />
     </AuthShell>
   );

@@ -7,12 +7,13 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL is not set");
 }
 
-// Each serverless instance holds its own pool, so keep it small and let the
-// provider's pooler (e.g. Neon's -pooler host) multiplex connections.
+// Each server instance holds its own pool; the provider's pooler (e.g. Neon's
+// -pooler host) multiplexes them. The bot test (scripts/bots.mjs) showed 5 was a
+// bottleneck under concurrent load and 10-15 removed it.
 const poolMax = Number.parseInt(process.env.DATABASE_POOL_MAX ?? "", 10);
 const adapter = new PrismaPg({
   connectionString: databaseUrl,
-  max: Number.isSafeInteger(poolMax) && poolMax > 0 ? poolMax : 5,
+  max: Number.isSafeInteger(poolMax) && poolMax > 0 ? poolMax : 10,
   idleTimeoutMillis: 10_000,
 });
 

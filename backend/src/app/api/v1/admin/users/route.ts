@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
       ...(url.searchParams.has("role")
         ? { role: url.searchParams.get("role") }
         : {}),
+      ...(url.searchParams.get("q") ? { q: url.searchParams.get("q") } : {}),
     });
     const pagination = parsePagination(url.searchParams);
 

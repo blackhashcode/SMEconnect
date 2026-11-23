@@ -83,6 +83,7 @@ export const notificationTypeSchema = z.enum([
   "REPAYMENT_CONFIRMED",
   "NEW_COMMENT",
   "NEW_LIKE",
+  "ADMIN_NOTICE",
 ]);
 
 export const reportTargetTypeSchema = z.enum([

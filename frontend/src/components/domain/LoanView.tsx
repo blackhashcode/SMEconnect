@@ -11,7 +11,7 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FormAlert } from "@/components/auth/FormField";
 import { MessageButton } from "./MessageButton";
 import { api } from "@/lib/client-api";
-import { formatBDT, shortDate } from "@/lib/format";
+import { formatBDT, shortDate, firstName } from "@/lib/format";
 import { FREQUENCY_LABEL, tenureLabel } from "@/lib/loans";
 import type { Agreement, LoanDetail, Repayment } from "@/data/types";
 import { cn } from "@/lib/cn";
@@ -133,7 +133,7 @@ export function LoanView({ loan, agreement, viewerId }: { loan: LoanDetail; agre
                     {busy === "confirm" ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <CheckCircle2 className="h-4 w-4" aria-hidden />} Confirm agreement
                   </Button>
                 )}
-                {iConfirmed && <Badge tone="success">You&apos;ve confirmed. Waiting for {counterpart.name.split(" ")[0]}.</Badge>}
+                {iConfirmed && <Badge tone="success">You&apos;ve confirmed. Waiting for {firstName(counterpart.name)}.</Badge>}
               </div>
             </section>
           ) : (
@@ -187,7 +187,7 @@ export function LoanView({ loan, agreement, viewerId }: { loan: LoanDetail; agre
 
           <div className="flex flex-wrap justify-end gap-space-sm border-t border-surface-container-high pt-space-md print:hidden">
             <Button variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4" aria-hidden /> Save as PDF</Button>
-            <MessageButton participantId={counterpart.id} variant="ghost">Message {counterpart.name.split(" ")[0]}</MessageButton>
+            <MessageButton participantId={counterpart.id} variant="ghost">Message {firstName(counterpart.name)}</MessageButton>
           </div>
         </div>
       </div>

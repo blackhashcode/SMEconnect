@@ -71,7 +71,8 @@ real business, move to Vercel Pro or another host. The code doesn't depend on Ve
    | --- | --- |
    | `DATABASE_URL` | Neon **pooled** string |
    | `DIRECT_URL` | Neon **direct** string |
-   | `DATABASE_POOL_MAX` | `3` |
+   | `DATABASE_POOL_MAX` | `10` (see docs/PERFORMANCE_TEST.md) |
+   | `UV_THREADPOOL_SIZE` | `16` (faster sign-ups under load) |
    | `BETTER_AUTH_SECRET` | the secret from step 0 |
    | `BETTER_AUTH_URL` | `https://smeconnect-api.vercel.app` (this project's URL) |
    | `BETTER_AUTH_TRUSTED_ORIGINS` | `https://smeconnect.vercel.app` (the frontend's URL) |
@@ -85,6 +86,7 @@ real business, move to Vercel Pro or another host. The code doesn't depend on Ve
    | `EMAIL_FROM` | `SME Connect <your-verified-sender@example.com>` |
    | `OTP_DELIVERY_PROVIDER` | `email` |
    | `API_DOCS_ENABLED` | `false` (or `true` if you want `/docs` public for the showcase) |
+   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | optional: turns on "Continue with Google" (see [GOOGLE_AUTH.md](GOOGLE_AUTH.md)) |
 
 4. **Deploy.** When it finishes, open `https://<backend>/api/v1/loan-requests`; you should
    get JSON (an empty list on a fresh database).
@@ -102,8 +104,6 @@ real business, move to Vercel Pro or another host. The code doesn't depend on Ve
    | Variable | Value |
    | --- | --- |
    | `BACKEND_URL` | `https://smeconnect-api.vercel.app` (no trailing slash) |
-   | `SHOW_DEMO_LOGIN` | `true` only if you seed demo data (step 6); otherwise leave it unset |
-   | `SEED_DEMO_PASSWORD` | must match the backend seed password, if you set `SHOW_DEMO_LOGIN` |
 
 4. **Deploy.** If the final URLs differ from what you put in the backend's
    `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS` or `APP_URL`, fix them there and
@@ -120,29 +120,33 @@ secrets: `DATABASE_URL` (use the Neon **direct** string), `SMTP_HOST`, `SMTP_POR
 Test it from **Actions → Repayment jobs → Run workflow**. Scheduled workflows run only from
 the default branch (`main`).
 
-## 6. Demo data (optional, for a showcase)
+## 6. Create the admin account
 
-A fresh database is empty. To fill it with the demo businesses, investors and loans, run
-the seed once from your machine against Neon:
+The database starts empty: no demo members, loans or posts. Real people sign up through the
+site. The only account you create by hand is the first administrator. Run this once from
+your machine against Neon:
 
 ```powershell
 cd backend
 $env:DATABASE_URL = "<Neon direct string>"
-$env:SEED_DEMO_PASSWORD = "<a password you choose>"
+$env:ADMIN_EMAIL = "you@yourdomain.com"
+$env:ADMIN_PASSWORD = "<a long, unique password: 12+ characters>"
 pnpm db:seed
-Remove-Item Env:DATABASE_URL, Env:SEED_DEMO_PASSWORD
+Remove-Item Env:DATABASE_URL, Env:ADMIN_EMAIL, Env:ADMIN_PASSWORD
 ```
 
-Then set `SHOW_DEMO_LOGIN=true` and the same `SEED_DEMO_PASSWORD` on the frontend project
-and redeploy it. Never seed a database that holds real users. Before real users join,
-reset to an empty database.
+Sign in at `/login` with that email and password; you'll see **Admin** in the top bar. The
+command is safe to re-run: it does nothing if the admin already exists. Keep the password
+in a password manager.
 
 ## 7. Check the live site
 
-- [ ] Landing page loads; **Explore** shows businesses (with demo data)
+- [ ] Landing page loads with the real photos and no made-up numbers
 - [ ] Sign up with a real email → the code arrives (check spam) → verification works
 - [ ] Log in, refresh: you stay logged in (the cookie is named `__Secure-better-auth.session_token`)
-- [ ] Upload a verification document; as admin, approve it
+- [ ] Upload a profile photo (or choose a blank one) and a verification document; as admin, approve it
+- [ ] Admin panel: Members, Loans, Reports, Content and Activity log all load; your sign-in shows in the log
+- [ ] If Google is configured: sign up with Google as an investor, then sign in again from `/login`
 - [ ] Owner publishes a request → investor makes an offer → accept → agreement → record a repayment
 - [ ] Send a message both ways
 - [ ] Response headers on any page include `strict-transport-security` and `x-frame-options: DENY`
@@ -168,3 +172,4 @@ migrations. Point a Vercel *Preview* environment's `DATABASE_URL`/`DIRECT_URL` a
 | Rate-limit table hot under heavy traffic | Upstash Redis (free tier) as the limiter store |
 | Cold starts noticeable | Neon paid plan (no auto-suspend) |
 | Users need phone OTP | Add an SMS gateway (e.g. SSL Wireless, Twilio) behind `OTP_DELIVERY_PROVIDER=sms` |
+| Activity log grows large | Archive `audit_log` rows older than a year (it's append-only and indexed by date) |

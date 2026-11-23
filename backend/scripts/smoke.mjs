@@ -7,16 +7,26 @@
  *   pnpm smoke                                       (another)
  *
  * Walks the real journey — sign up, verify email via the OTP in Mailpit,
- * complete a profile, upload documents, get verified by the seeded admin,
+ * complete a profile, upload documents, get verified by the admin account,
  * publish a loan request, negotiate, sign the agreement, repay — and probes
  * access control, validation, sanitisation, uploads, rate limits and headers.
  * It writes data, so only point it at a local or throwaway database.
+ *
+ * Admin credentials come from ADMIN_EMAIL / ADMIN_PASSWORD in backend/.env (the
+ * account `pnpm db:seed` creates); override with SMOKE_ADMIN_EMAIL / _PASSWORD.
  */
+
+try {
+  process.loadEnvFile(new URL("../.env", import.meta.url));
+} catch {
+  /* no .env: rely on the process environment */
+}
 
 const BASE = (process.env.SMOKE_BASE_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 const MAILPIT = (process.env.SMOKE_MAILPIT_URL ?? "http://localhost:8025").replace(/\/+$/, "");
 const API = `${BASE}/api/v1`;
-const DEMO_PASSWORD = process.env.SEED_DEMO_PASSWORD || "Password123!";
+const ADMIN_EMAIL = process.env.SMOKE_ADMIN_EMAIL || process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.SMOKE_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD;
 const RUN = Date.now().toString(36);
 
 let passed = 0;
@@ -67,7 +77,7 @@ function client() {
   };
 }
 
-async function signIn(email, password = DEMO_PASSWORD) {
+async function signIn(email, password) {
   const http = client();
   const res = await http("POST", "/auth/sign-in/email", { email, password });
   if (res.status !== 200) throw new Error(`Sign-in failed for ${email}: ${brief(res)}`);
@@ -100,8 +110,8 @@ async function upload(http, purpose, blob, name) {
 }
 
 /** Sign up → OTP → verified session. */
-async function register(role, name) {
-  const email = `smoke.${role.toLowerCase()}.${RUN}@example.com`;
+async function register(role, name, tag = role.toLowerCase()) {
+  const email = `smoke.${tag}.${RUN}@example.com`;
   const password = `Smoke-${RUN}-Pass1`;
   const http = client();
   const signUp = await http("POST", "/auth/sign-up/email", { name, email, password, signupRole: role });
@@ -128,9 +138,12 @@ async function main() {
   section("Sign-up and authentication");
   const owner = await register("OWNER", "Smoke Owner");
   const investor = await register("INVESTOR", "Smoke Investor");
-  const admin = await signIn("admin@smeconnect.local");
-  const outsider = await signIn("investor02@smeconnect.local");
-  check("seeded sign-in hides the session token", admin.res.json?.token === undefined);
+  const outsider = await register("INVESTOR", "Smoke Outsider", "outsider");
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) throw new Error("Set ADMIN_EMAIL and ADMIN_PASSWORD (or SMOKE_ADMIN_*) for the admin steps");
+  const admin = await signIn(ADMIN_EMAIL, ADMIN_PASSWORD);
+  check("sign-in hides the session token", admin.res.json?.token === undefined);
+  const options = await client()("GET", "/auth-options");
+  check("auth options are public", options.status === 200 && typeof options.json?.data?.google === "boolean", brief(options));
   const asAdmin = await client()("POST", "/auth/sign-up/email", { name: "Mallory", email: `mallory.${RUN}@example.com`, password: "Password123!", signupRole: "ADMIN" });
   check("can't self-register as ADMIN", asAdmin.status >= 400 && asAdmin.status < 500, brief(asAdmin));
   check("protected routes need a session", (await client()("GET", "/me")).status === 401);
@@ -245,6 +258,31 @@ async function main() {
   section("Administration");
   check("non-admin blocked from admin API", (await investor.http("GET", "/admin/stats")).status === 403);
   check("admin reads stats", (await admin.http("GET", "/admin/stats")).status === 200);
+  const search = await admin.http("GET", `/admin/users?q=${encodeURIComponent(`smoke.owner.${RUN}`)}`);
+  check("admin searches members by email", search.status === 200 && search.json?.data?.length === 1, brief(search));
+  const ownerLog = await admin.http("GET", `/admin/audit-logs?actorId=${owner.id}`);
+  const ownerActions = new Set((ownerLog.json?.data ?? []).map((entry) => entry.action));
+  check("activity log records the owner's sign-up, publish and agreement", ["account.created", "loan_request.published", "agreement.confirmed"].every((a) => ownerActions.has(a)), [...ownerActions].join(","));
+  check("non-admin can't read the activity log", (await owner.http("GET", "/admin/audit-logs")).status === 403);
+  const draftId = second.json?.data?.id;
+  const allRequests = await admin.http("GET", "/admin/loan-requests?status=DRAFT");
+  check("admin lists loan requests of any status", allRequests.status === 200 && (allRequests.json?.data ?? []).some((r) => r.id === draftId), brief(allRequests));
+  const noReason = await admin.http("POST", `/admin/loan-requests/${draftId}/cancel`, {});
+  check("moderation needs a reason", noReason.status === 400, brief(noReason));
+  const cancelled = await admin.http("POST", `/admin/loan-requests/${draftId}/cancel`, { reason: "Smoke test moderation" });
+  check("admin cancels a loan request", cancelled.status === 200 && cancelled.json?.data?.status === "CANCELLED", brief(cancelled));
+  const notices = await owner.http("GET", "/notifications?limit=5");
+  check("owner is notified of the moderation", (notices.json?.data ?? []).some((n) => n.type === "ADMIN_NOTICE"), brief(notices));
+  const loans = await admin.http("GET", "/admin/loans");
+  check("admin sees every loan with repayment progress", loans.status === 200 && (loans.json?.data ?? []).some((l) => l.id === loanId && l.repayments.total > 0), brief(loans));
+  const roleSwitch = await owner.http("PATCH", "/me/role", { role: "INVESTOR" });
+  check("role is locked once a profile exists", roleSwitch.status === 422, brief(roleSwitch));
+  const suspended = await admin.http("POST", `/admin/users/${outsider.id}/suspend`);
+  check("admin suspends a member", suspended.status === 200, brief(suspended));
+  check("suspension signs the member out", (await outsider.http("GET", "/me")).status === 401);
+  check("admin reactivates the member", (await admin.http("POST", `/admin/users/${outsider.id}/reactivate`)).status === 200);
+  const adminLog = await admin.http("GET", "/admin/audit-logs?category=admin.");
+  check("admin actions are in the activity log", (adminLog.json?.data ?? []).some((e) => e.action === "admin.user_suspended" && e.targetId === outsider.id), brief(adminLog));
 
   section("Rate limiting");
   const attacker = client();

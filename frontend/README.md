@@ -19,8 +19,7 @@ npm ci
 npm run dev        # http://localhost:3000, backend expected on http://localhost:4000
 ```
 
-Configuration is optional; see [`.env.example`](.env.example) (`BACKEND_URL`,
-`SHOW_DEMO_LOGIN`, `SEED_DEMO_PASSWORD`).
+Configuration is optional; see [`.env.example`](.env.example) (`BACKEND_URL`).
 
 | Script | What it does |
 | --- | --- |
@@ -56,10 +55,11 @@ src/
     ui/           Primitives: Button, Card, Tabs, Badge, Avatar, Photo, ...
     layout/       AppHeader, UserMenu, PublicHeader, MobileTabBar, Footer, BrandLogo
     domain/       Feature components: LoanCard, OfferBuilder, MessagesWorkspace, ...
-  data/           Shared UI types, navigation, local image catalogue
+    admin/        Admin panel navigation, tables and action buttons
+  data/           Shared UI types, navigation, the site's photos (images.ts)
   lib/            API clients, mappers, formatting, session helpers
   proxy.ts        Redirects logged-out visitors to /login
-public/images/    Images used by the UI and the demo seed
+public/images/    Photos of real Bangladeshi small businesses used by the site
 tailwind.config.ts  Design tokens
 ```
 
@@ -68,8 +68,8 @@ tailwind.config.ts  Design tokens
 | Route | Screen |
 | --- | --- |
 | `/` | Landing page |
-| `/login`, `/signup`, `/verify-email` | Sign in, sign up with role, email code |
-| `/onboarding` | Profile and verification documents |
+| `/login`, `/signup`, `/verify-email` | Sign in or sign up (email or Google), email code |
+| `/onboarding` | Profile photo (or a blank one), profile details and verification documents |
 | `/feed`, `/explore` | Home feed; search businesses, investors and loan requests |
 | `/businesses/[id]`, `/investors/[id]` | Public profiles |
 | `/loans/new` | Create and publish a loan request (owner) |
@@ -78,4 +78,10 @@ tailwind.config.ts  Design tokens
 | `/loans/[id]` | Agreement, repayment schedule and payments |
 | `/messages`, `/notifications` | Conversations; notification centre |
 | `/business-dashboard`, `/investor-dashboard` | Role dashboards |
-| `/admin/verification` | Admin verification queue |
+| `/admin` | Admin overview: platform numbers, what needs attention, latest activity |
+| `/admin/users`, `/admin/users/[id]` | Search members; full profile, documents, activity; suspend, reactivate, sign out everywhere |
+| `/admin/verification` | Verification queue |
+| `/admin/loans` | Every loan request (pause, reopen, cancel with a reason) and every agreed loan |
+| `/admin/reports` | Reports with the reported content; resolve, remove, suspend or dismiss |
+| `/admin/content` | Posts and comments; remove |
+| `/admin/activity` | Activity log of sign-ups, sign-ins, lending steps and admin actions |

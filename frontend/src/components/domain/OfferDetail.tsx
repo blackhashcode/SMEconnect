@@ -11,7 +11,7 @@ import { FormAlert } from "@/components/auth/FormField";
 import { MessageButton } from "./MessageButton";
 import { TermsFields, termsBody, TENURE_OPTIONS, type Terms } from "./TermsFields";
 import { api, type FieldErrors } from "@/lib/client-api";
-import { formatBDT } from "@/lib/format";
+import { formatBDT, firstName } from "@/lib/format";
 import { FREQUENCY_LABEL, OFFER_STATUS, tenureLabel } from "@/lib/loans";
 import { partyPerson } from "@/lib/backend/mappers";
 import { profileHref } from "@/lib/profile";
@@ -96,7 +96,7 @@ export function OfferDetail({ offer, viewerId, loanId, nextOfferId }: { offer: O
           <Badge tone={status.tone}>{status.label}</Badge>
           {pendingOffer && (
             <Badge tone={canRespond ? "secondary" : "neutral"}>
-              <Clock3 className="h-3.5 w-3.5" aria-hidden /> {canRespond ? "Your turn" : `Waiting for ${counterpart.name.split(" ")[0]}`}
+              <Clock3 className="h-3.5 w-3.5" aria-hidden /> {canRespond ? "Your turn" : `Waiting for ${firstName(counterpart.name)}`}
             </Badge>
           )}
         </div>
@@ -137,7 +137,7 @@ export function OfferDetail({ offer, viewerId, loanId, nextOfferId }: { offer: O
           {canRespond && countering && (
             <section className="animate-fade-in rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
               <h2 className="text-headline-sm text-on-surface">Propose different terms</h2>
-              <p className="mt-1 text-body-sm text-outline">This replaces the current offer. {counterpart.name.split(" ")[0]} can then accept, reject or counter again.</p>
+              <p className="mt-1 text-body-sm text-outline">This replaces the current offer. {firstName(counterpart.name)} can then accept, reject or counter again.</p>
               <div className="mt-space-md">
                 <TermsFields value={terms} onChange={setTerms} fields={fields} />
               </div>
@@ -166,7 +166,7 @@ export function OfferDetail({ offer, viewerId, loanId, nextOfferId }: { offer: O
                   : canRespond
                     ? "Accepting creates a loan agreement for both of you to confirm. It also closes the request to other offers."
                     : canWithdraw
-                      ? `Waiting for ${counterpart.name.split(" ")[0]} to respond. You can withdraw at any time.`
+                      ? `Waiting for ${firstName(counterpart.name)} to respond. You can withdraw at any time.`
                       : "This offer is no longer active."}
             </p>
             <div className="mt-space-md grid gap-space-sm">
@@ -197,7 +197,7 @@ export function OfferDetail({ offer, viewerId, loanId, nextOfferId }: { offer: O
                 </Button>
               )}
               <MessageButton participantId={counterpart.id} variant="outline" className="w-full">
-                <MessageSquareText className="h-4 w-4" aria-hidden /> Message {counterpart.name.split(" ")[0]}
+                <MessageSquareText className="h-4 w-4" aria-hidden /> Message {firstName(counterpart.name)}
               </MessageButton>
             </div>
           </section>

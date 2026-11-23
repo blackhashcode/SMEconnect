@@ -11,7 +11,7 @@ import { TimeAgo } from "@/components/ui/TimeAgo";
 import { OfferCard } from "@/components/domain/OfferCard";
 import { OwnRequestActions } from "@/components/domain/OwnRequestActions";
 import { myLoanRequests, offersReceived, ownerDashboard } from "@/lib/api";
-import { formatBDT, shortDate } from "@/lib/format";
+import { formatBDT, shortDate, firstName } from "@/lib/format";
 import { FREQUENCY_LABEL, LOAN_REQUEST_STATUS, tenureLabel } from "@/lib/loans";
 import { requireUser } from "@/lib/session";
 
@@ -54,7 +54,7 @@ export default async function BusinessDashboardPage() {
           <Avatar src={user.avatar} alt={user.name} name={user.name} size="xl" priority />
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-headline-lg text-on-surface">Welcome back, {user.name.split(" ")[0]}</h1>
+              <h1 className="text-headline-lg text-on-surface">Welcome back, {firstName(user.name)}</h1>
               {verified && <VerifiedBadge />}
             </div>
             <p className="mt-1 text-body-md text-on-surface-variant">{profile?.shopName ? `${profile.shopName} · ${profile.category} · ${[profile.district, profile.city].filter(Boolean).join(", ")}` : "Complete your business profile to get started."}</p>

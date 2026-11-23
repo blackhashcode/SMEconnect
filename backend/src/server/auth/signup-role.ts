@@ -79,3 +79,18 @@ export function stripProtectedUserFieldsFromUpdate<
 
   return safeData as Omit<T, "signupRole" | "role" | "status">;
 }
+
+/** Cookie the frontend sets before "Sign up with Google" so new accounts get the chosen role. */
+export const SIGNUP_ROLE_COOKIE = "sme_signup_role";
+
+/**
+ * Role for an account created through a social provider (no sign-up body to
+ * carry `signupRole`). Reads the short-lived role cookie; defaults to OWNER,
+ * which a new member can still switch while their account is empty.
+ */
+export function socialSignupRole(cookieHeader: string | null | undefined): SignupRole {
+  const match = /(?:^|;\s*)sme_signup_role=([A-Z]+)/.exec(cookieHeader ?? "");
+  const parsed = signupRoleSchema.safeParse(match?.[1]);
+  return parsed.success ? parsed.data : "OWNER";
+}
+

@@ -1,55 +1,28 @@
-// Demo photos in public/images, referenced by key in the UI. The backend seed
-// also points demo profiles at these files (backend/src/server/seed/demo-data.ts).
+// Photos of real Bangladeshi small businesses in public/images, used for the
+// site's own imagery. Member photos and covers always come from their uploads.
 export const images = {
-  "artisan-workshop": "/images/artisan-workshop.jpg",
-  "avatar-male-1": "/images/avatar-male-1.jpg",
-  "avatar-male-2": "/images/avatar-male-2.jpg",
-  "bella-organics-products": "/images/bella-organics-products.jpg",
-  "boutique-punjabis": "/images/boutique-punjabis.jpg",
-  "boutique-sarees": "/images/boutique-sarees.jpg",
-  "boutique-shopfront": "/images/boutique-shopfront.jpg",
-  "brownies": "/images/brownies.jpg",
-  "catering-desserts": "/images/catering-desserts.jpg",
-  "cloud-kitchen": "/images/cloud-kitchen.jpg",
-  "electric-courier": "/images/electric-courier.jpg",
-  "electric-fleet": "/images/electric-fleet.jpg",
-  "electronics-distributor": "/images/electronics-distributor.jpg",
-  "entrepreneur-indigo": "/images/entrepreneur-indigo.jpg",
-  "farzana-portrait": "/images/farzana-portrait.jpg",
-  "fashion-founder": "/images/fashion-founder.jpg",
-  "gift-hamper": "/images/gift-hamper.jpg",
-  "handloom-panjabis": "/images/handloom-panjabis.jpg",
-  "home-chef": "/images/home-chef.jpg",
-  "honey-jars": "/images/honey-jars.jpg",
-  "investor-mobile": "/images/investor-mobile.jpg",
-  "investor-senior": "/images/investor-senior.jpg",
-  "jamdani-panjabi": "/images/jamdani-panjabi.jpg",
-  "kamal-honey": "/images/kamal-honey.jpg",
-  "landing-baker": "/images/landing-baker.jpg",
-  "landing-garment": "/images/landing-garment.jpg",
-  "landing-pottery": "/images/landing-pottery.jpg",
-  "leather-bag": "/images/leather-bag.jpg",
-  "logo": "/images/logo.svg",
-  "nusrat-bakery": "/images/nusrat-bakery.jpg",
-  "nusrat-cloud-kitchen": "/images/nusrat-cloud-kitchen.jpg",
-  "nusrat-portrait": "/images/nusrat-portrait.jpg",
-  "organic-cosmetics": "/images/organic-cosmetics.jpg",
-  "organic-skincare": "/images/organic-skincare.jpg",
-  "pastry-boxes": "/images/pastry-boxes.jpg",
-  "rafiq-portrait": "/images/rafiq-portrait.jpg",
-  "sabrina-skincare": "/images/sabrina-skincare.jpg",
-  "saffron-cups": "/images/saffron-cups.jpg",
-  "samira-portrait": "/images/samira-portrait.jpg",
-  "savory-pies": "/images/savory-pies.jpg",
-  "silk-spools": "/images/silk-spools.jpg",
-  "tanvir-investor": "/images/tanvir-investor.jpg",
-  "tanvir-portrait": "/images/tanvir-portrait.jpg",
-  "tanzeem-portrait": "/images/tanzeem-portrait.jpg",
-  "tech-entrepreneur": "/images/tech-entrepreneur.jpg",
-  "terracotta-cups": "/images/terracotta-cups.jpg",
-  "terracotta-glazed": "/images/terracotta-glazed.jpg",
-  "terracotta-tableware": "/images/terracotta-tableware.jpg",
-  "weaver-sarees": "/images/weaver-sarees.jpg",
+  "bakery-workers": "/images/bakery-workers.jpg",
+  "courier-workers": "/images/courier-workers.jpg",
+  "farmers-field": "/images/farmers-field.jpg",
+  "fruit-vendor": "/images/fruit-vendor.jpg",
+  "handicraft-shop": "/images/handicraft-shop.jpg",
+  "machinery-stall": "/images/machinery-stall.jpg",
+  "papad-maker": "/images/papad-maker.jpg",
+  "shoe-stall": "/images/shoe-stall.jpg",
+  "textile-fair": "/images/textile-fair.jpg",
+  logo: "/images/logo.svg",
 } as const;
 
 export type ImageKey = keyof typeof images;
+
+/** Cover shown for a business that hasn't uploaded its own, matched to its category. */
+export function fallbackCover(category?: string | null): string {
+  const value = (category ?? "").toLowerCase();
+  if (/food|bakery|kitchen|grocer/.test(value)) return images["bakery-workers"];
+  if (/fashion|cloth|textile|garment/.test(value)) return images["textile-fair"];
+  if (/handicraft|craft|home|d[eé]cor/.test(value)) return images["handicraft-shop"];
+  if (/gadget|electronic|machine|hardware/.test(value)) return images["machinery-stall"];
+  if (/agri|farm/.test(value)) return images["farmers-field"];
+  if (/shoe|footwear|leather/.test(value)) return images["shoe-stall"];
+  return images["fruit-vendor"];
+}

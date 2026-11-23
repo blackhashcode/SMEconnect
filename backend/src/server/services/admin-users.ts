@@ -97,13 +97,14 @@ function toVerificationSummary(row: VerificationRow) {
 /** ADMIN-only user directory. Verification states are fetched in one batch. */
 export async function listAdminUsers(
   actor: Actor,
-  query: PaginationParams & { status?: string; role?: string },
+  query: PaginationParams & { status?: string; role?: string; q?: string },
   deps: ServiceDeps = {},
 ) {
   assertRole(actor, "ADMIN");
   const parsed = adminUserListQuerySchema.parse({
     status: query.status,
     role: query.role,
+    q: query.q,
   });
   const db = deps.db ?? prisma;
   const cursor = cursorId(query.cursor);
@@ -112,6 +113,14 @@ export async function listAdminUsers(
     where: {
       ...(parsed.status ? { status: parsed.status } : {}),
       ...(parsed.role ? { role: parsed.role } : {}),
+      ...(parsed.q
+        ? {
+            OR: [
+              { name: { contains: parsed.q, mode: "insensitive" as const } },
+              { email: { contains: parsed.q, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
     },
     select: USER_SELECT,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
