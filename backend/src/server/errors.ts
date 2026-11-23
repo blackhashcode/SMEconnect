@@ -45,6 +45,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class RateLimitError extends AppError {
+  constructor(message = "Too many requests", details?: unknown) {
+    super("RATE_LIMITED", message, 429, details);
+  }
+}
+
 export class BusinessRuleError extends AppError {
   constructor(message = "Business rule violation", details?: unknown) {
     super("BUSINESS_RULE_VIOLATION", message, 422, details);

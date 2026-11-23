@@ -1,4 +1,5 @@
 import pkg from "../../../package.json";
+import { SESSION_COOKIE_NAME } from "@/server/auth/constants";
 
 export const API_TITLE = "SME Connect API";
 export const API_DESCRIPTION =
@@ -30,7 +31,7 @@ export const API_DOC_INFO = {
 } as const;
 
 export const SECURITY_SCHEME_NAME = "BetterAuthSession";
-export const BETTER_AUTH_SESSION_COOKIE = "better-auth.session_token";
+export const BETTER_AUTH_SESSION_COOKIE = SESSION_COOKIE_NAME;
 
 /**
  * Docs are on by default locally and off by default in production.

@@ -6,6 +6,7 @@ import {
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  RateLimitError,
   UnauthorizedError,
   ValidationError,
   toErrorPayload,
@@ -19,6 +20,7 @@ describe("toErrorPayload", () => {
     [new NotFoundError(), 404, "NOT_FOUND"],
     [new ConflictError(), 409, "CONFLICT"],
     [new BusinessRuleError(), 422, "BUSINESS_RULE_VIOLATION"],
+    [new RateLimitError(), 429, "RATE_LIMITED"],
   ])("maps %s to the correct status and code", (error, status, code) => {
     const result = toErrorPayload(error);
     expect(result.status).toBe(status);

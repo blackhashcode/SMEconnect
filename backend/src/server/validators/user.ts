@@ -3,7 +3,7 @@ import { z } from "zod";
 import { optionalTextSchema, shortTextSchema, urlSchema } from "@/server/validators/common";
 import { userStatusSchema } from "@/server/validators/enums";
 
-const phoneSchema = z
+export const phoneSchema = z
   .string()
   .trim()
   .regex(/^\+?[0-9][0-9\s-]{6,19}$/, "Invalid phone number");
