@@ -588,6 +588,95 @@ curl -X POST http://localhost:3000/api/v1/conversations/con_123/read
 curl -X DELETE http://localhost:3000/api/v1/messages/msg_123
 ```
 
+## Offers and agreements (Phase 7)
+
+All endpoints below require an authenticated `OWNER` or `INVESTOR` session. The acting user is
+always the session user; client-supplied `investorId`, `ownerId`, `proposedBy`, `status`,
+`expiresAt`, calculated totals or loan state are rejected by strict Zod validation or ignored by
+the service.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/offers` | INVESTOR submits an offer on an OPEN/IN_DISCUSSION request |
+| GET | `/api/v1/offers/received` | OWNER lists offers on their own requests |
+| GET | `/api/v1/offers/submitted` | INVESTOR lists their own offers |
+| GET | `/api/v1/offers/{offerId}` | Offer detail (either party only) |
+| POST | `/api/v1/offers/{offerId}/withdraw` | Proposer withdraws a pending offer |
+| POST | `/api/v1/offers/{offerId}/reject` | Counterparty rejects a pending offer |
+| POST | `/api/v1/offers/{offerId}/counter` | Counterparty proposes a linked replacement offer |
+| POST | `/api/v1/offers/{offerId}/accept` | Counterparty accepts and creates the loan/agreement |
+| GET | `/api/v1/agreements/{agreementId}` | Agreement terms, parties and schedule preview |
+| POST | `/api/v1/agreements/{agreementId}/confirm` | One party confirms; the second activates the loan |
+
+Offer lists use `?cursor=&limit=` (default 20, max 50) and optionally `?loanRequestId=`. Unknown
+query keys return 400. Responses are `{ data, meta }` for lists and `{ data }` otherwise.
+
+Offer rules:
+
+- Only an **APPROVED INVESTOR** can submit an offer, and never on their own request.
+- The request must be `OPEN` or `IN_DISCUSSION`; the first pending offer moves `OPEN → IN_DISCUSSION`.
+- One live `PENDING` offer per investor per request. An expired pending row is marked `EXPIRED`
+  and replaced on the next offer attempt.
+- Terms: positive whole-taka `amountBdt`, `interestRatePct` 0–100 with at most two decimals,
+  `tenureDays` 1–3650, `repaymentFrequency` `WEEKLY|BIWEEKLY|MONTHLY`, and a sanitized plain-text
+  `message` of at most 5000 characters.
+- State machine: `PENDING → ACCEPTED | REJECTED | COUNTERED | WITHDRAWN | EXPIRED`. Only the
+  proposer can withdraw; only the counterparty can reject, counter or accept. Any action on a
+  non-pending or expired offer returns 409.
+- A counter marks its parent `COUNTERED` and creates a new `PENDING` offer with `parentOfferId`
+  set to the parent. `proposedBy` is derived from the session; the investor counterparty is
+  inherited from the parent offer.
+- Pending offers are reported as `EXPIRED` on read once seven days pass. `expireOffers()` is an
+  exported cleanup function for a future cron job; no HTTP endpoint is exposed in this phase.
+
+Accepting an offer runs in one `prisma.$transaction`: conditionally claim the pending offer as
+`ACCEPTED`, reject sibling pending offers, create `Loan` (`PENDING_AGREEMENT`) and `Agreement`,
+set the request `FUNDED`, and notify both parties. Conditional updates plus the existing unique
+constraints on `Loan.loanRequestId`/`Loan.offerId` prevent duplicate loans from concurrent
+acceptances.
+
+Agreement rules:
+
+- Only the loan's owner or investor can view or confirm. Each party may confirm once.
+- The stored `termsSnapshot` is authoritative. `GET` returns both parties, confirmation
+  timestamps and a schedule preview derived from the snapshot.
+- The second confirmation atomically sets the loan `ACTIVE` with `startDate`, writes the
+  `Repayment` rows, transitions the request `FUNDED → REPAYING`, creates two
+  `AGREEMENT_CONFIRMED` notifications and one owner `MILESTONE` feed post.
+- Flat interest: `totalRepayable = principal + round(principal × rate% × tenureDays / 365)` in
+  whole taka. Installments use 7/14/30-day intervals; all but the last use the floor share and
+  the last absorbs the rounding remainder.
+
+Request examples:
+
+```json
+{
+  "loanRequestId": "lr_123",
+  "amountBdt": 50000,
+  "interestRatePct": "14.50",
+  "tenureDays": 90,
+  "repaymentFrequency": "WEEKLY",
+  "message": "I can fund this oven purchase."
+}
+```
+
+```json
+{
+  "amountBdt": 48000,
+  "interestRatePct": "13.00",
+  "tenureDays": 90,
+  "repaymentFrequency": "WEEKLY",
+  "message": "Could we meet in the middle?"
+}
+```
+
+```bash
+curl 'http://localhost:3000/api/v1/offers/received?loanRequestId=lr_123&limit=20'
+curl -X POST http://localhost:3000/api/v1/offers/off_123/accept
+curl http://localhost:3000/api/v1/agreements/agr_123
+curl -X POST http://localhost:3000/api/v1/agreements/agr_123/confirm
+```
+
 ## System
 
 ### `GET /api/v1/health`
@@ -620,18 +709,21 @@ Reports API and PostgreSQL connectivity. No authentication required.
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–6 endpoints reuse that schema without Prisma
+[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–7 endpoints reuse that schema without Prisma
 changes: `UserVerification` stores KYC state, `Verification` stores phone OTP challenges,
-`Notification` stores verification results, `BusinessProfile`, `InvestorProfile` and
+`Notification` stores verification and lending events, `BusinessProfile`, `InvestorProfile` and
 `ProductImage` store profile data, `LoanRequest` stores requests, `Post` stores both
 auto-generated and user-created feed entries, `Comment`, `Like`, `Follow` and `Connection`
-store Phase 5 interactions, and `Conversation`, `Message` and `MessageDeletion` store Phase 6
-threads and per-user soft deletions. The one-active-request rule is enforced by the existing
-partial unique index `loan_request_one_active_per_owner`.
+store Phase 5 interactions, `Conversation`, `Message` and `MessageDeletion` store Phase 6
+threads and per-user soft deletions, and `Offer`, `Loan`, `Agreement` and `Repayment` store the
+Phase 7 lending flow. The one-active-request rule is enforced by the existing partial unique
+index `loan_request_one_active_per_owner`; the one-pending-offer rule uses
+`offer_one_pending_per_investor_per_request`.
 
 ## Modules (added in later phases)
 
-Messaging is implemented in Phase 6 above, including enforcement of any existing `Block` rows.
-Offers & agreement (Phase 7), loans and repayments (Phase 8), reviews/dashboards/analytics and the
-remaining admin moderation endpoints (Phase 9+) are still planned. Block/unblock endpoints
+Messaging (Phase 6) and offers & agreement (Phase 7) are implemented above. Repayment tracking
+(Phase 8), reviews, trust scores, notifications/dashboards and the remaining admin moderation
+endpoints (Phase 9+) are still planned. Repayment **schedule generation** is shared by Phase 7's
+agreement confirmation but there are no Phase 8 repayment endpoints yet. Block/unblock endpoints
 themselves are Phase 9 and are intentionally not implemented in Phase 6.

@@ -78,7 +78,10 @@ export function requirePublicTarget(
   return user;
 }
 
-export async function verifiedUserIds(ids: string[], db: Db): Promise<Set<string>> {
+export async function verifiedUserIds(
+  ids: string[],
+  db: Pick<Db, "userVerification">,
+): Promise<Set<string>> {
   if (ids.length === 0) return new Set();
   const records = await db.userVerification.findMany({
     where: { userId: { in: ids }, status: "APPROVED" },
