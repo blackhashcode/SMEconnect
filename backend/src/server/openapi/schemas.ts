@@ -96,6 +96,29 @@ export const publicLoanRequestListSuccessEnvelopeSchema = successEnvelope(
   validators.publicLoanRequestListSchema,
 );
 
+// Phase 5 — feed, networking and discovery
+export const postSuccessEnvelopeSchema = successEnvelope(validators.postRecordSchema);
+export const postListSuccessEnvelopeSchema = successEnvelope(validators.postRecordListSchema);
+export const commentSuccessEnvelopeSchema = successEnvelope(validators.commentRecordSchema);
+export const commentListSuccessEnvelopeSchema = successEnvelope(validators.commentRecordListSchema);
+export const likeResultSuccessEnvelopeSchema = successEnvelope(validators.likeResultSchema);
+export const deleteResultSuccessEnvelopeSchema = successEnvelope(validators.deleteResultSchema);
+export const connectionSuccessEnvelopeSchema = successEnvelope(validators.connectionRecordSchema);
+export const connectionListSuccessEnvelopeSchema = successEnvelope(
+  validators.connectionRecordListSchema,
+);
+export const followRecordSuccessEnvelopeSchema = successEnvelope(validators.followRecordSchema);
+export const followRecordListSuccessEnvelopeSchema = successEnvelope(
+  validators.followRecordListSchema,
+);
+export const followResultSuccessEnvelopeSchema = successEnvelope(validators.followResultSchema);
+export const discoveryBusinessListSuccessEnvelopeSchema = successEnvelope(
+  validators.discoveryBusinessListSchema,
+);
+export const discoveryInvestorListSuccessEnvelopeSchema = successEnvelope(
+  validators.discoveryInvestorListSchema,
+);
+
 const cursorSchema = z.string().min(1).openapi({
   param: {
     name: "cursor",
@@ -282,9 +305,25 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["CreatePostRequest", validators.createPostSchema],
   ["UpdatePostRequest", validators.updatePostSchema],
   ["CreateCommentRequest", validators.createCommentSchema],
+  ["UpdateCommentRequest", validators.updateCommentSchema],
   ["FollowUserRequest", validators.followUserSchema],
   ["SendConnectionRequestRequest", validators.sendConnectionRequestSchema],
   ["ConnectionActionRequest", validators.connectionActionSchema],
+  ["ConnectionListFilters", validators.connectionListQuerySchema],
+  ["FeedFilters", validators.feedQuerySchema],
+  ["PostAuthor", validators.postAuthorSchema],
+  ["PostLoanRequestSummary", validators.postLoanRequestSummarySchema],
+  ["PostRecord", validators.postRecordSchema],
+  ["CommentRecord", validators.commentRecordSchema],
+  ["LikeResult", validators.likeResultSchema],
+  ["DeleteResult", validators.deleteResultSchema],
+  ["ConnectionRecord", validators.connectionRecordSchema],
+  ["FollowRecord", validators.followRecordSchema],
+  ["FollowResult", validators.followResultSchema],
+  ["BusinessesFilters", validators.businessesQuerySchema],
+  ["InvestorsFilters", validators.investorsQuerySchema],
+  ["DiscoveryBusiness", validators.discoveryBusinessSchema],
+  ["DiscoveryInvestor", validators.discoveryInvestorSchema],
   ["CreateReviewRequest", validators.createReviewSchema],
   ["CreateReportRequest", validators.createReportSchema],
   ["CreateConversationRequest", validators.createConversationSchema],

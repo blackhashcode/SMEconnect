@@ -8,6 +8,7 @@ export * from "@/server/validators/loan";
 export * from "@/server/validators/offer";
 export * from "@/server/validators/repayment";
 export * from "@/server/validators/social";
+export * from "@/server/validators/discovery";
 export * from "@/server/validators/message";
 export * from "@/server/validators/health";
 export * from "@/server/validators/phone-otp";

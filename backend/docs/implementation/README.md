@@ -17,7 +17,8 @@ as proof that a report exists.
 | 2 — Auth, roles & verification | [PHASE_02_AUTH_ROLES_VERIFICATION.md](./PHASE_02_AUTH_ROLES_VERIFICATION.md) | Implemented | `c6aadae`, `460d046`, part of `072f2b5` |
 | 3 — Profiles | [PHASE_03_PROFILES.md](./PHASE_03_PROFILES.md) | Implemented | part of `072f2b5` |
 | 4 — Loan requests | [PHASE_04_LOAN_REQUESTS.md](./PHASE_04_LOAN_REQUESTS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 5+ — Feed, messaging, offers, repayments, reputation, admin | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
+| 5 — Feed, networking & discovery | [PHASE_05_FEED_NETWORKING_DISCOVERY.md](./PHASE_05_FEED_NETWORKING_DISCOVERY.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
+| 6+ — Messaging, offers, repayments, reputation, admin | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
 
 Related reading:
 

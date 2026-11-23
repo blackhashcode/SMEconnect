@@ -1,9 +1,11 @@
 import "@/server/openapi/setup";
 import { registerAuthRoutes } from "@/server/openapi/routes/auth";
+import { registerDiscoveryRoutes } from "@/server/openapi/routes/discovery";
 import { registerHealthRoute } from "@/server/openapi/routes/health";
 import { registerLoanRequestRoutes } from "@/server/openapi/routes/loan-requests";
 import { registerPhoneOtpRoutes } from "@/server/openapi/routes/phone-otp";
 import { registerProfileRoutes } from "@/server/openapi/routes/profiles";
+import { registerSocialRoutes } from "@/server/openapi/routes/social";
 import { registerStorageRoutes } from "@/server/openapi/routes/storage";
 import { registerVerificationRoutes } from "@/server/openapi/routes/verification";
 
@@ -19,5 +21,7 @@ export function registerApiRoutes() {
   registerLoanRequestRoutes();
   registerStorageRoutes();
   registerVerificationRoutes();
+  registerSocialRoutes();
+  registerDiscoveryRoutes();
   registered = true;
 }

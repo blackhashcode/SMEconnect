@@ -412,6 +412,118 @@ Request example:
 }
 ```
 
+## Feed, posts, networking and discovery (Phase 5)
+
+### Feed and posts
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/feed` | Personalized feed (auth) — own posts, followed authors, accepted connections and OPEN loan-request posts |
+| GET | `/api/v1/posts` | Public recent posts (optionally authenticated for `likedByMe`) |
+| POST | `/api/v1/posts` | Create an `UPDATE` or `MILESTONE` post (auth) |
+| GET | `/api/v1/posts/{id}` | Post detail |
+| PATCH | `/api/v1/posts/{id}` | Edit own user-created post (auth) |
+| DELETE | `/api/v1/posts/{id}` | Soft-delete own user-created post (auth) |
+| POST | `/api/v1/posts/{id}/like` | Like a post (auth) |
+| DELETE | `/api/v1/posts/{id}/like` | Unlike a post (auth) |
+| GET | `/api/v1/posts/{id}/comments` | List comments (oldest first, cursor pagination) |
+| POST | `/api/v1/posts/{id}/comments` | Add a comment (auth) |
+| PATCH | `/api/v1/posts/{id}/comments/{commentId}` | Edit own comment (auth) |
+| DELETE | `/api/v1/posts/{id}/comments/{commentId}` | Soft-delete own comment (auth) |
+
+- All list endpoints use `?cursor=&limit=` (default 20, max 50) with `meta.limit`,
+  `meta.nextCursor` and `meta.hasMore`. Feed/post lists accept an optional `type` filter.
+- `POST /posts` accepts only `type: "UPDATE" | "MILESTONE"`, non-empty `content` (≤5000 chars)
+  and up to 10 HTTP(S) image URLs. The author is always the session user; an `authorId` field
+  is rejected. `LOAN_REQUEST` and `REPAYMENT` posts are system-owned: clients cannot create,
+  edit or delete them (403).
+- A post response contains `id`, `type`, `content`, `imageUrls`, `likeCount`, `commentCount`,
+  `likedByMe`, an optional OPEN `loanRequest` summary, timestamps and a public `author` card
+  (`name`, `image`, `role`, `verified`, `shopName`, `slug`, `category`). It never includes the
+  author's user id, email, phone or verification documents.
+- Duplicated likes return 409; unliking a post you have not liked returns 404.
+- Comment create/edit accepts only `{ "content": "..." }`. Editing or deleting another user's
+  comment returns 403. Deletes set `deletedAt`; deleted comments are omitted from lists and
+  post comment counts. Deleting a post soft-deletes all of its live comments in one transaction.
+- Anonymous callers may read posts/comments but see `likedByMe: false`.
+
+Request examples:
+
+```json
+{ "type": "UPDATE", "content": "Fresh cookies today!", "imageUrls": [] }
+```
+
+```json
+{ "content": "Congratulations on the new oven!" }
+```
+
+### Connections
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/connections` | Send a connection request with an optional message |
+| GET | `/api/v1/connections` | List `incoming`, `outgoing` or `all` (default), optional `status` filter |
+| POST | `/api/v1/connections/{id}/accept` | Addressee only: PENDING → ACCEPTED |
+| POST | `/api/v1/connections/{id}/decline` | Addressee only: PENDING → DECLINED |
+| DELETE | `/api/v1/connections/{id}` | Requester cancels PENDING; either party removes ACCEPTED |
+
+State machine: `PENDING → ACCEPTED | DECLINED`. Other transitions return 409. Self-connections,
+duplicate and reciprocal requests return 422/409. Only the addressee may accept or decline (403);
+only the requester may cancel a pending request. DECLINED records are read-only history. The
+returned `user` is a safe public card with `direction` and `status`; no private fields.
+
+```json
+{ "addresseeId": "usr_456", "message": "I would like to know more about your shop." }
+```
+
+### Follows
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/follows` | Follow a user (auth) |
+| DELETE | `/api/v1/follows/{userId}` | Unfollow a user (auth) |
+| GET | `/api/v1/me/followers` | Paginated list of the actor's followers |
+| GET | `/api/v1/me/following` | Paginated list of users the actor follows |
+
+Targets must be active, non-admin, non-self accounts. Duplicate follows return 409; unfollowing
+without an existing relationship returns 404. List entries use the same public user card.
+
+```json
+{ "followeeId": "usr_456" }
+```
+
+### Discovery
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/businesses` | Public search of APPROVED owner profiles |
+| GET | `/api/v1/investors` | Public search of APPROVED investor profiles |
+| GET | `/api/v1/suggestions/businesses` | INVESTOR-only matches from the investor's profile |
+| GET | `/api/v1/suggestions/investors` | OWNER-only matches from the owner's profile and OPEN request |
+
+`GET /api/v1/businesses` supports `q`, `category`, `location`, `district`, `city`,
+`minAmountBdt`, `maxAmountBdt`, `maxTenureDays`, `minTrustScore` (0–100) and `sort`
+(`newest` | `trustScore`). Amount/tenure filters constrain the owner's OPEN loan request.
+`GET /api/v1/investors` supports `q`, `category`, `location`, `district`, `city`,
+`minLendBdt`, `maxLendBdt`, `minTrustScore` and sort (`newest` | `trustScore` | `lendAsc` |
+`lendDesc`). All query values are validated/coerced; inverted amount ranges and unsupported
+sorts return 400.
+
+Suggestions require no query parameters beyond pagination. They are derived entirely from the
+session user's profile (preferred categories, lending range and location for investors; business
+category, location and OPEN request amount for owners). Only APPROVED, active counterparties are
+returned. Endpoints return 403 for the wrong role and 422 when the acting user has no profile.
+
+Discovery responses are explicit allow-lists. They never contain email, phone, verification
+records/documents, user ids other than the public profile id, or internal fields. To discover
+OPEN loan requests themselves, reuse the Phase 4 `GET /api/v1/loan-requests` endpoint rather than
+duplicating it here.
+
+### Open loan-request discovery
+
+No new endpoint was added. `GET /api/v1/loan-requests` remains the canonical public listing of
+OPEN requests with category/location/amount/tenure filters, sorting and cursor pagination.
+
 ## System
 
 ### `GET /api/v1/health`
@@ -444,14 +556,17 @@ Reports API and PostgreSQL connectivity. No authentication required.
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–4 endpoints reuse that schema without Prisma
+[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–5 endpoints reuse that schema without Prisma
 changes: `UserVerification` stores KYC state, `Verification` stores phone OTP challenges,
 `Notification` stores verification results, `BusinessProfile`, `InvestorProfile` and
-`ProductImage` store profile data, `LoanRequest` stores requests, and `Post` stores the
-auto-generated feed announcement. The one-active-request rule is enforced by the existing
-partial unique index `loan_request_one_active_per_owner`.
+`ProductImage` store profile data, `LoanRequest` stores requests, `Post` stores both
+auto-generated and user-created feed entries, and `Comment`, `Like`, `Follow` and `Connection`
+store Phase 5 interactions. The one-active-request rule is enforced by the existing partial
+unique index `loan_request_one_active_per_owner`.
 
 ## Modules (added in later phases)
 
-Feed/networking, discovery, messaging, offers & agreement, repayments, dashboards/analytics,
-and the remaining admin moderation endpoints.
+Messaging (Phase 6, includes block/unblock enforcement), offers & agreement (Phase 7), loans and
+repayments (Phase 8), reviews/dashboards/analytics and the remaining admin moderation endpoints
+(Phase 9+). Block/unblock endpoints themselves are Phase 9 and are intentionally not implemented
+in Phase 5.
