@@ -214,7 +214,10 @@ export const reviewListQuerySchema = z
   .strict();
 
 export const reportListQuerySchema = z
-  .object({ status: reportStatusSchema.optional() })
+  .object({
+    status: reportStatusSchema.optional(),
+    targetType: reportTargetTypeSchema.optional(),
+  })
   .strict();
 
 export const reportRecordSchema = z

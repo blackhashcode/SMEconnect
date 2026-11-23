@@ -22,7 +22,8 @@ as proof that a report exists.
 | 7 — Offers and agreements | [PHASE_07_OFFERS_AGREEMENTS.md](./PHASE_07_OFFERS_AGREEMENTS.md) | Implemented | `7398dc0` |
 | 8 — Repayment tracking | [PHASE_08_REPAYMENT_TRACKING.md](./PHASE_08_REPAYMENT_TRACKING.md) | Implemented | `5790c8e` |
 | 9 — Reputation, notifications & dashboards | [PHASE_09_REPUTATION_NOTIFICATIONS_DASHBOARDS.md](./PHASE_09_REPUTATION_NOTIFICATIONS_DASHBOARDS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 10+ — Admin moderation & hardening | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
+| 10 — Admin | [PHASE_10_ADMIN.md](./PHASE_10_ADMIN.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
+| 11 — Seed, final docs & hardening | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
 
 Related reading:
 

@@ -3,6 +3,22 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT } from "@/lib/pagination";
 import {
+  ADMIN_COMMENT_PATH,
+  ADMIN_COMMENTS_PATH,
+  ADMIN_PATHS,
+  ADMIN_POST_PATH,
+  ADMIN_POSTS_PATH,
+  ADMIN_REPORT_DISMISS_PATH,
+  ADMIN_REPORT_PATH,
+  ADMIN_REPORT_RESOLVE_PATH,
+  ADMIN_REPORTS_PATH,
+  ADMIN_STATS_PATH,
+  ADMIN_USER_PATH,
+  ADMIN_USER_REACTIVATE_PATH,
+  ADMIN_USER_SUSPEND_PATH,
+  ADMIN_USERS_PATH,
+} from "@/server/openapi/routes/admin";
+import {
   BETTER_AUTH_SESSION_COOKIE,
   API_TAGS,
   SECURITY_SCHEME_NAME,
@@ -37,8 +53,23 @@ import { PHONE_OTP_PATHS } from "@/server/openapi/routes/phone-otp";
 import { PROFILE_PATHS } from "@/server/openapi/routes/profiles";
 import { LOAN_PATHS, REPAYMENT_PATHS } from "@/server/openapi/routes/repayments";
 import { STORAGE_PATHS } from "@/server/openapi/routes/storage";
-import { VERIFICATION_PATHS } from "@/server/openapi/routes/verification";
 import {
+  ADMIN_VERIFICATION_REVIEW_PATH,
+  VERIFICATION_PATHS,
+} from "@/server/openapi/routes/verification";
+import {
+  adminCommentListSuccessEnvelopeSchema,
+  adminDeleteResultSuccessEnvelopeSchema,
+  adminModerationActionSuccessEnvelopeSchema,
+  adminPostListSuccessEnvelopeSchema,
+  adminReportDetailSuccessEnvelopeSchema,
+  adminReportListSuccessEnvelopeSchema,
+  adminReportResolutionSuccessEnvelopeSchema,
+  adminStatsSuccessEnvelopeSchema,
+  adminUserDetailSuccessEnvelopeSchema,
+  adminUserListSuccessEnvelopeSchema,
+  adminUserStatusResultSuccessEnvelopeSchema,
+  adminVerificationDetailSuccessEnvelopeSchema,
   authErrorSchema,
   blockListSuccessEnvelopeSchema,
   blockSuccessEnvelopeSchema,
@@ -193,7 +224,7 @@ describe("OpenAPI document generation", () => {
 });
 
 describe("health endpoint documentation", () => {
-  it("documents only the implemented Phase 0–9 routes", () => {
+  it("documents only the implemented Phase 0–10 routes", () => {
     const document = generate();
 
     expect(Object.keys(document.paths ?? {})).toEqual([
@@ -212,6 +243,7 @@ describe("health endpoint documentation", () => {
       ...REPAYMENT_PATHS,
       ...LOAN_PATHS,
       ...PHASE9_PATHS,
+      ...ADMIN_PATHS,
     ]);
     expect(document.paths?.[HEALTH_PATH]?.get).toBeDefined();
   });
@@ -318,6 +350,69 @@ describe("Phase 9 endpoint documentation", () => {
 
     for (const [path, method, schema] of cases) {
       expect(schema.safeParse(exampleFor(path, method)).success, `${method} ${path}`).toBe(true);
+    }
+  });
+});
+
+describe("Phase 10 endpoint documentation", () => {
+  it("documents every admin operation with ADMIN-only session security", () => {
+    const document = generate();
+    const expected: Record<string, string[]> = {
+      [ADMIN_USERS_PATH]: ["get"],
+      [ADMIN_USER_PATH]: ["get"],
+      [ADMIN_USER_SUSPEND_PATH]: ["post"],
+      [ADMIN_USER_REACTIVATE_PATH]: ["post"],
+      [ADMIN_REPORTS_PATH]: ["get"],
+      [ADMIN_REPORT_PATH]: ["get"],
+      [ADMIN_REPORT_RESOLVE_PATH]: ["post"],
+      [ADMIN_REPORT_DISMISS_PATH]: ["post"],
+      [ADMIN_POSTS_PATH]: ["get"],
+      [ADMIN_POST_PATH]: ["delete"],
+      [ADMIN_COMMENTS_PATH]: ["get"],
+      [ADMIN_COMMENT_PATH]: ["delete"],
+      [ADMIN_STATS_PATH]: ["get"],
+      [ADMIN_VERIFICATION_REVIEW_PATH]: ["get", "post"],
+    };
+
+    for (const [path, methods] of Object.entries(expected)) {
+      expect(Object.keys(document.paths?.[path] ?? {}), path).toEqual(methods);
+      for (const method of methods) {
+        expect(document.paths?.[path]?.[method]?.tags, `${method} ${path}`).toEqual([
+          "Administration",
+        ]);
+        expect(document.paths?.[path]?.[method]?.security, `${method} ${path}`).toEqual([
+          { [SECURITY_SCHEME_NAME]: [] },
+        ]);
+      }
+    }
+  });
+
+  it("uses success examples that match their admin response schemas", () => {
+    const document = generate();
+    const exampleFor = (path: string, method: string) =>
+      document.paths?.[path]?.[method]?.responses?.[200]?.content?.["application/json"]?.example;
+
+    const cases = [
+      [ADMIN_USERS_PATH, "get", adminUserListSuccessEnvelopeSchema],
+      [ADMIN_USER_PATH, "get", adminUserDetailSuccessEnvelopeSchema],
+      [ADMIN_USER_SUSPEND_PATH, "post", adminUserStatusResultSuccessEnvelopeSchema],
+      [ADMIN_USER_REACTIVATE_PATH, "post", adminUserStatusResultSuccessEnvelopeSchema],
+      [ADMIN_REPORTS_PATH, "get", adminReportListSuccessEnvelopeSchema],
+      [ADMIN_REPORT_PATH, "get", adminReportDetailSuccessEnvelopeSchema],
+      [ADMIN_REPORT_RESOLVE_PATH, "post", adminModerationActionSuccessEnvelopeSchema],
+      [ADMIN_REPORT_DISMISS_PATH, "post", adminReportResolutionSuccessEnvelopeSchema],
+      [ADMIN_POSTS_PATH, "get", adminPostListSuccessEnvelopeSchema],
+      [ADMIN_POST_PATH, "delete", adminDeleteResultSuccessEnvelopeSchema],
+      [ADMIN_COMMENTS_PATH, "get", adminCommentListSuccessEnvelopeSchema],
+      [ADMIN_COMMENT_PATH, "delete", adminDeleteResultSuccessEnvelopeSchema],
+      [ADMIN_STATS_PATH, "get", adminStatsSuccessEnvelopeSchema],
+      [ADMIN_VERIFICATION_REVIEW_PATH, "get", adminVerificationDetailSuccessEnvelopeSchema],
+    ] as const;
+
+    for (const [path, method, schema] of cases) {
+      expect(schema.safeParse(exampleFor(path, method)).success, `${method} ${path}`).toBe(
+        true,
+      );
     }
   });
 });

@@ -5,10 +5,12 @@ vi.mock("@/server/db", () => ({ prisma: {} }));
 import {
   ConflictError,
   ForbiddenError,
+  NotFoundError,
   ValidationError,
 } from "@/server/errors";
 import {
   getMyVerification,
+  getVerificationForAdmin,
   listVerifications,
   reviewVerification,
   submitVerification,
@@ -81,6 +83,8 @@ function createFakeDb(initial: Row[] = []) {
             (!where.userId || record.userId === where.userId) &&
             (!where.type || record.type === where.type),
         ) ?? null,
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        records.find((record) => record.id === where.id) ?? null,
       findMany: async ({ take }: { take: number }) => records.slice(0, take),
       create: async ({ data }: { data: Partial<Row> }) => {
         const row = makeRow({ id: `ver_${++sequence}`, ...data });
@@ -214,6 +218,9 @@ describe("admin verification review", () => {
         data: { verificationId: "ver_123", status: "APPROVED" },
       }),
     ]);
+    expect(fake.trustUpdates).toEqual([
+      expect.objectContaining({ role: "OWNER", trustScore: expect.any(Number) }),
+    ]);
   });
 
   it("requires a note to reject", async () => {
@@ -263,5 +270,36 @@ describe("admin verification review", () => {
     expect(result.items[0]).toMatchObject({ userId: owner.id, reviewerId: null });
     expect(result.meta).toMatchObject({ limit: 2, hasMore: true });
     expect(result.meta.nextCursor).toBeTypeOf("string");
+  });
+
+  it("returns a submission detail with owner and reviewer identifiers for admins", async () => {
+    const fake = createFakeDb([
+      makeRow({ reviewerId: admin.id, status: "APPROVED", reviewedAt: now }),
+    ]);
+
+    const result = await getVerificationForAdmin(admin, "ver_123", deps(fake));
+
+    expect(result).toMatchObject({
+      id: "ver_123",
+      userId: owner.id,
+      reviewerId: admin.id,
+      status: "APPROVED",
+      idDocumentUrl: ID_URL,
+      salesProofUrls: [SALES_URL],
+    });
+  });
+
+  it("blocks submission detail for non-admins and missing rows", async () => {
+    const fake = createFakeDb([makeRow()]);
+
+    await expect(
+      getVerificationForAdmin(owner, "ver_123", deps(fake)),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      getVerificationForAdmin(investor, "ver_123", deps(fake)),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      getVerificationForAdmin(admin, "ver_missing", deps(fake)),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });

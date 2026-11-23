@@ -14,6 +14,7 @@ import {
   ValidationError,
 } from "@/server/errors";
 import { recomputeTrustScore } from "@/server/services/trust-score";
+import { idSchema } from "@/server/validators/common";
 import type {
   reviewVerificationSchema,
   submitVerificationSchema,
@@ -184,6 +185,27 @@ export async function listVerifications(
       nextCursor: hasMore && last ? encodeCursor({ id: last.id }) : null,
       hasMore,
     },
+  };
+}
+
+/** ADMIN-only submission detail, including private verification documents. */
+export async function getVerificationForAdmin(
+  actor: Actor,
+  verificationId: string,
+  deps: VerificationDeps = {},
+): Promise<ListVerificationsResult["items"][number]> {
+  assertRole(actor, "ADMIN");
+  const id = idSchema.parse(verificationId);
+  const record = await (deps.db ?? prisma).userVerification.findUnique({
+    where: { id },
+  });
+  if (!record) throw new NotFoundError("Verification not found");
+
+  const row = record as VerificationRow;
+  return {
+    ...toResponse(row),
+    userId: row.userId,
+    reviewerId: row.reviewerId,
   };
 }
 

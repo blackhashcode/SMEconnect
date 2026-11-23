@@ -790,7 +790,7 @@ Notifications are scoped to the session user. Marking one is idempotent; other u
 ### 4. Reporting and blocking
 
 ```bash
-# Report a post (admin resolution remains Phase 10).
+# Report a post (admin resolution is in section K).
 curl -X POST http://localhost:3000/api/v1/reports \
   -H 'content-type: application/json' \
   -d '{"targetType":"POST","targetId":"post_123","reason":"Misleading proof"}'
@@ -830,7 +830,85 @@ manual QA sequence.
 
 ---
 
-## K. Planned workflows — placeholders only 🧭
+## K. Administration ✅ (Phase 10)
+
+Admin accounts are created by seed/script only; public signup still accepts only `OWNER` or
+`INVESTOR`. Every endpoint below is protected by `requireRole("ADMIN")` in the route and
+`assertRole("ADMIN")` in the service. The examples assume an ADMIN session cookie.
+
+### 1. Review a verification
+
+```bash
+curl 'http://localhost:3000/api/v1/admin/verifications?status=PENDING'
+curl http://localhost:3000/api/v1/admin/verifications/ver_123
+curl -X POST http://localhost:3000/api/v1/admin/verifications/ver_123 \
+  -H 'content-type: application/json' \
+  -d '{"status":"APPROVED","reviewNote":"Documents checked"}'
+```
+
+Only `PENDING` can be reviewed. Rejection requires a `reviewNote`. The decision writes
+`reviewerId`, `reviewNote` and `reviewedAt`, creates the existing `VERIFICATION_RESULT`
+notification and recomputes the user's trust score in one transaction. A rejected submission can
+be resubmitted by its owner; the same row returns to `PENDING` with reviewer fields cleared.
+
+### 2. Resolve a report
+
+```bash
+curl 'http://localhost:3000/api/v1/admin/reports?status=OPEN&targetType=POST'
+curl http://localhost:3000/api/v1/admin/reports/rpt_123
+curl -X POST http://localhost:3000/api/v1/admin/reports/rpt_123/resolve \
+  -H 'content-type: application/json' \
+  -d '{"resolutionNote":"Prohibited content","moderationAction":"REMOVE_CONTENT"}'
+curl -X POST http://localhost:3000/api/v1/admin/reports/rpt_124/dismiss \
+  -H 'content-type: application/json' \
+  -d '{"resolutionNote":"False report"}'
+```
+
+`resolve` writes `OPEN → RESOLVED`; `dismiss` writes `OPEN → DISMISSED`. Both require a note and
+store `handledById`. `moderationAction` defaults to `NONE`; `REMOVE_CONTENT` works only for posts
+and comments, and `SUSPEND_USER` only for users. Invalid combinations return 422, a second action
+on the same report returns 409. The detail endpoint shows a minimal snapshot of the target.
+
+### 3. Moderate users and content
+
+```bash
+curl 'http://localhost:3000/api/v1/admin/users?status=ACTIVE&role=OWNER'
+curl http://localhost:3000/api/v1/admin/users/usr_123
+curl -X POST http://localhost:3000/api/v1/admin/users/usr_123/suspend
+curl -X POST http://localhost:3000/api/v1/admin/users/usr_123/reactivate
+curl 'http://localhost:3000/api/v1/admin/posts?includeDeleted=true'
+curl -X DELETE http://localhost:3000/api/v1/admin/posts/post_123
+curl 'http://localhost:3000/api/v1/admin/comments?postId=post_123'
+curl -X DELETE http://localhost:3000/api/v1/admin/comments/cmt_123
+```
+
+Suspension uses the existing `User.status`; suspended users cannot act on protected API routes,
+but their records and loans remain intact. Admins cannot suspend themselves or other admins.
+Post/comment removal is a soft delete: rows remain with `deletedAt` set, and removing a post also
+hides its visible comments in the same transaction. Self/duplicate/repeat actions return 409 or
+422 as appropriate.
+
+### 4. Analytics
+
+```bash
+curl http://localhost:3000/api/v1/admin/stats
+```
+
+Returns aggregate-only totals for users, verifications, requests, offers, loans, repayments,
+reports and moderation. There are no personal identifiers or verification documents in the body.
+
+### Automated tests vs. manual end-to-end workflow testing
+
+Phase 10 is covered by **automated** Vitest service tests for ADMIN-only access, OWNER/INVESTOR
+rejection, verification detail/decisions with notification and trust-score preservation, report
+resolution/dismissal transitions and invalid actions, soft-delete auditability, suspension and
+reactivation, analytics accuracy/batching, session suspension enforcement and OpenAPI examples.
+A **real end-to-end business workflow** against running Postgres/Mailpit was **not performed** in
+this phase; the commands above are the manual QA sequence.
+
+---
+
+## L. Planned workflows — placeholders only 🧭
 
 These are **not implemented**. Endpoint names below are taken from `BACKEND_PROMPT.md` as
 planning hints and may change when the phase is built.
@@ -840,12 +918,12 @@ planning hints and may change when the phase is built.
 | 7 | Offers, counters, accept/reject/withdraw, agreement confirmation, `OPEN → IN_DISCUSSION → FUNDED → REPAYING` | ✅ Implemented in section H |
 | 8 | Repayment schedule, mark paid / investor confirm, overdue detection, completion | ✅ Implemented in section I |
 | 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`), block/unblock | ✅ Implemented in section J |
-| 10 | Admin report resolution, profile/post moderation, `GET /api/v1/admin/stats` | 🧭 Not implemented |
+| 10 | Admin report resolution, profile/post moderation, `GET /api/v1/admin/stats` | ✅ Implemented in section K |
 | 11 | Seed dataset, full API docs, hardening, "Going live" guide | 🧭 Not implemented |
 
 ---
 
-## L. Cross-cutting conventions
+## M. Cross-cutting conventions
 
 - Base path `/api/v1`. Success responses: `{ "data": ..., "meta": ... }`; errors:
   `{ "error": { "code", "message", "details?" } }`. **Exception:** `/api/v1/auth/*` keeps

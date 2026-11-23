@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { auth } from "@/server/auth";
 import {
+  assertActiveUser,
   assertOwnership,
   assertRole,
   assertVerified,
@@ -18,6 +19,7 @@ export async function getSession() {
 export async function requireSession() {
   const session = await getSession();
   if (!session) throw new UnauthorizedError();
+  assertActiveUser(session.user as { status?: string | null });
   return session;
 }
 

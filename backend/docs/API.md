@@ -227,6 +227,7 @@ file=<binary PDF>
 | POST | `/api/v1/verifications` | Submit or resubmit verification documents |
 | GET | `/api/v1/verifications/me` | Get the current user's verification (`data: null` if none) |
 | GET | `/api/v1/admin/verifications` | ADMIN-only review queue (cursor paginated) |
+| GET | `/api/v1/admin/verifications/{id}` | ADMIN-only submission detail with private documents |
 | POST | `/api/v1/admin/verifications/{id}` | ADMIN-only approve/reject with a review note |
 
 - The actor's role determines the verification type. Submitting a mismatched `type`, or as
@@ -813,8 +814,8 @@ never submit a trust score or counts.
 Report body: `{ "targetType": "POST", "targetId": "post_123", "reason": "Misleading proof" }`.
 `targetType` is one of `USER`, `POST`, `COMMENT`, `MESSAGE`; missing or soft-deleted targets return
 404. One open report per reporter/target is allowed; a second returns 409. `status` is `OPEN`,
-`RESOLVED` or `DISMISSED`. Resolution endpoints remain an admin Phase 10 responsibility; this
-phase only creates and lists reports.
+`RESOLVED` or `DISMISSED`. Reports are resolved only through the ADMIN endpoints in the
+Administration section below.
 
 Blocks are mutual for social features. In one transaction, blocking deletes follows and
 connections in either direction. Conversations are retained but stay unreadable through the
@@ -902,6 +903,99 @@ Reports API and PostgreSQL connectivity. No authentication required.
 }
 ```
 
+## Administration (Phase 10)
+
+All endpoints below require `requireRole("ADMIN")` at the route and `assertRole("ADMIN")` in the
+service. `OWNER` and `INVESTOR` sessions receive `403 FORBIDDEN`; missing sessions receive
+`401 UNAUTHORIZED`. Client-supplied roles, user IDs, report statuses and audit IDs are ignored.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/admin/users?status=&role=&cursor=&limit=` | Account directory |
+| GET | `/api/v1/admin/users/{userId}` | Account detail, verification history and open report count |
+| POST | `/api/v1/admin/users/{userId}/suspend` | Suspend a non-admin account |
+| POST | `/api/v1/admin/users/{userId}/reactivate` | Reactivate a suspended account |
+| GET | `/api/v1/admin/reports?status=&targetType=&cursor=&limit=` | Full report queue |
+| GET | `/api/v1/admin/reports/{reportId}` | Report plus a minimal target snapshot |
+| POST | `/api/v1/admin/reports/{reportId}/resolve` | `OPEN → RESOLVED`, optional moderation action |
+| POST | `/api/v1/admin/reports/{reportId}/dismiss` | `OPEN → DISMISSED` |
+| GET | `/api/v1/admin/posts?includeDeleted=&cursor=&limit=` | Post queue |
+| DELETE | `/api/v1/admin/posts/{postId}` | Soft-delete a post and its visible comments |
+| GET | `/api/v1/admin/comments?postId=&includeDeleted=&cursor=&limit=` | Comment queue |
+| DELETE | `/api/v1/admin/comments/{commentId}` | Soft-delete one comment |
+| GET | `/api/v1/admin/stats` | Aggregated platform analytics |
+| GET | `/api/v1/admin/verifications/{id}` | Verification submission detail (listed above) |
+
+`status`, `role`, `targetType` and the string boolean `includeDeleted` (`true`/`false` only) are
+optional strict filters. Lists use `?cursor=&limit=` (default 20, max 50) and return
+`{ data, meta }`. Unknown query keys and unknown body keys return `400 VALIDATION_ERROR`.
+
+### Verification workflow
+
+`GET /api/v1/admin/verifications?status=PENDING` remains the review queue, and
+`GET /api/v1/admin/verifications/{id}` returns one submission with `userId`, `reviewerId`,
+private document URLs, sales proofs and shop links. `POST /api/v1/admin/verifications/{id}`
+accepts only:
+
+```json
+{ "status": "APPROVED", "reviewNote": "Documents checked" }
+```
+
+`status` must be `APPROVED` or `REJECTED`; a rejection requires a non-empty `reviewNote`. Only a
+`PENDING` submission can be reviewed (otherwise `409`), and a client cannot set the reviewer or
+timestamps. The decision, `VERIFICATION_RESULT` notification and trust-score recomputation remain
+in the existing single transaction. Rejected users may resubmit, which resets the same row to
+`PENDING` and clears reviewer fields.
+
+### Report resolution and moderation
+
+Resolve example:
+
+```json
+{
+  "resolutionNote": "Prohibited content removed",
+  "moderationAction": "REMOVE_CONTENT"
+}
+```
+
+Dismiss example:
+
+```json
+{ "resolutionNote": "False report" }
+```
+
+- The resulting status comes from the endpoint: `resolve` always writes `RESOLVED`, `dismiss`
+  always writes `DISMISSED`. A client-sent `status` is rejected by strict Zod validation.
+- Only `OPEN` reports can be handled; a second action returns `409`. Both require a non-empty
+  resolution note (max 5000 characters).
+- `moderationAction` is optional and defaults to `NONE`. `REMOVE_CONTENT` is valid only for
+  `POST` or `COMMENT` reports; `SUSPEND_USER` only for `USER` reports. Invalid combinations return
+  `422 BUSINESS_RULE_VIOLATION`.
+- Removing a post soft-deletes that post and its still-visible comments in one transaction;
+  removing a comment soft-deletes only that comment. Rows are retained with `deletedAt` set.
+- An admin cannot suspend themselves or another admin; suspending an already suspended user or
+  removing already removed content returns `409`.
+- Each handled report stores `handledById`, `resolutionNote`, `status` and `updatedAt`, giving an
+  auditable record. Verification history uses `reviewerId`, `reviewNote` and `reviewedAt`.
+- Direct suspension/reactivation uses the existing `User.status` field. Suspended actors are
+  blocked by `requireSession()` → `assertActiveUser()` on protected API routes; existing
+  public/discovery, profile, follow, connection and message services already exclude suspended
+  targets. Reactivation restores access without deleting account or loan data.
+- No business, loan, repayment, agreement or financial record is deleted by admin moderation.
+
+### Analytics
+
+`GET /api/v1/admin/stats` returns aggregate-only data: user totals by role and status;
+verification totals by status; request, offer and loan totals by status; funded principal;
+repayment counts with on-time rate; report counts including active disputes and handled reports;
+and moderation counts (`suspendedUsers`, `removedPosts`, `removedComments`). All metrics use
+batched `groupBy`/`aggregate`/`count` queries. No email, document URL or personal identifier is
+returned.
+
+Known limitations (no schema change was made): there is no dedicated audit table for suspension
+actor/reason or content-removal actor, and the existing `NotificationType` enum has no
+moderation/report/suspension value, so these admin actions emit no new notification or email.
+
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
@@ -919,9 +1013,8 @@ index `loan_request_one_active_per_owner`; the one-pending-offer rule uses
 
 ## Modules (added in later phases)
 
-Messaging (Phase 6), offers & agreement (Phase 7), repayment tracking (Phase 8) and Phase 9
-reviews, reports, blocks, notification inbox endpoints and role dashboards are implemented above.
-Administrative report resolution, profile/post moderation and analytics remain Phase 10 work.
-Repayment schedule generation remains shared by Phase 7's agreement confirmation; Phase 8 adds the
+Messaging (Phase 6), offers & agreement (Phase 7), repayment tracking (Phase 8), Phase 9
+reviews, reports, blocks, notification inbox endpoints and role dashboards, and Phase 10
+administration are implemented above. Repayment schedule generation remains shared by Phase 7's agreement confirmation; Phase 8 adds the
 tracking endpoints and jobs but does not add a payment gateway. Block/unblock endpoints are Phase 9
 and are intentionally not implemented in Phase 6.
