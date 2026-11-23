@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE_NAME } from "@/server/auth/constants";
+import { hasSessionCookie } from "@/server/auth/constants";
 import { isProtectedApiPath } from "@/server/auth/proxy-policy";
 
 /**
@@ -12,7 +12,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (!request.cookies.get(SESSION_COOKIE_NAME)) {
+  if (!hasSessionCookie(request.cookies)) {
     return NextResponse.json(
       {
         error: {
