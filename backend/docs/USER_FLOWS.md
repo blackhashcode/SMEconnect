@@ -10,7 +10,7 @@ Legend:
 
 Scope: Phases 0–11 are implemented: setup, data model, auth/verification/storage, profiles,
 loan requests, feed/networking/discovery, conversations/messaging, offers and agreements,
-repayment tracking, reputation/notifications/dashboards, administration, and the final demo
+repayment tracking, reputation/notifications/dashboards, administration, and the final admin
 seed, documentation and hardening pass. There are no planned endpoints left in this guide.
 
 > **Frontend status:** the repository's `frontend/` app talks to a stand-in mock API at
@@ -909,24 +909,26 @@ this phase; the commands above are the manual QA sequence.
 
 ---
 
-## L. Demo seed, final docs and hardening ✅ (Phase 11)
+## L. Admin bootstrap, final docs and hardening ✅ (Phase 11)
 
-There are no additional API endpoints in this phase. It completes the backend deliverables:
-
-- `pnpm db:seed` writes a deterministic, idempotent dataset directly to Postgres. It creates
-  one admin, ten owners and six investors, every loan-request and offer status, a counter-offer
-  chain, funded/repaying/completed loans with mixed repayment states, feed content, social
-  connections, messages, reviews, notifications and moderation records. It sends **no email**.
-- Exactly one OWNER uses the configurable `SEED_PERSONAL_EMAIL` (default `owner01@smeconnect.local`); all other identities are fictional. Every
-  demo account uses `Password123!` unless `SEED_DEMO_PASSWORD` is set. The seed prints the
-  demo logins and never prints a custom password.
+- `pnpm db:seed` creates only the first administrator from `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+  (12+ characters) and is safe to re-run. There is no demo dataset: members sign up through
+  the app. `pnpm bots` generates realistic local test activity when needed.
 - `docs/API.md` is the complete endpoint contract, OpenAPI documents exactly the implemented
-  paths, and the backend `README.md` covers local setup, environment variables, demo accounts
-  and the production "Going live" checklist.
-- Hardening covers auth/OTP/message rate limits, shared plain-text sanitization, strict
+  paths, and the backend `README.md` covers local setup, environment variables and accounts.
+- Hardening covers auth/OTP/message/upload rate limits, shared plain-text sanitization, strict
   validators, capped pagination, safe error envelopes, early upload-size rejection,
   authorize-before-read private files, repayment-proof access for loan parties, and proxy
   matcher/policy synchronization.
+
+## L2. Admin oversight and activity log
+
+- The admin panel (`/admin`) covers members (search, detail, suspend/reactivate, sign out
+  everywhere), verification, loan requests (pause/reopen/cancel with a reason; the owner gets
+  an `ADMIN_NOTICE` notification), agreed loans, reports, posts/comments and the activity log.
+- `GET /api/v1/admin/audit-logs` lists `account.*`, `auth.*`, `verification.*`,
+  `loan_request.*`, `offer.*`, `agreement.*`, `repayment.*`, `report.*` and `admin.*` events.
+  Logging never blocks the action it records.
 
 ---
 

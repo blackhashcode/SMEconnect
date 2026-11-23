@@ -2,6 +2,22 @@ export function formatBDT(value: number) {
   return `৳${value.toLocaleString("en-IN")}`;
 }
 
+/** Short amounts for tight spaces: ৳850, ৳45k, ৳1.2 lakh, ৳3.5 cr (Bangladeshi units). */
+export function formatBDTCompact(value: number) {
+  const trim = (n: number) => (Math.round(n * 10) / 10).toString();
+  if (value >= 10_000_000) return `৳${trim(value / 10_000_000)} cr`;
+  if (value >= 100_000) return `৳${trim(value / 100_000)} lakh`;
+  if (value >= 1_000) return `৳${trim(value / 1_000)}k`;
+  return `৳${value}`;
+}
+
+/** Display name for buttons: the first name, skipping common prefixes like "Md." or "Mst.". */
+export function firstName(name: string) {
+  const parts = name.trim().split(/\s+/);
+  const prefix = /^(md|mohd|mohammad|muhammad|mst|mrs?|ms|dr|engr)\.?$/i;
+  return parts.find((part) => !prefix.test(part)) ?? parts[0] ?? "";
+}
+
 /** "Just now", "5 min ago", "3 h ago", "Yesterday", "Mon", "12 Oct". */
 export function timeAgo(iso: string, now = Date.now()) {
   const then = new Date(iso).getTime();

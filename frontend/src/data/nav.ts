@@ -12,7 +12,7 @@ export const hubFor = (role: string) =>
   role === "business"
     ? { label: "Business Hub", href: "/business-dashboard" }
     : role === "admin"
-      ? { label: "Verification", href: "/admin/verification" }
+      ? { label: "Admin", href: "/admin" }
       : { label: "Investor Hub", href: "/investor-dashboard" };
 
 /** Primary sections in the desktop header pill. Messages and notifications live in the icon cluster. */

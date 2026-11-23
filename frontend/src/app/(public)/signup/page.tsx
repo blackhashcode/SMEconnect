@@ -3,6 +3,7 @@ import { RoleSelector } from "@/components/domain/RoleSelector";
 import { Badge } from "@/components/ui/Badge";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
+import { authOptions } from "@/lib/api";
 
 export const metadata = { title: "Join SME Connect" };
 
@@ -10,6 +11,7 @@ export default async function SignupPage() {
   // Already signed in? Skip straight to the app. (If the API is down, still show the form.)
   const user = await getCurrentUser().catch(() => null);
   if (user) redirect("/feed");
+  const { google } = await authOptions();
 
   return (
     <>
@@ -22,7 +24,7 @@ export default async function SignupPage() {
               Business owners raise direct loan offers. Investors build relationships with verified local founders. Both start with a free profile.
             </p>
           </div>
-          <div className="mt-space-xl"><RoleSelector /></div>
+          <div className="mt-space-xl"><RoleSelector googleEnabled={google} /></div>
           <div className="stagger mt-space-lg grid gap-space-md sm:grid-cols-3">
             {[
               { icon: BadgeCheck, title: "Verified identities", text: "NID and trade licence checks keep the network trustworthy." },

@@ -27,6 +27,8 @@ export const adminUserListQuerySchema = z
   .object({
     status: userStatusSchema.optional(),
     role: roleSchema.optional(),
+    /** Name or email contains (case-insensitive). */
+    q: z.string().trim().min(1).max(100).optional(),
   })
   .strict();
 

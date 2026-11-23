@@ -134,3 +134,11 @@ export async function reviewsFor(userId: string) {
   const res = await backendGet<S["ReviewRecord"][]>(`/reviews?userId=${encodeURIComponent(userId)}&limit=5`);
   return res.data ?? [];
 }
+
+// ---------- Auth options ----------
+
+/** Which sign-in methods the backend has configured (cached briefly; it rarely changes). */
+export async function authOptions(): Promise<{ google: boolean }> {
+  const data = await backendGetPublic<{ google: boolean }>("/auth-options", 300);
+  return { google: data?.google === true };
+}

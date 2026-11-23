@@ -12,7 +12,7 @@ export function notificationGroup(type: AppNotification["type"]): NotificationGr
   if (type.startsWith("OFFER_") || type === "AGREEMENT_CONFIRMED") return "offer";
   if (type.startsWith("REPAYMENT_")) return "repayment";
   if (type === "MESSAGE_RECEIVED") return "message";
-  if (type === "VERIFICATION_RESULT") return "account";
+  if (type === "VERIFICATION_RESULT" || (type as string) === "ADMIN_NOTICE") return "account";
   return "network";
 }
 
@@ -40,6 +40,7 @@ export function notificationHref(n: AppNotification): string | null {
   if (link.startsWith("/conversations/") && id) return `/messages?conversation=${id}`;
   if (link.startsWith("/verification")) return "/onboarding";
   if (link.startsWith("/connections") || link.startsWith("/posts")) return "/feed";
+  if (link.startsWith("/business-dashboard")) return "/business-dashboard";
   return null;
 }
 

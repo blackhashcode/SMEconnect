@@ -9,10 +9,12 @@ import {
 import {
   resolveCreatedUser,
   signupRoleRequestHook,
+  socialSignupRole,
   stripProtectedUserFieldsFromUpdate,
 } from "@/server/auth/signup-role";
 import { prisma } from "@/server/db";
 import { sendAuthOtpEmail } from "@/server/notifications/auth-otp";
+import { recordAudit } from "@/server/services/audit-log";
 import { signupRoleSchema } from "@/server/validators/enums";
 
 const secret = process.env.BETTER_AUTH_SECRET;
@@ -25,6 +27,15 @@ if (!secret) {
 if (!baseURL) {
   throw new Error("BETTER_AUTH_URL is not set");
 }
+
+/** Google sign-in is on only when both credentials are configured. */
+export const googleAuthEnabled = Boolean(
+  process.env.GOOGLE_CLIENT_ID?.trim() && process.env.GOOGLE_CLIENT_SECRET?.trim(),
+);
+
+// Browsers reach the API through the frontend's /api/v1 rewrite, so Google must
+// redirect back to the frontend origin (where the OAuth state cookie lives).
+const publicOrigin = (process.env.APP_URL || baseURL).replace(/\/+$/, "");
 
 const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
 const SEVEN_DAYS_IN_SECONDS = ONE_DAY_IN_SECONDS * 7;
@@ -66,6 +77,21 @@ export const auth = betterAuth({
     minPasswordLength: 8,
     maxPasswordLength: 128,
     revokeSessionsOnPasswordReset: true,
+  },
+  socialProviders: googleAuthEnabled
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID!.trim(),
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET!.trim(),
+          redirectURI: `${publicOrigin}/api/v1/auth/callback/google`,
+          prompt: "select_account",
+        },
+      }
+    : {},
+  account: {
+    // Google confirms the email address, so an existing email account and a
+    // Google sign-in with the same address become one member.
+    accountLinking: { enabled: true, trustedProviders: ["google"] },
   },
   emailVerification: {
     sendOnSignUp: true,
@@ -115,12 +141,46 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => ({ data: resolveCreatedUser(user) }),
+        before: async (user, context) => {
+          // Social sign-ups have no request body with signupRole; use the cookie.
+          const isSocial = context?.path?.startsWith("/callback/") ?? false;
+          const input = isSocial
+            ? { ...user, role: socialSignupRole(context?.headers?.get("cookie")) }
+            : user;
+          return { data: resolveCreatedUser(input) };
+        },
+        after: async (user, context) => {
+          await recordAudit({
+            actorId: user.id,
+            action: "account.created",
+            targetType: "USER",
+            targetId: user.id,
+            detail: {
+              role: (user as { role?: string }).role ?? null,
+              method: context?.path?.startsWith("/callback/") ? "google" : "email",
+            },
+          });
+        },
       },
       update: {
         before: async (user) => ({
           data: stripProtectedUserFieldsFromUpdate(user),
         }),
+      },
+    },
+    session: {
+      create: {
+        // Every new session is a sign-in (password, email code or Google).
+        after: async (session) => {
+          await recordAudit({
+            actorId: session.userId,
+            action: "auth.sign_in",
+            targetType: "USER",
+            targetId: session.userId,
+            detail: { userAgent: session.userAgent?.slice(0, 200) ?? null },
+            ipAddress: session.ipAddress ?? null,
+          });
+        },
       },
     },
   },

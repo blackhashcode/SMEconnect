@@ -87,6 +87,8 @@ the httpOnly cookie `better-auth.session_token`; no bearer token is introduced.
 |---|---|---|
 | POST | `/api/v1/auth/sign-up/email` | Create an OWNER or INVESTOR account |
 | POST | `/api/v1/auth/sign-in/email` | Sign in and receive the session cookie |
+| GET | `/api/v1/auth-options` | Public: which sign-in methods are configured (`{ google }`) |
+| PATCH | `/api/v1/me/role` | Switch OWNER ↔ INVESTOR while the account is still empty |
 | POST | `/api/v1/auth/sign-out` | Clear the session cookie |
 | GET | `/api/v1/auth/get-session` | Read the current session; returns `null` when unauthenticated |
 | POST | `/api/v1/auth/update-user` | Update only `name` or `image` for the current user |
@@ -94,6 +96,12 @@ the httpOnly cookie `better-auth.session_token`; no bearer token is introduced.
 | POST | `/api/v1/auth/email-otp/verify-email` | Verify email with the six-digit OTP |
 | POST | `/api/v1/auth/email-otp/request-password-reset` | Send a password-reset OTP |
 | POST | `/api/v1/auth/email-otp/reset-password` | Set a new password with the OTP |
+
+Google sign-in (when `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` are set) uses Better Auth's
+social flow: `POST /api/v1/auth/sign-in/social` with `{ "provider": "google", "callbackURL" }`
+returns the Google URL, and Google redirects back to `<APP_URL>/api/v1/auth/callback/google`.
+New Google accounts take their role from the short-lived `sme_signup_role` cookie (default
+`OWNER`, switchable with `PATCH /api/v1/me/role` while the account is empty).
 
 ### Signup and role protection
 
@@ -932,7 +940,7 @@ service. `OWNER` and `INVESTOR` sessions receive `403 FORBIDDEN`; missing sessio
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/v1/admin/users?status=&role=&cursor=&limit=` | Account directory |
+| GET | `/api/v1/admin/users?q=&status=&role=&cursor=&limit=` | Account directory; `q` searches name and email |
 | GET | `/api/v1/admin/users/{userId}` | Account detail, verification history and open report count |
 | POST | `/api/v1/admin/users/{userId}/suspend` | Suspend a non-admin account |
 | POST | `/api/v1/admin/users/{userId}/reactivate` | Reactivate a suspended account |
@@ -945,6 +953,11 @@ service. `OWNER` and `INVESTOR` sessions receive `403 FORBIDDEN`; missing sessio
 | GET | `/api/v1/admin/comments?postId=&includeDeleted=&cursor=&limit=` | Comment queue |
 | DELETE | `/api/v1/admin/comments/{commentId}` | Soft-delete one comment |
 | GET | `/api/v1/admin/stats` | Aggregated platform analytics |
+| DELETE | `/api/v1/admin/users/{userId}/sessions` | Sign a member out of every device (suspending does this too) |
+| GET | `/api/v1/admin/audit-logs?category=&action=&actorId=&targetId=&cursor=&limit=` | Activity log: sign-ups, sign-ins, lending events and admin actions |
+| GET | `/api/v1/admin/loan-requests?status=&q=&cursor=&limit=` | Every loan request, any status |
+| POST | `/api/v1/admin/loan-requests/{id}/{action}` | `pause`, `resume` or `cancel` with a `reason`; the owner is notified |
+| GET | `/api/v1/admin/loans?status=&cursor=&limit=` | Every loan with parties and repayment progress |
 | GET | `/api/v1/admin/verifications/{id}` | Verification submission detail (listed above) |
 
 `status`, `role`, `targetType` and the string boolean `includeDeleted` (`true`/`false` only) are

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, CheckCircle2, FileUp, Hourglass, ImageUp, LoaderCircle, ShieldAlert, ShieldCheck, XCircle } from "lucide-react";
+import { ArrowLeftRight, BadgeCheck, CheckCircle2, FileUp, Hourglass, ImageUp, LoaderCircle, ShieldAlert, ShieldCheck, UserRound, XCircle } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -113,18 +113,51 @@ export function OnboardingFlow({
     router.refresh();
   }
 
-  // ---------- Avatar ----------
+  // ---------- Profile photo ----------
   const [avatar, setAvatar] = useState(user.avatar);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  // A returning member, or one who chose a blank photo, has finished this step.
+  const [photoDone, setPhotoDone] = useState(Boolean(user.avatar) || user.hasProfile);
   async function changeAvatar(file: File | undefined) {
     if (!file) return;
     setAvatarBusy(true);
+    setAvatarError(null);
     const uploaded = await uploadFile(file, "AVATAR");
-    if (uploaded.ok) {
-      const saved = await api.patch("/me", { image: uploaded.data.url });
-      if (saved.ok) setAvatar(uploaded.data.url);
+    if (!uploaded.ok) {
+      setAvatarBusy(false);
+      return setAvatarError(uploaded.error);
     }
+    const saved = await api.patch("/me", { image: uploaded.data.url });
     setAvatarBusy(false);
+    if (!saved.ok) return setAvatarError(saved.error);
+    setAvatar(uploaded.data.url);
+    setPhotoDone(true);
+    router.refresh();
+  }
+  async function useBlankPhoto() {
+    setAvatarError(null);
+    if (avatar) {
+      setAvatarBusy(true);
+      const saved = await api.patch("/me", { image: null });
+      setAvatarBusy(false);
+      if (!saved.ok) return setAvatarError(saved.error);
+      setAvatar("");
+      router.refresh();
+    }
+    setPhotoDone(true);
+  }
+
+  // ---------- Account type (new accounts only, e.g. after Google sign-up) ----------
+  const [roleBusy, setRoleBusy] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const canSwitchRole = !user.hasProfile && !verification;
+  async function switchRole() {
+    setRoleBusy(true);
+    setRoleError(null);
+    const result = await api.patch("/me/role", { role: isOwner ? "INVESTOR" : "OWNER" });
+    setRoleBusy(false);
+    if (!result.ok) return setRoleError(result.error);
     router.refresh();
   }
 
@@ -191,20 +224,52 @@ export function OnboardingFlow({
         </p>
       </div>
 
-      {/* Step 1: profile */}
+      {canSwitchRole && (
+        <div className="flex flex-wrap items-center justify-between gap-space-sm rounded-2xl border border-outline-variant bg-surface-container-low px-space-md py-space-sm">
+          <p className="text-body-sm text-on-surface-variant">
+            You&apos;re joining as {isOwner ? <strong>a business owner</strong> : <strong>an investor</strong>}. You can switch until you save your profile.
+          </p>
+          <Button variant="ghost" size="sm" onClick={switchRole} disabled={roleBusy}>
+            {roleBusy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <ArrowLeftRight className="h-4 w-4" aria-hidden />} Switch to {isOwner ? "investor" : "business owner"}
+          </Button>
+          {roleError && <p role="alert" className="w-full text-body-sm text-error">{roleError}</p>}
+        </div>
+      )}
+
+      {/* Step 1: profile photo */}
       <section className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
         <div className="flex items-center justify-between gap-space-md">
-          <h2 className="text-headline-sm text-on-surface">1. {isOwner ? "Business details" : "Lending preferences"}</h2>
+          <h2 className="text-headline-sm text-on-surface">1. Profile photo</h2>
+          {photoDone && <Badge tone="success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Done</Badge>}
+        </div>
+        <p className="mt-1 text-body-sm text-on-surface-variant">
+          A clear photo of your face helps {isOwner ? "investors" : "business owners"} recognise you. Prefer not to? Use a blank photo with your initials instead.
+        </p>
+        {avatarError && <div className="mt-space-md"><FormAlert>{avatarError}</FormAlert></div>}
+        <div className="mt-space-md flex flex-col items-start gap-space-md sm:flex-row sm:items-center">
+          <Avatar src={avatar} alt={user.name} name={user.name} size="xl" />
+          <div className="flex flex-wrap gap-space-sm">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-primary px-space-md py-2.5 text-label-md font-semibold text-on-primary transition-colors hover:bg-primary/90">
+              {avatarBusy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <ImageUp className="h-4 w-4" aria-hidden />} {avatar ? "Change photo" : "Upload a photo"}
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => changeAvatar(event.target.files?.[0])} disabled={avatarBusy} />
+            </label>
+            {(!photoDone || avatar) && (
+              <Button variant="outline" onClick={useBlankPhoto} disabled={avatarBusy}>
+                <UserRound className="h-4 w-4" aria-hidden /> {avatar ? "Remove photo" : "Use a blank photo"}
+              </Button>
+            )}
+          </div>
+        </div>
+        <p className="mt-space-sm text-label-sm text-outline">JPG, PNG or WebP, up to 5 MB. Large photos are resized automatically.</p>
+      </section>
+
+      {/* Step 2: profile */}
+      <section className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
+        <div className="flex items-center justify-between gap-space-md">
+          <h2 className="text-headline-sm text-on-surface">2. {isOwner ? "Business details" : "Lending preferences"}</h2>
           {profileSaved && <Badge tone="success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Saved</Badge>}
         </div>
         {profileError && <div className="mt-space-md"><FormAlert>{profileError}</FormAlert></div>}
-        <div className="mt-space-md flex items-center gap-space-md">
-          <Avatar src={avatar} alt={user.name} name={user.name} size="lg" />
-          <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-surface-container-high px-space-md py-2 text-label-md font-semibold text-primary transition-colors hover:bg-primary-fixed">
-            {avatarBusy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <ImageUp className="h-4 w-4" aria-hidden />} {avatar ? "Change photo" : "Add a photo"}
-            <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => changeAvatar(event.target.files?.[0])} disabled={avatarBusy} />
-          </label>
-        </div>
         {isOwner ? (
           <div className="mt-space-md grid gap-space-md sm:grid-cols-2">
             <FormField label="Shop name" value={business.shopName} maxLength={200} onChange={(e) => setBusiness({ ...business, shopName: e.target.value, slug: profileSaved ? business.slug : slugify(e.target.value) })} error={fieldError(fields, "shopName")} />
@@ -255,10 +320,10 @@ export function OnboardingFlow({
         </div>
       </section>
 
-      {/* Step 2: verification */}
+      {/* Step 3: verification */}
       <section className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
         <div className="flex items-center justify-between gap-space-md">
-          <h2 className="text-headline-sm text-on-surface">2. Identity verification</h2>
+          <h2 className="text-headline-sm text-on-surface">3. Identity verification</h2>
           {status === "APPROVED" && <Badge tone="success"><BadgeCheck className="h-3.5 w-3.5" aria-hidden /> Verified</Badge>}
           {status === "PENDING" && <Badge tone="warning"><Hourglass className="h-3.5 w-3.5" aria-hidden /> In review</Badge>}
           {status === "REJECTED" && <Badge tone="error"><XCircle className="h-3.5 w-3.5" aria-hidden /> Needs changes</Badge>}

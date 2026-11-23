@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { requireRole } from "@/server/auth/guards";
 import type { Actor } from "@/server/auth/policy";
 import { handleRequest, ok } from "@/server/http/response";
+import { clientIp, recordAudit } from "@/server/services/audit-log";
 import {
   getVerificationForAdmin,
   reviewVerification,
@@ -30,8 +31,8 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const verificationId = idSchema.parse(rawId);
     const input = reviewVerificationSchema.parse(await request.json());
 
-    return ok(
-      await reviewVerification(session.user as Actor, verificationId, input),
-    );
+    const result = await reviewVerification(session.user as Actor, verificationId, input);
+    await recordAudit({ actorId: session.user.id, action: "admin.verification_reviewed", targetType: "VERIFICATION", targetId: verificationId, detail: { status: input.status }, ipAddress: clientIp(request.headers) });
+    return ok(result);
   });
 }

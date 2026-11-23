@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { LoanCardCompact } from "@/components/domain/LoanCard";
 import { OfferCard } from "@/components/domain/OfferCard";
 import { investorDashboard, listOpenLoanRequests, offersSubmitted } from "@/lib/api";
-import { formatBDT, shortDate } from "@/lib/format";
+import { formatBDT, shortDate, firstName } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 
 export const metadata = { title: "Investor dashboard" };
@@ -30,7 +30,7 @@ export default async function InvestorDashboardPage() {
         icon={Landmark}
         title="Investor Hub is for investors"
         description="Your Business Hub shows your loan requests and the offers investors have sent you."
-        action={<LinkButton href={user.role === "admin" ? "/admin/verification" : "/business-dashboard"}>{user.role === "admin" ? "Go to verification" : "Go to Business Hub"}</LinkButton>}
+        action={<LinkButton href={user.role === "admin" ? "/admin" : "/business-dashboard"}>{user.role === "admin" ? "Go to the admin panel" : "Go to Business Hub"}</LinkButton>}
       />
     );
   }
@@ -51,7 +51,7 @@ export default async function InvestorDashboardPage() {
           <Avatar src={user.avatar} alt={user.name} name={user.name} size="xl" priority />
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-headline-lg text-on-surface">Welcome back, {user.name.split(" ")[0]}</h1>
+              <h1 className="text-headline-lg text-on-surface">Welcome back, {firstName(user.name)}</h1>
               {verified && <VerifiedBadge />}
             </div>
             <div className="mt-space-sm flex flex-wrap gap-space-md text-body-sm text-outline">

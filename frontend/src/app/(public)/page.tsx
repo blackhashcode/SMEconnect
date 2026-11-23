@@ -2,15 +2,17 @@ import Link from "next/link";
 import {
   ArrowRight,
   BadgeCheck,
-  Building2,
+  ClipboardCheck,
+  FileLock2,
+  Flag,
   Handshake,
+  KeyRound,
   LineChart,
   MessageCircle,
   Search,
   ShieldCheck,
-  Star,
-  TrendingUp,
-  UsersRound,
+  UserCheck,
+  Wallet,
 } from "lucide-react";
 import { LinkButton } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
@@ -27,9 +29,19 @@ import { tenureLabel } from "@/lib/loans";
 export const revalidate = 60;
 
 const steps = [
-  { icon: Search, title: "Discover verified businesses", text: "Browse NID and trade-licence checked shops with real track records." },
-  { icon: Handshake, title: "Connect and make an offer", text: "Message the owner directly and propose terms that work for both sides." },
-  { icon: LineChart, title: "Track agreed repayments", text: "See every agreed instalment in one transparent, shared timeline." },
+  { icon: UserCheck, title: "Sign up and get verified", text: "Create a free profile, then upload your NID (and trade licence or sales records for businesses). Our team reviews every submission." },
+  { icon: Search, title: "Find the right match", text: "Investors browse verified businesses and open loan requests. Owners see who is offering and why." },
+  { icon: Handshake, title: "Agree terms together", text: "Make an offer, counter it, or accept it. Both sides confirm the final agreement before anything is binding." },
+  { icon: LineChart, title: "Track every repayment", text: "The schedule is generated from the agreed terms. Each instalment is marked paid by the owner and confirmed by the investor." },
+];
+
+const safeguards = [
+  { icon: BadgeCheck, title: "Every profile is checked by a person", text: "Identity documents are reviewed by the SME Connect team before a member gets the Verified badge. Unverified members can't make or receive offers." },
+  { icon: FileLock2, title: "Documents stay private", text: "NID scans, trade licences and payment proofs are never public. Only you, the other party on your loan, and our reviewers can open them." },
+  { icon: ClipboardCheck, title: "Two-sided agreements", text: "Terms are written down in the app and both the owner and the investor confirm them. Nobody can change an agreement afterwards." },
+  { icon: Wallet, title: "Repayments confirmed by both sides", text: "An instalment only counts as paid when the investor confirms it, so the record both parties see is the same." },
+  { icon: Flag, title: "Reporting and moderation", text: "Report a profile, post or message in two taps. Admins review reports, pause suspicious loan requests and suspend accounts that break the rules." },
+  { icon: KeyRound, title: "Secure accounts", text: "Email-verified sign-up, hashed passwords, optional Google sign-in, rate-limited logins and HTTPS everywhere. Every sign-in is logged." },
 ];
 
 export default async function LandingPage() {
@@ -43,14 +55,14 @@ export default async function LandingPage() {
         <div className="relative mx-auto grid w-full max-w-shell items-center gap-space-xl px-margin pb-16 md:px-gutter-desktop lg:grid-cols-2">
           <div className="animate-page-in">
             <Badge tone="success" className="mb-space-md">
-              <span className="h-2 w-2 rounded-full bg-success" /> 2,400+ verified businesses
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified members only
             </Badge>
             <h1 className="text-[34px] font-extrabold leading-[1.1] tracking-tight text-on-surface sm:text-headline-xl md:text-[56px] md:leading-[1.08]">
               Where Bangladeshi businesses meet their next <span className="text-primary">believer.</span>
             </h1>
             <p className="mt-space-md max-w-xl text-body-lg text-on-surface-variant">
-              SME Connect is a professional lending network. Connect with verified shop owners, make a direct loan
-              offer and grow together on terms you agree.
+              SME Connect is a professional lending network. Small business owners and individual investors connect
+              directly, agree loan terms together and keep a shared record of every repayment.
             </p>
             <div className="mt-space-lg flex flex-wrap gap-space-sm">
               <LinkButton href="/signup" variant="secondary" size="lg">
@@ -60,85 +72,92 @@ export default async function LandingPage() {
                 Join as an investor
               </LinkButton>
             </div>
-            <div className="mt-space-lg flex flex-wrap items-center gap-space-md">
-              <div className="flex -space-x-2">
-                {[images["landing-baker"], images["landing-garment"], images["landing-pottery"], images["rafiq-portrait"]].map((src) => (
-                  <Avatar key={src} src={src} alt="" size="xs" priority className="relative" />
-                ))}
-              </div>
-              <div>
-                <div className="flex items-center gap-0.5 text-warning">
-                  {Array.from({ length: 5 }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-current" aria-hidden />)}
-                  <span className="ml-1 text-label-sm font-bold text-on-surface">4.9</span>
-                </div>
-                <p className="text-body-sm text-outline">Trusted by founders and investors in 64 districts</p>
-              </div>
-            </div>
+            <ul className="mt-space-lg flex flex-wrap gap-x-space-lg gap-y-space-sm text-body-sm text-on-surface-variant">
+              {["Free to join", "NID-verified profiles", "No money held by us"].map((item) => (
+                <li key={item} className="flex items-center gap-1.5">
+                  <BadgeCheck className="h-4 w-4 text-success" aria-hidden /> {item}
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {featured && (
           <div className="relative animate-scale-in [animation-delay:120ms]">
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-primary-fixed to-secondary-fixed opacity-60 blur-xl" />
-            <div className="relative mx-auto w-full max-w-[440px] rounded-3xl bg-surface-container-lowest p-space-lg card-shadow-lg motion-safe:lg:animate-float">
-              <div className="flex items-center gap-space-md">
-                <Avatar src={featured.owner.avatar} alt={featured.owner.name} size="md" priority className="ring-secondary-fixed" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <p className="whitespace-nowrap text-label-md font-bold text-on-surface">{featured.owner.name}</p>
-                    {featured.business.verified && <VerifiedBadge compact />}
+            {featured ? (
+              <div className="relative mx-auto w-full max-w-[440px] rounded-3xl bg-surface-container-lowest p-space-lg card-shadow-lg motion-safe:lg:animate-float">
+                <div className="flex items-center gap-space-md">
+                  <Avatar src={featured.owner.avatar} alt={featured.owner.name} size="md" priority className="ring-secondary-fixed" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <p className="truncate text-label-md font-bold text-on-surface">{featured.owner.name}</p>
+                      {featured.business.verified && <VerifiedBadge compact />}
+                    </div>
+                    <p className="truncate text-body-sm text-outline">{featured.business.name} · {featured.business.location}</p>
                   </div>
-                  <p className="text-body-sm text-outline">{featured.business.name} · {featured.business.location}</p>
+                  <Badge tone="secondary" className="shrink-0">Open request</Badge>
                 </div>
-                <Badge tone="secondary" className="shrink-0">Open request</Badge>
+                <Photo src={featured.business.image} alt="" className="mt-space-md h-40 rounded-xl" sizes="440px" priority />
+                <h3 className="mt-space-md text-headline-sm text-on-surface">{featured.title}</h3>
+                <div className="mt-space-sm grid grid-cols-3 gap-space-sm rounded-xl bg-surface-container-low p-space-sm text-center">
+                  <div><p className="text-label-sm text-outline">Requested</p><p className="text-label-md font-bold text-on-surface">{formatBDT(featured.amount)}</p></div>
+                  <div><p className="text-label-sm text-outline">Rate</p><p className="text-label-md font-bold text-success">{featured.rate === null ? "Open" : `${featured.rate}% p.a.`}</p></div>
+                  <div><p className="text-label-sm text-outline">Tenure</p><p className="text-label-md font-bold text-on-surface">{tenureLabel(featured.tenureDays)}</p></div>
+                </div>
+                <LinkButton href={`/businesses/${featured.business.id}`} variant="soft" size="sm" className="mt-space-md w-full">
+                  View this business <ArrowRight className="h-4 w-4" aria-hidden />
+                </LinkButton>
               </div>
-              <Photo src={featured.business.image} alt="" className="mt-space-md h-40 rounded-xl" sizes="440px" priority />
-              <h3 className="mt-space-md text-headline-sm text-on-surface">{featured.title}</h3>
-              <div className="mt-space-sm grid grid-cols-3 gap-space-sm rounded-xl bg-surface-container-low p-space-sm text-center">
-                <div><p className="text-label-sm text-outline">Requested</p><p className="text-label-md font-bold text-on-surface">{formatBDT(featured.amount)}</p></div>
-                <div><p className="text-label-sm text-outline">Rate</p><p className="text-label-md font-bold text-success">{featured.rate === null ? "Open" : `${featured.rate}% p.a.`}</p></div>
-                <div><p className="text-label-sm text-outline">Tenure</p><p className="text-label-md font-bold text-on-surface">{tenureLabel(featured.tenureDays)}</p></div>
-              </div>
-              <p className="mt-space-sm line-clamp-2 text-body-sm text-on-surface-variant">{featured.description}</p>
-              <LinkButton href={`/businesses/${featured.business.id}`} variant="soft" size="sm" className="mt-space-md w-full">
-                View this business <ArrowRight className="h-4 w-4" aria-hidden />
-              </LinkButton>
-            </div>
+            ) : (
+              <Photo
+                src={images["fruit-vendor"]}
+                alt="A fruit seller at his stall in a Bangladeshi market"
+                className="relative mx-auto aspect-[4/3] w-full max-w-[520px] rounded-3xl card-shadow-lg"
+                sizes="(min-width: 1024px) 520px, 100vw"
+                priority
+              />
+            )}
           </div>
-          )}
         </div>
       </section>
 
-      <section className="border-y border-surface-container-high bg-surface-container-low py-space-lg">
-        <div className="mx-auto grid w-full max-w-shell grid-cols-2 gap-space-lg px-margin md:grid-cols-4 md:px-gutter-desktop">
-          {[
-            { icon: BadgeCheck, value: "2,400+", label: "Verified businesses" },
-            { icon: UsersRound, value: "18,000+", label: "Connected investors" },
-            { icon: TrendingUp, value: "৳42 Cr", label: "Offers made" },
-            { icon: ShieldCheck, value: "100%", label: "On-time record tracking" },
-          ].map((item) => (
-            <div key={item.label} className="flex items-center gap-space-sm">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest text-primary"><item.icon className="h-5 w-5" aria-hidden /></span>
-              <div><p className="text-numeric-stat text-on-surface">{item.value}</p><p className="text-body-sm text-outline">{item.label}</p></div>
-            </div>
-          ))}
+      <section id="how-it-works" className="bg-surface-container-low py-16">
+        <div className="mx-auto w-full max-w-shell px-margin md:px-gutter-desktop">
+          <Reveal className="text-center">
+            <p className="text-label-sm font-bold uppercase tracking-wider text-primary">How it works</p>
+            <h2 className="mt-space-sm text-headline-lg text-on-surface">From first message to final repayment</h2>
+            <p className="mx-auto mt-space-sm max-w-2xl text-body-md text-on-surface-variant">
+              Everything happens between real people with verified identities: direct connections, direct offers and a shared repayment record.
+            </p>
+          </Reveal>
+          <div className="mt-space-xl grid gap-space-md sm:grid-cols-2 lg:grid-cols-4">
+            {steps.map((step, i) => (
+              <Reveal key={step.title} delay={i * 80} className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-fixed text-primary"><step.icon className="h-6 w-6" aria-hidden /></span>
+                <p className="mt-space-md text-label-sm font-bold text-secondary">Step {i + 1}</p>
+                <h3 className="mt-1 text-headline-sm text-on-surface">{step.title}</h3>
+                <p className="mt-space-sm text-body-md text-on-surface-variant">{step.text}</p>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section id="how-it-works" className="mx-auto w-full max-w-shell px-margin py-16 md:px-gutter-desktop">
-        <Reveal className="text-center">
-          <p className="text-label-sm font-bold uppercase tracking-wider text-primary">How it works</p>
-          <h2 className="mt-space-sm text-headline-lg text-on-surface">A simpler way to back local business</h2>
-          <p className="mx-auto mt-space-sm max-w-2xl text-body-md text-on-surface-variant">
-            Everything happens between real people with verified identities — direct connections, direct offers and shared repayment records.
+      <section id="trust" className="mx-auto w-full max-w-shell px-margin py-16 md:px-gutter-desktop">
+        <Reveal className="mx-auto max-w-3xl text-center">
+          <p className="text-label-sm font-bold uppercase tracking-wider text-primary">Why you can trust SME Connect</p>
+          <h2 className="mt-space-sm text-headline-lg text-on-surface">Safeguards built into every step</h2>
+          <p className="mt-space-sm text-body-md text-on-surface-variant">
+            Lending to someone you&apos;ve met online takes trust. These are the checks that apply to every member and every loan.
           </p>
         </Reveal>
-        <div className="mt-space-xl grid gap-space-md md:grid-cols-3">
-          {steps.map((step, i) => (
-            <Reveal key={step.title} delay={i * 100} className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow card-interactive">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-fixed text-primary"><step.icon className="h-6 w-6" aria-hidden /></span>
-              <p className="mt-space-md text-label-sm font-bold text-secondary">Step {i + 1}</p>
-              <h3 className="mt-1 text-headline-sm text-on-surface">{step.title}</h3>
-              <p className="mt-space-sm text-body-md text-on-surface-variant">{step.text}</p>
+        <div className="mt-space-xl grid gap-space-md md:grid-cols-2 lg:grid-cols-3">
+          {safeguards.map((item, i) => (
+            <Reveal key={item.title} delay={(i % 3) * 80} className="flex gap-space-md rounded-2xl border border-surface-container-high bg-surface-container-lowest p-space-lg">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-success-container text-success"><item.icon className="h-5 w-5" aria-hidden /></span>
+              <div>
+                <h3 className="text-label-md font-bold text-on-surface">{item.title}</h3>
+                <p className="mt-1 text-body-sm leading-relaxed text-on-surface-variant">{item.text}</p>
+              </div>
             </Reveal>
           ))}
         </div>
@@ -148,18 +167,17 @@ export default async function LandingPage() {
         <div className="mx-auto grid w-full max-w-shell items-center gap-space-xl px-margin md:px-gutter-desktop lg:grid-cols-2">
           <Reveal className="grid grid-cols-2 gap-space-md pb-space-lg">
             {[
-              { src: images["nusrat-cloud-kitchen"], alt: "Cloud kitchen" },
-              { src: images["boutique-punjabis"], alt: "Boutique clothing" },
-              { src: images["terracotta-glazed"], alt: "Handmade ceramics" },
-              { src: images["electric-fleet"], alt: "Electric delivery fleet" },
+              { src: images["bakery-workers"], alt: "Bakers laying out biscuits on trays" },
+              { src: images["textile-fair"], alt: "Women entrepreneurs showing fabric at an SME fair" },
+              { src: images["papad-maker"], alt: "A woman drying handmade papad in the sun" },
+              { src: images["handicraft-shop"], alt: "A handicraft shop with woven baskets and textiles" },
             ].map((photo, i) => (
               <Photo
                 key={photo.src}
                 src={photo.src}
                 alt={photo.alt}
-                className={`group aspect-[4/5] rounded-2xl card-shadow sm:aspect-[4/3] ${i % 2 === 1 ? "translate-y-space-lg" : ""}`}
+                className={`aspect-[4/3] rounded-2xl card-shadow ${i % 2 === 1 ? "translate-y-space-lg" : ""}`}
                 sizes="(min-width: 1024px) 25vw, 50vw"
-                zoomOnHover
               />
             ))}
           </Reveal>
@@ -167,17 +185,17 @@ export default async function LandingPage() {
             <p className="text-label-sm font-bold uppercase tracking-wider text-primary">For business owners</p>
             <h2 className="mt-space-sm text-headline-lg text-on-surface">Show your real track record, not a pitch deck</h2>
             <p className="mt-space-md text-body-md text-on-surface-variant">
-              Your verified profile brings together trade licence checks, prior repayments, customer ratings and the
-              exact terms you need. Investors reach out with offers you can accept, decline or negotiate.
+              Your verified profile brings together your identity check, your sales range and your repayment history.
+              Post one clear loan request and compare direct offers from investors.
             </p>
             <ul className="mt-space-md space-y-space-sm">
-              {["Get verified with NID and trade licence", "Post a clear loan request with your terms", "Compare direct offers side by side"].map((item) => (
-                <li key={item} className="flex items-center gap-space-sm text-body-md text-on-surface">
-                  <ShieldCheck className="h-5 w-5 shrink-0 text-success" aria-hidden /> {item}
+              {["Get verified with your NID and trade licence or sales records", "Post a loan request with the amount, purpose and tenure you need", "Accept, decline or counter every offer"].map((item) => (
+                <li key={item} className="flex items-start gap-space-sm text-body-md text-on-surface">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden /> {item}
                 </li>
               ))}
             </ul>
-            <LinkButton href={featured ? `/businesses/${featured.business.id}` : "/explore"} variant="soft" className="mt-space-lg">See a business profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
+            <LinkButton href="/signup" variant="soft" className="mt-space-lg">Create a business profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
           </Reveal>
         </div>
       </section>
@@ -188,39 +206,47 @@ export default async function LandingPage() {
             <p className="text-label-sm font-bold uppercase tracking-wider text-primary">For investors</p>
             <h2 className="mt-space-sm text-headline-lg text-on-surface">Lend with clarity, connect with founders</h2>
             <p className="mt-space-md text-body-md text-on-surface-variant">
-              Browse verified shops, review real numbers and send a direct offer. You agree the rate, tenure and
-              repayment date together — then follow progress in a shared dashboard.
+              Browse verified shops, read what each owner needs the money for, and send an offer on your own terms.
+              Once agreed, follow every instalment on your dashboard.
             </p>
             <div className="mt-space-lg grid gap-space-md sm:grid-cols-2">
-              <div className="rounded-xl bg-surface-container-low p-space-md"><Building2 className="h-5 w-5 text-primary" aria-hidden /><p className="mt-space-sm text-label-md font-bold text-on-surface">Verified identities</p><p className="text-body-sm text-on-surface-variant">NID and trade licence checks on every profile.</p></div>
-              <div className="rounded-xl bg-surface-container-low p-space-md"><MessageCircle className="h-5 w-5 text-primary" aria-hidden /><p className="mt-space-sm text-label-md font-bold text-on-surface">Direct conversations</p><p className="text-body-sm text-on-surface-variant">Negotiate terms in one place, with a full history.</p></div>
+              <div className="rounded-xl bg-surface-container-low p-space-md"><BadgeCheck className="h-5 w-5 text-primary" aria-hidden /><p className="mt-space-sm text-label-md font-bold text-on-surface">Verified identities</p><p className="text-body-sm text-on-surface-variant">Only reviewed members can receive your offer.</p></div>
+              <div className="rounded-xl bg-surface-container-low p-space-md"><MessageCircle className="h-5 w-5 text-primary" aria-hidden /><p className="mt-space-sm text-label-md font-bold text-on-surface">Direct conversations</p><p className="text-body-sm text-on-surface-variant">Ask questions and negotiate in one place, with the full history kept.</p></div>
             </div>
-            <LinkButton href="/explore" variant="soft" className="mt-space-lg">Browse investors <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
+            <LinkButton href="/signup" variant="soft" className="mt-space-lg">Create an investor profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
           </Reveal>
-          <Reveal delay={120} className="rounded-3xl bg-surface-container-lowest p-space-lg card-shadow">
-            <p className="text-label-sm font-bold uppercase tracking-wider text-outline">A typical conversation</p>
-            <div className="mt-space-md space-y-space-sm">
-              <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-surface-container-low p-space-sm text-body-md text-on-surface">I reviewed your repayment history — impressed. What tenure works best?</div>
-              <div className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-primary p-space-sm text-body-md text-on-primary">12 months with monthly repayments on the 10th.</div>
-              <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-surface-container-low p-space-sm text-body-md text-on-surface">Perfect. Send the offer and let&apos;s get started.</div>
-            </div>
-            <div className="mt-space-md flex items-center gap-space-sm rounded-xl bg-success-container p-space-sm text-body-sm text-success">
-              <Handshake className="h-4 w-4 shrink-0" aria-hidden /> Offer agreed · ৳150,000 · 10.5% p.a. · 12 months
-            </div>
+          <Reveal delay={120}>
+            <Photo src={images["courier-workers"]} alt="Workers loading parcels at a courier office" className="aspect-[4/3] rounded-3xl card-shadow" sizes="(min-width: 1024px) 50vw, 100vw" />
           </Reveal>
         </div>
       </section>
 
-      <section id="trust" className="relative overflow-hidden bg-primary px-margin py-16 text-on-primary md:px-gutter-desktop">
+      <section className="border-y border-surface-container-high bg-surface-container-low py-space-xl">
+        <div className="mx-auto w-full max-w-shell px-margin md:px-gutter-desktop">
+          <div className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow md:p-space-xl">
+            <h2 className="text-headline-sm text-on-surface">Good to know before you lend or borrow</h2>
+            <ul className="mt-space-md grid gap-space-sm text-body-md text-on-surface-variant md:grid-cols-2">
+              <li>• SME Connect never holds or moves money. Payments go directly between the two parties.</li>
+              <li>• We verify identities, not business success. Every loan carries risk; only lend what you can afford.</li>
+              <li>• Interest rates and tenures are agreed between members; we don&apos;t set or guarantee them.</li>
+              <li>• If something feels wrong, report it. Our team reviews every report.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden bg-primary px-margin py-16 text-on-primary md:px-gutter-desktop">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary-container opacity-60 blur-3xl" />
         <Reveal className="relative mx-auto max-w-shell text-center">
           <ShieldCheck className="mx-auto h-10 w-10" aria-hidden />
-          <h2 className="mt-space-md text-headline-lg">Trust is built into every connection</h2>
+          <h2 className="mt-space-md text-headline-lg">Start with a free, verified profile</h2>
           <p className="mx-auto mt-space-sm max-w-2xl text-body-md text-on-primary/80">
-            Verified identities, transparent terms and a shared repayment record. SME Connect is a network built for
-            direct business relationships and agreed lending terms.
+            It takes a few minutes to sign up. Verification usually follows once our team has reviewed your documents.
           </p>
-          <LinkButton href="/signup" variant="secondary" size="lg" className="mt-space-lg">Create your free profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
+          <div className="mt-space-lg flex flex-wrap justify-center gap-space-sm">
+            <LinkButton href="/signup" variant="secondary" size="lg">Create your profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
+            <Link href="/login" className="inline-flex h-12 items-center rounded-xl px-space-lg text-label-md font-semibold text-on-primary hover:underline">I already have an account</Link>
+          </div>
         </Reveal>
       </section>
     </>

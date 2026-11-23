@@ -11,7 +11,7 @@ import { Card, SectionHeading } from "@/components/ui/Card";
 import { Photo } from "@/components/ui/Photo";
 import { StatCard } from "@/components/ui/StatCard";
 import { getProfile, listBusinesses, listOpenLoanRequests, reviewsFor } from "@/lib/api";
-import { formatBDT, shortDate } from "@/lib/format";
+import { formatBDT, formatBDTCompact, shortDate } from "@/lib/format";
 import { getCurrentUser } from "@/lib/session";
 
 export const metadata = { title: "Business profile" };
@@ -26,12 +26,13 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
   const activeLoan = openLoans.find((loan) => loan.owner.id === id);
   const related = directory.filter((entry) => entry.business.id !== id).slice(0, 3);
   const sales = business.salesMin !== null && business.salesMax !== null ? `${formatBDT(business.salesMin)}–${formatBDT(business.salesMax)}` : null;
+  const salesShort = business.salesMin !== null && business.salesMax !== null ? `${formatBDTCompact(business.salesMin)}–${formatBDTCompact(business.salesMax)}` : null;
   const averageRating = reviews.length ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : null;
 
   return (
     <>
       <ProfileHeader
-        person={{ ...owner, cover: business.image }}
+        person={{ ...owner, cover: business.image, about: "" }}
         actions={
           isOwnProfile ? (
             <>
@@ -52,8 +53,8 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
 
       <div className="mt-space-lg grid gap-space-lg xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-space-lg">
-          <div className="grid gap-space-md sm:grid-cols-2 2xl:grid-cols-4">
-            <StatCard icon={TrendingUp} label="Monthly sales" value={sales ?? "—"} hint={sales ? "Owner reported" : "Not shared yet"} />
+          <div className="grid gap-space-md sm:grid-cols-2">
+            <StatCard icon={TrendingUp} label="Monthly sales" value={salesShort ?? "—"} hint={sales ? "Owner reported" : "Not shared yet"} />
             <StatCard icon={Building2} label="Monthly orders" value={business.ordersRange ?? "—"} hint={business.runningSince ? `Running since ${new Date(business.runningSince).getFullYear()}` : undefined} tone="secondary" />
             <StatCard icon={Star} label="Reviews" value={averageRating ?? "New"} hint={`${reviews.length} from completed loans`} tone="warning" />
             <StatCard icon={ShieldCheck} label="Trust score" value={String(business.trustScore)} hint={business.verified ? "Identity verified" : "Verification pending"} tone="success" />

@@ -9,6 +9,7 @@ import { TimeAgo } from "@/components/ui/TimeAgo";
 import { api } from "@/lib/client-api";
 import type { Conversation, Message } from "@/data/types";
 import { cn } from "@/lib/cn";
+import { firstName } from "@/lib/format";
 
 const POLL_MS = 4000;
 
@@ -28,7 +29,7 @@ export function MessageThread({
   const latestId = useRef<string | null>(null);
   const hadUnread = useRef(conversation.unreadCount > 0);
   const { participant } = conversation;
-  const firstName = participant.name.split(" ")[0];
+  const shortName = firstName(participant.name);
 
   const scrollToEnd = (smooth: boolean) =>
     requestAnimationFrame(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: smooth ? "smooth" : "auto" }));
@@ -124,7 +125,7 @@ export function MessageThread({
             <LoaderCircle className="h-5 w-5 animate-spin" aria-label="Loading messages" />
           </div>
         )}
-        {messages?.length === 0 && !error && <p className="py-space-xl text-center text-body-sm text-outline">Say hello to {firstName} to start the conversation.</p>}
+        {messages?.length === 0 && !error && <p className="py-space-xl text-center text-body-sm text-outline">Say hello to {shortName} to start the conversation.</p>}
         {messages?.map((message) => (
           <div key={message.id} className={cn("flex animate-fade-in", message.mine ? "justify-end" : "justify-start")}>
             <div className={cn("max-w-[85%] rounded-2xl px-space-md py-space-sm text-body-md sm:max-w-[78%]", message.mine ? "rounded-br-sm bg-primary text-on-primary" : "rounded-bl-sm bg-surface-container-lowest text-on-surface card-shadow")}>
@@ -148,7 +149,7 @@ export function MessageThread({
           <input
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder={`Message ${firstName}…`}
+            placeholder={`Message ${shortName}…`}
             aria-label="Message"
             maxLength={5000}
             className="min-w-0 flex-1 rounded-full bg-surface-container-low px-space-md py-2.5 text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary"

@@ -5,7 +5,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge, VerifiedBadge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { Photo } from "@/components/ui/Photo";
-import { formatBDT } from "@/lib/format";
+import { formatBDT, firstName } from "@/lib/format";
 import { tenureLabel } from "@/lib/loans";
 import { listBusinesses, listInvestors, listOpenLoanRequests } from "@/lib/api";
 import { profileHref } from "@/lib/profile";
@@ -25,7 +25,7 @@ export default async function FeedPage() {
     { label: "Loan requests", href: "/explore", icon: FilePlus2, count: loans.length },
     { label: "Messages", href: "/messages", icon: MessageCircle, count: user.unread.messages },
     { label: "Notifications", href: "/notifications", icon: Bell, count: user.unread.notifications },
-    { label: "My profile", href: user.role === "admin" ? "/admin/verification" : profileHref(user), icon: UserPlus },
+    { label: "My profile", href: user.role === "admin" ? "/admin" : profileHref(user), icon: UserPlus },
   ];
 
   return (
@@ -67,7 +67,7 @@ export default async function FeedPage() {
           <div className="flex items-start gap-space-sm">
             <Avatar src={user.avatar} alt={user.name} name={user.name} size="md" />
             <div className="min-w-0 flex-1">
-              <p className="text-label-md font-bold text-on-surface">Welcome back, {user.name.split(" ")[0]}</p>
+              <p className="text-label-md font-bold text-on-surface">Welcome back, {firstName(user.name)}</p>
               <div className="mt-space-sm flex flex-wrap gap-space-sm">
                 {user.role === "investor" && featured && (
                   <Link href={`/loan-requests/${featured.id}/offer`} className="flex items-center gap-1.5 rounded-full bg-secondary-fixed px-space-md py-2 text-label-sm font-bold text-secondary transition-colors hover:bg-secondary-fixed-dim">

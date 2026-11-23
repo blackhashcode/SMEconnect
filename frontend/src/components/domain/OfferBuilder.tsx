@@ -9,7 +9,7 @@ import { Button, LinkButton } from "@/components/ui/Button";
 import { FormAlert } from "@/components/auth/FormField";
 import { TermsFields, termsBody, TENURE_OPTIONS, type Terms } from "./TermsFields";
 import { api, fieldError, type FieldErrors } from "@/lib/client-api";
-import { formatBDT, repaymentEstimate } from "@/lib/format";
+import { formatBDT, repaymentEstimate, firstName } from "@/lib/format";
 import { FREQUENCY_LABEL, tenureLabel } from "@/lib/loans";
 import type { LoanRequestView, Offer } from "@/data/types";
 
@@ -51,7 +51,7 @@ export function OfferBuilder({ loan }: { loan: LoanRequestView }) {
           <CheckCircle2 className="h-8 w-8" aria-hidden />
         </span>
         <p className="text-label-sm font-bold uppercase tracking-wider text-success">Offer sent</p>
-        <h1 className="mt-space-sm text-headline-lg text-on-surface">Your offer is with {loan.owner.name.split(" ")[0]}</h1>
+        <h1 className="mt-space-sm text-headline-lg text-on-surface">Your offer is with {firstName(loan.owner.name)}</h1>
         <p className="mx-auto mt-space-sm max-w-lg text-body-md text-on-surface-variant">
           {formatBDT(sent.amountBdt)} at {Number(sent.interestRatePct)}% over {tenureLabel(sent.tenureDays)}, repaid {FREQUENCY_LABEL[sent.repaymentFrequency].toLowerCase()}. They can accept, reject or send back different terms.
         </p>

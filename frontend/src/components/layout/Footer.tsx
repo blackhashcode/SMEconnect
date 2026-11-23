@@ -25,9 +25,9 @@ export function Footer({ publicPage = false }: { publicPage?: boolean }) {
               <BadgeCheck className="h-5 w-5" aria-hidden />
             </span>
             <div>
-              <p className="text-label-md font-semibold text-on-surface">Bangladesh SME Community Trust Network</p>
+              <p className="text-label-md font-semibold text-on-surface">A verified network for Bangladeshi small businesses</p>
               <p className="mt-1 max-w-md text-body-sm text-on-surface-variant">
-                NID and trade licence checks, transparent offer terms and repayment progress you can follow.
+                Identity checks by our team, written two-sided agreements and repayments both parties confirm.
               </p>
             </div>
           </div>
@@ -45,13 +45,7 @@ export function Footer({ publicPage = false }: { publicPage?: boolean }) {
         </div>
         <div className="flex flex-col gap-space-sm pt-space-md text-body-sm text-outline sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} SME Connect Bangladesh. Built for verified business connections.</p>
-          <div className="flex items-center gap-space-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60 motion-reduce:hidden" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-            </span>
-            <span>Operational across 64 districts</span>
-          </div>
+          <p>SME Connect doesn&apos;t hold or move money. Loans are agreed directly between members.</p>
         </div>
       </div>
     </footer>

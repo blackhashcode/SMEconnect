@@ -33,9 +33,9 @@ export function StatCard({
       <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tones[tone])}>
         <Icon className="h-5 w-5" aria-hidden />
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-label-sm font-semibold uppercase tracking-wide text-outline">{label}</p>
-        <p className="mt-1 whitespace-nowrap text-numeric-stat text-on-surface">{value}</p>
+        <p className="mt-1 break-words text-numeric-stat leading-tight text-on-surface">{value}</p>
         {hint && <p className="mt-0.5 line-clamp-2 text-body-sm text-on-surface-variant">{hint}</p>}
       </div>
     </div>

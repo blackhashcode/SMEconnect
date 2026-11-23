@@ -6,47 +6,40 @@ import { images } from "@/data/images";
 import { BackendUnavailableError } from "@/lib/backend/server";
 import { safeNextPath } from "@/lib/profile";
 import { getCurrentUser } from "@/lib/session";
+import { authOptions } from "@/lib/api";
 
 export const metadata = { title: "Log in" };
 
-// Demo sign-in buttons: always in development; in production only when
-// SHOW_DEMO_LOGIN=true (for a public showcase running on seeded demo data).
-const showDemo = process.env.NODE_ENV !== "production" || process.env.SHOW_DEMO_LOGIN === "true";
-
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; loggedOut?: string }> }) {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; loggedOut?: string; error?: string }> }) {
   const params = await searchParams;
   const nextPath = safeNextPath(params.next);
 
   let apiDown = false;
+  let googleEnabled = false;
   try {
     if (await getCurrentUser()) redirect(nextPath);
+    googleEnabled = (await authOptions()).google;
   } catch (error) {
     if (!(error instanceof BackendUnavailableError)) throw error;
     apiDown = true;
   }
 
   return (
-    <AuthShell title="Welcome back" subtitle="Log in to see your connections, offers and conversations." image={images["nusrat-bakery"]}>
+    <AuthShell title="Welcome back" subtitle="Log in to see your connections, offers and conversations." image={images["bakery-workers"]}>
       {apiDown && (
         <div className="mb-space-md">
           <FormAlert>The backend isn&apos;t reachable, so logging in won&apos;t work yet. Start it with pnpm dev in the backend folder.</FormAlert>
         </div>
       )}
+      {params.error === "google" && (
+        <div className="mb-space-md">
+          <FormAlert>Google sign-in didn&apos;t complete. Please try again, or log in with your email.</FormAlert>
+        </div>
+      )}
       <LoginForm
         nextPath={nextPath}
         notice={params.loggedOut ? "You've been logged out." : undefined}
-        demo={
-          showDemo
-            ? {
-                password: process.env.SEED_DEMO_PASSWORD || "Password123!",
-                accounts: [
-                  { label: "Investor · Rafiq", email: "investor01@smeconnect.local" },
-                  { label: "Business · Nusrat", email: "owner02@smeconnect.local" },
-                  { label: "Admin", email: "admin@smeconnect.local" },
-                ],
-              }
-            : undefined
-        }
+        googleEnabled={googleEnabled}
       />
     </AuthShell>
   );

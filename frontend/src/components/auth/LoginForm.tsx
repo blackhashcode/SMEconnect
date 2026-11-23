@@ -3,21 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowRight, LoaderCircle, Sparkles } from "lucide-react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FormAlert, FormField } from "./FormField";
+import { GoogleButton, OrDivider } from "./GoogleButton";
 import { api, type FieldErrors } from "@/lib/client-api";
-
-type DemoAccount = { label: string; email: string };
 
 export function LoginForm({
   nextPath,
   notice,
-  demo,
+  googleEnabled = false,
 }: {
   nextPath: string;
   notice?: string;
-  demo?: { password: string; accounts: DemoAccount[] };
+  /** Shows "Continue with Google" when the backend has Google sign-in configured. */
+  googleEnabled?: boolean;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -61,6 +61,13 @@ export function LoginForm({
       {notice && !error && <FormAlert tone="success">{notice}</FormAlert>}
       {error && <FormAlert>{error}</FormAlert>}
 
+      {googleEnabled && (
+        <>
+          <GoogleButton nextPath={nextPath} />
+          <OrDivider />
+        </>
+      )}
+
       <FormField
         label="Email address"
         type="email"
@@ -97,32 +104,6 @@ export function LoginForm({
           Create a free account
         </Link>
       </p>
-
-      {demo && (
-        <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low p-space-md">
-          <p className="flex items-center gap-1.5 text-label-md font-bold text-on-surface">
-            <Sparkles className="h-4 w-4 text-secondary" aria-hidden /> Try a demo account
-          </p>
-          <p className="mt-0.5 text-body-sm text-outline">Development only. Fills in a seeded member&apos;s details.</p>
-          <div className="mt-space-sm flex flex-wrap gap-space-sm">
-            {demo.accounts.map((account) => (
-              <button
-                key={account.email}
-                type="button"
-                onClick={() => {
-                  setEmail(account.email);
-                  setPassword(demo.password);
-                  setError(null);
-                  setFields({});
-                }}
-                className="rounded-full bg-surface-container-lowest px-space-md py-1.5 text-label-md font-semibold text-primary shadow-sm transition-all hover:bg-primary-fixed active:scale-[0.97]"
-              >
-                {account.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </form>
   );
 }

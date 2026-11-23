@@ -2,7 +2,6 @@ import type { Config } from "tailwindcss";
 
 /**
  * Single source of truth for the SME Connect design system.
- * Tokens are extracted from the Stitch visual reference (not copied markup).
  */
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],

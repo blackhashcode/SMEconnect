@@ -16,7 +16,7 @@ export function ProfileHeader({ person, actions }: { person: Person; actions?: R
       <div className="px-space-md pb-space-lg md:px-space-lg">
         {/* Only the avatar overlaps the cover; name and actions sit on the card surface. */}
         <div className="flex flex-col gap-space-md md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-space-md sm:flex-row sm:items-end">
+          <div className="flex min-w-0 flex-col gap-space-md sm:flex-row sm:items-end">
             <Avatar
               src={person.avatar}
               alt={person.name}
@@ -24,9 +24,9 @@ export function ProfileHeader({ person, actions }: { person: Person; actions?: R
               priority
               className="-mt-16 ring-4 ring-surface-container-lowest md:-mt-20"
             />
-            <div className="min-w-0 sm:pb-1">
+            <div className="min-w-0 pt-space-sm sm:pb-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-headline-md text-on-surface md:text-headline-lg">{person.name}</h1>
+                <h1 className="break-words text-headline-md text-on-surface md:text-headline-lg">{person.name}</h1>
                 {person.verified && <VerifiedBadge />}
               </div>
               <p className="mt-1 text-body-md text-on-surface-variant">{person.headline}</p>

@@ -7,6 +7,7 @@ import { ArrowRight, BadgeCheck, Building2, Check, Handshake, LoaderCircle, Shie
 import { Button } from "@/components/ui/Button";
 import { Photo } from "@/components/ui/Photo";
 import { FormAlert, FormField } from "@/components/auth/FormField";
+import { GoogleButton, OrDivider } from "@/components/auth/GoogleButton";
 import { api, type FieldErrors } from "@/lib/client-api";
 import { saveOnboardingDraft } from "@/lib/onboarding-draft";
 import { images } from "@/data/images";
@@ -19,7 +20,7 @@ const roles = [
     description: "Show verified sales records, request the capital you need and compare direct offers.",
     perks: ["NID & trade licence verification", "Post a transparent loan request", "Connect with relevant investors"],
     icon: Building2,
-    image: images["boutique-sarees"],
+    image: images["textile-fair"],
     cta: "Create business profile",
   },
   {
@@ -28,17 +29,17 @@ const roles = [
     description: "Discover verified local shops, make direct loan offers and follow agreed repayments.",
     perks: ["Browse verified businesses", "Make offers with your own terms", "Track repayments in one dashboard"],
     icon: TrendingUp,
-    image: images["investor-mobile"],
+    image: images["fruit-vendor"],
     cta: "Create investor profile",
   },
 ] as const;
 
 type RoleId = (typeof roles)[number]["id"];
 
-// Same names the backend and demo data use, so discovery filters line up.
+// Category names shared with the backend so discovery filters line up.
 const categories = ["Food", "Fashion", "Handicrafts", "Cosmetics", "Gadgets", "Home Décor", "Other"];
 
-export function RoleSelector() {
+export function RoleSelector({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
   const [selected, setSelected] = useState<RoleId>("business");
   const role = roles.find((item) => item.id === selected) ?? roles[0];
@@ -146,7 +147,7 @@ export function RoleSelector() {
           </div>
           <div className="flex flex-wrap gap-space-sm">
             <span className="flex items-center gap-1.5 rounded-full bg-success-container px-space-md py-1.5 text-body-sm font-medium text-success">
-              <ShieldCheck className="h-4 w-4" aria-hidden /> Free forever
+              <ShieldCheck className="h-4 w-4" aria-hidden /> Free to join
             </span>
             <span className="flex items-center gap-1.5 rounded-full bg-primary-fixed px-space-md py-1.5 text-body-sm font-medium text-primary">
               <Handshake className="h-4 w-4" aria-hidden /> Direct offers only
@@ -157,6 +158,13 @@ export function RoleSelector() {
         {error && (
           <div className="mt-space-md">
             <FormAlert>{error}</FormAlert>
+          </div>
+        )}
+
+        {googleEnabled && (
+          <div className="mt-space-lg space-y-space-md">
+            <GoogleButton role={selected === "business" ? "OWNER" : "INVESTOR"} nextPath="/onboarding" label={`Sign up with Google as ${selected === "business" ? "a business owner" : "an investor"}`} />
+            <OrDivider />
           </div>
         )}
 
