@@ -31,7 +31,8 @@ describe("submitVerificationSchema", () => {
   it("requires sales proof from owners", () => {
     const result = submitVerificationSchema.safeParse({
       type: "OWNER",
-      idDocumentUrl: "https://example.com/nid.pdf",
+      idDocumentUrl:
+        "/api/v1/files/private/2f8c1a54-6b7d-4c9e-9f31-0a2b3c4d5e6f.pdf",
       salesProofUrls: [],
       shopLinks: [],
     });
@@ -41,7 +42,8 @@ describe("submitVerificationSchema", () => {
   it("lets investors submit without sales proof", () => {
     const result = submitVerificationSchema.safeParse({
       type: "INVESTOR",
-      idDocumentUrl: "https://example.com/nid.pdf",
+      idDocumentUrl:
+        "/api/v1/files/private/2f8c1a54-6b7d-4c9e-9f31-0a2b3c4d5e6f.pdf",
       salesProofUrls: [],
       shopLinks: [],
     });

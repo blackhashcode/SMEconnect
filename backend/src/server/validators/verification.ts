@@ -1,10 +1,12 @@
 import "@/server/openapi/setup";
 import { z } from "zod";
 import {
+  isoDateTimeSchema,
   optionalTextSchema,
   urlArraySchema,
   urlSchema,
 } from "@/server/validators/common";
+import { privateFileUrlSchema } from "@/server/validators/storage";
 import {
   verificationStatusSchema,
   verificationTypeSchema,
@@ -13,8 +15,8 @@ import {
 export const submitVerificationSchema = z
   .object({
     type: verificationTypeSchema,
-    idDocumentUrl: urlSchema,
-    salesProofUrls: urlArraySchema(10).default([]),
+    idDocumentUrl: privateFileUrlSchema,
+    salesProofUrls: z.array(privateFileUrlSchema).max(10).default([]),
     shopLinks: urlArraySchema(10).default([]),
   })
   .strict()
@@ -40,3 +42,26 @@ export const verificationQuerySchema = z
     status: verificationStatusSchema.optional(),
   })
   .strict();
+
+export const verificationRecordSchema = z
+  .object({
+    id: z.string(),
+    type: verificationTypeSchema,
+    status: verificationStatusSchema,
+    idDocumentUrl: privateFileUrlSchema,
+    salesProofUrls: z.array(privateFileUrlSchema),
+    shopLinks: z.array(urlSchema),
+    reviewNote: z.string().nullable(),
+    submittedAt: isoDateTimeSchema,
+    reviewedAt: isoDateTimeSchema.nullable(),
+  })
+  .strict();
+
+/** `null` means the current user has not submitted a verification yet. */
+export const verificationStatusResponseSchema =
+  verificationRecordSchema.nullable();
+
+export const adminVerificationRecordSchema = verificationRecordSchema.extend({
+  userId: z.string(),
+  reviewerId: z.string().nullable(),
+});

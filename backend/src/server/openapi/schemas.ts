@@ -53,6 +53,37 @@ export const healthSuccessEnvelopeSchema = successEnvelope(
   validators.healthStatusSchema,
 );
 
+export const phoneOtpRequestSuccessEnvelopeSchema = successEnvelope(
+  validators.phoneOtpResultSchema,
+);
+export const phoneOtpVerifySuccessEnvelopeSchema = successEnvelope(
+  validators.phoneVerificationResultSchema,
+);
+export const uploadedFileSuccessEnvelopeSchema = successEnvelope(
+  validators.uploadedFileSchema,
+);
+export const verificationSuccessEnvelopeSchema = successEnvelope(
+  validators.verificationRecordSchema,
+);
+export const verificationStatusSuccessEnvelopeSchema = successEnvelope(
+  validators.verificationStatusResponseSchema,
+);
+export const verificationListSuccessEnvelopeSchema = successEnvelope(
+  z.array(validators.adminVerificationRecordSchema),
+);
+export const meSuccessEnvelopeSchema = successEnvelope(validators.meResponseSchema);
+export const publicProfileSuccessEnvelopeSchema = successEnvelope(
+  validators.publicProfileSchema,
+);
+export const productImageSuccessEnvelopeSchema = successEnvelope(
+  validators.productImageRecordSchema,
+);
+export const productImageDeleteSuccessEnvelopeSchema = successEnvelope(
+  z
+    .object({ id: z.string(), deleted: z.literal(true) })
+    .strict(),
+);
+
 const cursorSchema = z.string().min(1).openapi({
   param: {
     name: "cursor",
@@ -181,16 +212,42 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["AdminUpdateUserRequest", validators.adminUpdateUserSchema],
   ["UserIdRequest", validators.userIdSchema],
   ["UserNoteRequest", validators.userNoteSchema],
+  ["PhoneSchema", validators.phoneSchema],
+  ["RequestPhoneOtpRequest", validators.requestPhoneOtpSchema],
+  ["VerifyPhoneOtpRequest", validators.verifyPhoneOtpSchema],
+  ["PhoneOtpResult", validators.phoneOtpResultSchema],
+  ["PhoneVerificationResult", validators.phoneVerificationResultSchema],
+  ["UploadPurpose", validators.uploadPurposeSchema],
+  ["FileVisibility", validators.fileVisibilitySchema],
+  ["FileId", validators.fileIdSchema],
+  ["PrivateFileUrl", validators.privateFileUrlSchema],
+  ["UploadedFile", validators.uploadedFileSchema],
   ["SubmitVerificationRequest", validators.submitVerificationSchema],
   ["ReviewVerificationRequest", validators.reviewVerificationSchema],
   ["VerificationQuery", validators.verificationQuerySchema],
+  ["VerificationRecord", validators.verificationRecordSchema],
+  ["VerificationStatusResponse", validators.verificationStatusResponseSchema],
+  ["AdminVerificationRecord", validators.adminVerificationRecordSchema],
 
-  // Profile requests
+  // Profile requests and responses
+  ["ProfileImageUrl", validators.profileImageUrlSchema],
   ["CreateBusinessProfileRequest", validators.createBusinessProfileSchema],
   ["UpdateBusinessProfileRequest", validators.updateBusinessProfileSchema],
   ["CreateProductImageRequest", validators.createProductImageSchema],
+  ["UpdateProductImageRequest", validators.updateProductImageSchema],
   ["CreateInvestorProfileRequest", validators.createInvestorProfileSchema],
   ["UpdateInvestorProfileRequest", validators.updateInvestorProfileSchema],
+  ["UpdateMeRequest", validators.updateMeSchema],
+  ["MeUser", validators.meUserSchema],
+  ["MeVerification", validators.meVerificationSchema],
+  ["BusinessProfileRecord", validators.businessProfileRecordSchema],
+  ["InvestorProfileRecord", validators.investorProfileRecordSchema],
+  ["MeResponse", validators.meResponseSchema],
+  ["ProductImageRecord", validators.productImageRecordSchema],
+  ["PublicProductImage", validators.publicProductImageSchema],
+  ["PublicBusinessProfile", validators.publicBusinessProfileSchema],
+  ["PublicInvestorProfile", validators.publicInvestorProfileSchema],
+  ["PublicProfile", validators.publicProfileSchema],
 
   // Loan and offer requests
   ["CreateLoanRequestRequest", validators.createLoanRequestSchema],
@@ -281,6 +338,11 @@ registry.registerComponent(
 );
 registry.registerComponent(
   "responses",
+  "RateLimitResponse",
+  errorResponse("Rate limited", "RATE_LIMITED", "Too many requests"),
+);
+registry.registerComponent(
+  "responses",
   "InternalErrorResponse",
   errorResponse("Unexpected server error", "INTERNAL_ERROR", "Something went wrong"),
 );
@@ -315,6 +377,7 @@ export const STANDARD_ERROR_RESPONSES = {
   404: { $ref: "#/components/responses/NotFoundResponse" },
   409: { $ref: "#/components/responses/ConflictResponse" },
   422: { $ref: "#/components/responses/BusinessRuleResponse" },
+  429: { $ref: "#/components/responses/RateLimitResponse" },
   500: { $ref: "#/components/responses/InternalErrorResponse" },
   503: { $ref: "#/components/responses/DatabaseUnavailableResponse" },
 } as const;
