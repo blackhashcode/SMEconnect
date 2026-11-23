@@ -6,6 +6,8 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/me",
     "/api/v1/me/product-images",
     "/api/v1/me/product-images/img_1",
+    "/api/v1/me/loan-requests",
+    "/api/v1/me/loan-requests/lr_1/publish",
     "/api/v1/verifications",
     "/api/v1/verifications/me",
     "/api/v1/admin/verifications",
@@ -24,6 +26,8 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/auth/sign-in/email",
     "/api/v1/files/public/2f8c1a54-6b7d-4c9e-9f31-0a2b3c4d5e6f.jpg",
     "/api/v1/profiles/usr_123",
+    "/api/v1/loan-requests",
+    "/api/v1/loan-requests/lr_1",
     "/api/v1/verifications-public",
   ])("leaves %s untouched", (path) => {
     expect(isProtectedApiPath(path)).toBe(false);
