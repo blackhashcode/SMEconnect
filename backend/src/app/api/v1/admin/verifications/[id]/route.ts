@@ -3,6 +3,7 @@ import { requireRole } from "@/server/auth/guards";
 import type { Actor } from "@/server/auth/policy";
 import { handleRequest, ok } from "@/server/http/response";
 import { clientIp, recordAudit } from "@/server/services/audit-log";
+import { recordReview } from "@/server/services/verification-history";
 import {
   getVerificationForAdmin,
   reviewVerification,
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const input = reviewVerificationSchema.parse(await request.json());
 
     const result = await reviewVerification(session.user as Actor, verificationId, input);
+    await recordReview(verificationId, { status: input.status, reviewerId: session.user.id, reviewNote: input.reviewNote });
     await recordAudit({ actorId: session.user.id, action: "admin.verification_reviewed", targetType: "VERIFICATION", targetId: verificationId, detail: { status: input.status }, ipAddress: clientIp(request.headers) });
     return ok(result);
   });

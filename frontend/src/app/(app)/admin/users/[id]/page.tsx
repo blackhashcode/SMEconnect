@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink, FileText, LogOut, ShieldBan, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ExternalLink, LogOut, ShieldBan, ShieldCheck } from "lucide-react";
+import { DocumentViewer } from "@/components/admin/DocumentViewer";
 import { AdminAction } from "@/components/admin/AdminAction";
 import { AdminTable, Cell, StatusBadge, dateTime } from "@/components/admin/AdminTable";
 import { Avatar } from "@/components/ui/Avatar";
 import { Card, SectionHeading } from "@/components/ui/Card";
-import { adminUser, auditLogs, describeAction } from "@/lib/admin";
+import { adminUser, auditLogs, describeAction, verificationHistory } from "@/lib/admin";
 import { getProfile } from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
 
@@ -13,12 +14,13 @@ export const metadata = { title: "Member · Admin" };
 
 export default async function AdminUserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [user, profile, byThem, aboutThem, viewer] = await Promise.all([
+  const [user, profile, byThem, aboutThem, viewer, submissions] = await Promise.all([
     adminUser(id),
     getProfile(id),
     auditLogs({ actorId: id, limit: 20 }),
     auditLogs({ targetId: id, category: "admin.", limit: 10 }),
     getCurrentUser(),
+    verificationHistory(id),
   ]);
   if (!user) notFound();
   const publicHref = user.role === "OWNER" ? `/businesses/${id}` : user.role === "INVESTOR" ? `/investors/${id}` : null;
@@ -86,30 +88,43 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
         </Card>
 
         <Card className="p-space-lg">
-          <SectionHeading title="Verification history" />
-          {user.verifications.length === 0 ? (
+          <SectionHeading title="Verification history" description="Every submission is kept, including ones replaced after a rejection. Opening a document is recorded in the activity log." />
+          {submissions.length === 0 ? (
             <p className="mt-space-md text-body-sm text-on-surface-variant">Nothing submitted yet.</p>
           ) : (
-            <ul className="mt-space-md space-y-space-md">
-              {user.verifications.map((v) => (
+            <ol className="mt-space-md space-y-space-md">
+              {submissions.map((v, n) => (
                 <li key={v.id} className="rounded-xl border border-surface-container-high p-space-sm">
-                  <div className="flex items-center justify-between gap-space-sm">
-                    <StatusBadge status={v.status} />
-                    <span className="text-body-sm text-outline">{dateTime(v.submittedAt)}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-space-sm">
+                    <span className="flex items-center gap-space-sm">
+                      <StatusBadge status={v.status} />
+                      <span className="text-label-md text-on-surface">Submission {submissions.length - n}</span>
+                    </span>
+                    <span className="text-body-sm text-outline">Submitted {dateTime(v.submittedAt)}</span>
                   </div>
-                  {v.reviewNote && <p className="mt-1 text-body-sm text-on-surface-variant">Note: {v.reviewNote}</p>}
-                  <div className="mt-space-sm flex flex-wrap gap-space-sm text-body-sm">
-                    <a href={v.idDocumentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><FileText className="h-4 w-4" aria-hidden /> ID document</a>
-                    {v.salesProofUrls.map((url, i) => (
-                      <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline"><FileText className="h-4 w-4" aria-hidden /> Sales proof {i + 1}</a>
-                    ))}
-                    {v.shopLinks.map((url) => (
-                      <a key={url} href={url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-primary hover:underline"><ExternalLink className="h-4 w-4" aria-hidden /> Shop link</a>
-                    ))}
-                  </div>
+                  {v.reviewedAt && (
+                    <p className="mt-1 text-body-sm text-on-surface-variant">
+                      {v.status === "APPROVED" ? "Approved" : "Rejected"} by {v.reviewer?.name ?? "an admin"} on {dateTime(v.reviewedAt)}
+                      {v.reviewNote ? ` · "${v.reviewNote}"` : ""}
+                    </p>
+                  )}
+                  <DocumentViewer
+                    className="mt-space-sm"
+                    documents={[
+                      { label: "ID document", href: v.idDocumentUrl },
+                      ...v.salesProofUrls.map((href, i) => ({ label: `Sales proof ${i + 1}`, href })),
+                    ]}
+                  />
+                  {v.shopLinks.length > 0 && (
+                    <div className="mt-space-sm flex flex-wrap gap-space-sm text-body-sm">
+                      {v.shopLinks.map((url) => (
+                        <a key={url} href={url} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 text-primary hover:underline"><ExternalLink className="h-4 w-4" aria-hidden /> Shop link</a>
+                      ))}
+                    </div>
+                  )}
                 </li>
               ))}
-            </ul>
+            </ol>
           )}
         </Card>
       </div>

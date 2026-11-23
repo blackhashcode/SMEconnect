@@ -40,7 +40,7 @@ export function StatusBadge({ status }: { status: string | null | undefined }) {
 }
 
 /** Filter chips that keep the other query params. */
-export function FilterChips({ base, param, options, current, extra = {} }: { base: string; param: string; options: { value: string; label: string }[]; current?: string; extra?: Record<string, string | undefined> }) {
+export function FilterChips({ base, param, options, current, extra = {}, allLabel = "All" }: { base: string; param: string; options: { value: string; label: string }[]; current?: string; extra?: Record<string, string | undefined>; allLabel?: string }) {
   const href = (value: string) => {
     const search = new URLSearchParams();
     for (const [key, val] of Object.entries(extra)) if (val) search.set(key, val);
@@ -50,7 +50,7 @@ export function FilterChips({ base, param, options, current, extra = {} }: { bas
   };
   return (
     <div className="flex flex-wrap gap-space-sm">
-      {[{ value: "", label: "All" }, ...options].map((option) => {
+      {[{ value: "", label: allLabel }, ...options].map((option) => {
         const active = (current ?? "") === option.value;
         return (
           <Link key={option.value || "all"} href={href(option.value)} aria-current={active ? "true" : undefined} className={cn("rounded-full border px-space-md py-1.5 text-label-md transition-colors", active ? "border-primary bg-primary-fixed font-bold text-primary" : "border-outline-variant text-on-surface-variant hover:border-primary")}>
