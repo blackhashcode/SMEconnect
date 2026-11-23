@@ -6,6 +6,9 @@ import { cookies, headers } from "next/headers";
  * session. Browsers reach the same API through the /api/v1 rewrite in
  * next.config.mjs, so everything stays on one origin.
  */
+// On Vercel, the "backend" service binding in vercel.json injects BACKEND_URL
+// (the backend's internal URL) at runtime; never set it by hand there. Locally
+// it defaults to the backend dev server.
 export const BACKEND_URL = (process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
 export class BackendUnavailableError extends Error {

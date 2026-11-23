@@ -69,3 +69,4 @@ backend/docs/implementation/
 
 # ── Source photos before compression (optimised copies live in frontend/public/images) ──
 /Photos/
+.neon

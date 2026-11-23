@@ -2,7 +2,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
-// The backend API (../backend). In production set BACKEND_URL to its deployed URL.
+// The backend API (../backend). This rewrite is for local development: on Vercel,
+// the top-level rewrites in ../vercel.json send /api/* to the backend service
+// before a request reaches this app, so the browser stays on one domain.
 const backendUrl = (process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
 /** @type {import('next').NextConfig} */
