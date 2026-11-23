@@ -16,3 +16,4 @@ export * from "@/server/validators/storage";
 export * from "@/server/validators/notification";
 export * from "@/server/validators/block";
 export * from "@/server/validators/dashboard";
+export * from "@/server/validators/admin";

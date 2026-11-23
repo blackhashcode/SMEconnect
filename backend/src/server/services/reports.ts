@@ -18,7 +18,7 @@ interface ServiceDeps {
   db?: Db;
 }
 
-interface ReportRow {
+export interface ReportRow {
   id: string;
   reporterId: string;
   targetType: ReportTargetType;
@@ -31,7 +31,7 @@ interface ReportRow {
   updatedAt: Date;
 }
 
-function toRecord(row: ReportRow) {
+export function toReportRecord(row: ReportRow) {
   return {
     id: row.id,
     reporterId: row.reporterId,
@@ -106,7 +106,7 @@ export async function createReport(
         status: "OPEN",
       },
     });
-    return toRecord(row as ReportRow);
+    return toReportRecord(row as ReportRow);
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw new ConflictError("You already have an open report for this target");
@@ -115,16 +115,16 @@ export async function createReport(
   }
 }
 
-/**
- * Reporters see only their own reports. Admins see the whole queue with an
- * optional status filter, but resolution remains an ADMIN Phase 10 operation.
- */
+/** Reporters see only their own reports; admins see the whole queue. */
 export async function listReports(
   actor: Actor,
-  query: PaginationParams & { status?: string },
+  query: PaginationParams & { status?: string; targetType?: string },
   deps: ServiceDeps = {},
 ) {
-  const parsed = reportListQuerySchema.parse({ status: query.status });
+  const parsed = reportListQuerySchema.parse({
+    status: query.status,
+    targetType: query.targetType,
+  });
   const db = deps.db ?? prisma;
   const cursor = cursorId(query.cursor);
   const admin = actor.role === "ADMIN";
@@ -134,6 +134,7 @@ export async function listReports(
     where: {
       ...(admin ? {} : { reporterId: actor.id }),
       ...(parsed.status ? { status: parsed.status } : {}),
+      ...(parsed.targetType ? { targetType: parsed.targetType } : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: query.limit + 1,
@@ -142,7 +143,7 @@ export async function listReports(
 
   const page = pageMeta(rows as unknown as ReportRow[], query.limit);
   return {
-    items: page.items.map(toRecord),
+    items: page.items.map(toReportRecord),
     meta: page.meta,
   };
 }

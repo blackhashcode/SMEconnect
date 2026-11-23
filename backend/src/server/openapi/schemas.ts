@@ -71,6 +71,9 @@ export const verificationStatusSuccessEnvelopeSchema = successEnvelope(
 export const verificationListSuccessEnvelopeSchema = successEnvelope(
   z.array(validators.adminVerificationRecordSchema),
 );
+export const adminVerificationDetailSuccessEnvelopeSchema = successEnvelope(
+  validators.adminVerificationRecordSchema,
+);
 export const meSuccessEnvelopeSchema = successEnvelope(validators.meResponseSchema);
 export const publicProfileSuccessEnvelopeSchema = successEnvelope(
   validators.publicProfileSchema,
@@ -174,6 +177,41 @@ export const ownerDashboardSuccessEnvelopeSchema = successEnvelope(
 );
 export const investorDashboardSuccessEnvelopeSchema = successEnvelope(
   validators.investorDashboardSchema,
+);
+
+// Phase 10 — administration
+export const adminUserListSuccessEnvelopeSchema = successEnvelope(
+  z.array(validators.adminUserRecordSchema),
+);
+export const adminUserDetailSuccessEnvelopeSchema = successEnvelope(
+  validators.adminUserDetailSchema,
+);
+export const adminUserStatusResultSuccessEnvelopeSchema = successEnvelope(
+  validators.adminUserStatusResultSchema,
+);
+export const adminReportListSuccessEnvelopeSchema = successEnvelope(
+  validators.reportRecordListSchema,
+);
+export const adminReportDetailSuccessEnvelopeSchema = successEnvelope(
+  validators.adminReportDetailSchema,
+);
+export const adminReportResolutionSuccessEnvelopeSchema = successEnvelope(
+  validators.adminReportResolutionResultSchema,
+);
+export const adminModerationActionSuccessEnvelopeSchema = successEnvelope(
+  validators.adminModerationActionSchema,
+);
+export const adminPostListSuccessEnvelopeSchema = successEnvelope(
+  z.array(validators.adminPostRecordSchema),
+);
+export const adminCommentListSuccessEnvelopeSchema = successEnvelope(
+  z.array(validators.adminCommentRecordSchema),
+);
+export const adminDeleteResultSuccessEnvelopeSchema = successEnvelope(
+  validators.adminDeleteResultSchema,
+);
+export const adminStatsSuccessEnvelopeSchema = successEnvelope(
+  validators.adminStatsSchema,
 );
 
 // Phase 8 — repayments and loan history
@@ -329,6 +367,23 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["VerificationRecord", validators.verificationRecordSchema],
   ["VerificationStatusResponse", validators.verificationStatusResponseSchema],
   ["AdminVerificationRecord", validators.adminVerificationRecordSchema],
+
+  // Phase 10 — administration requests and responses
+  ["AdminUserListQuery", validators.adminUserListQuerySchema],
+  ["AdminReportListQuery", validators.adminReportListQuerySchema],
+  ["ResolveReportRequest", validators.resolveReportSchema],
+  ["DismissReportRequest", validators.dismissReportSchema],
+  ["AdminUserRecord", validators.adminUserRecordSchema],
+  ["AdminVerificationSummary", validators.adminVerificationSummarySchema],
+  ["AdminUserDetail", validators.adminUserDetailSchema],
+  ["AdminUserStatusResult", validators.adminUserStatusResultSchema],
+  ["AdminReportDetail", validators.adminReportDetailSchema],
+  ["AdminReportResolutionResult", validators.adminReportResolutionResultSchema],
+  ["AdminModerationAction", validators.adminModerationActionSchema],
+  ["AdminPostRecord", validators.adminPostRecordSchema],
+  ["AdminCommentRecord", validators.adminCommentRecordSchema],
+  ["AdminDeleteResult", validators.adminDeleteResultSchema],
+  ["AdminStats", validators.adminStatsSchema],
 
   // Profile requests and responses
   ["ProfileImageUrl", validators.profileImageUrlSchema],

@@ -3,10 +3,19 @@ import { ForbiddenError } from "@/server/errors";
 
 export type VerificationType = "OWNER" | "INVESTOR";
 export type VerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type UserStatus = "ACTIVE" | "SUSPENDED";
 
 export interface Actor {
   id: string;
   role?: Role;
+  status?: UserStatus;
+}
+
+/** A suspended account keeps its session cookie but cannot act on the API. */
+export function assertActiveUser(user: { status?: string | null }): void {
+  if (user.status === "SUSPENDED") {
+    throw new ForbiddenError("This account is suspended");
+  }
 }
 
 /** Server-side role check shared by route guards and services. */

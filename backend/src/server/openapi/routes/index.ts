@@ -1,4 +1,5 @@
 import "@/server/openapi/setup";
+import { registerAdminRoutes } from "@/server/openapi/routes/admin";
 import { registerAuthRoutes } from "@/server/openapi/routes/auth";
 import { registerDiscoveryRoutes } from "@/server/openapi/routes/discovery";
 import { registerHealthRoute } from "@/server/openapi/routes/health";
@@ -31,5 +32,6 @@ export function registerApiRoutes() {
   registerOfferRoutes();
   registerRepaymentRoutes();
   registerPhase9Routes();
+  registerAdminRoutes();
   registered = true;
 }

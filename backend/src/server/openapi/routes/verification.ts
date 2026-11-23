@@ -5,6 +5,7 @@ import { SECURITY_SCHEME_NAME } from "@/server/openapi/config";
 import { registry } from "@/server/openapi/registry";
 import {
   STANDARD_ERROR_RESPONSES,
+  adminVerificationDetailSuccessEnvelopeSchema,
   verificationListSuccessEnvelopeSchema,
   verificationStatusSuccessEnvelopeSchema,
   verificationSuccessEnvelopeSchema,
@@ -146,6 +147,45 @@ export function registerVerificationRoutes() {
       400: STANDARD_ERROR_RESPONSES[400],
       401: STANDARD_ERROR_RESPONSES[401],
       403: STANDARD_ERROR_RESPONSES[403],
+    },
+  });
+
+  registry.registerPath({
+    method: "get",
+    path: ADMIN_VERIFICATION_REVIEW_PATH,
+    operationId: "getVerificationForAdmin",
+    tags: ["Administration"],
+    summary: "Get one verification submission for admin review",
+    description:
+      "ADMIN only. Returns private verification documents and the submitter/reviewer identifiers.",
+    security: sessionSecurity,
+    parameters: [{ $ref: "#/components/parameters/IdPathParam" }],
+    responses: {
+      200: {
+        description: "Verification submission detail",
+        content: jsonResponse(adminVerificationDetailSuccessEnvelopeSchema, {
+          data: {
+            id: "ver_123",
+            userId: "usr_123",
+            reviewerId: null,
+            type: "OWNER",
+            status: "PENDING",
+            idDocumentUrl:
+              "/api/v1/files/private/2f8c1a54-6b7d-4c9e-9f31-0a2b3c4d5e6f.pdf",
+            salesProofUrls: [
+              "/api/v1/files/private/3a9d2b65-7c8e-4d0f-8a12-1b2c3d4e5f60.jpg",
+            ],
+            shopLinks: ["https://www.facebook.com/shop/example"],
+            reviewNote: null,
+            submittedAt: "2026-11-23T18:00:00.000Z",
+            reviewedAt: null,
+          },
+        }),
+      },
+      400: STANDARD_ERROR_RESPONSES[400],
+      401: STANDARD_ERROR_RESPONSES[401],
+      403: STANDARD_ERROR_RESPONSES[403],
+      404: STANDARD_ERROR_RESPONSES[404],
     },
   });
 
