@@ -1,7 +1,9 @@
 # Setting up "Continue with Google"
 
-Google sign-in is already built in. It stays hidden until you add two settings to the backend:
-`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. This takes about 10 minutes and is free.
+Google sign-in is already built in, and the button shows on `/login` and `/signup`. It starts
+working once you add two settings to the backend: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+Until then, clicking it explains that Google sign-in isn't set up yet ("coming soon" on the live
+site). Setup takes about 10 minutes and is free.
 
 ## How it works
 
@@ -80,8 +82,8 @@ GOOGLE_CLIENT_SECRET="GOCSPX-..."
 APP_URL="http://localhost:3000"
 ```
 
-Restart the backend. The Google button appears on `/login` and `/signup` within five minutes
-(the frontend caches the setting briefly), or straight away after restarting the frontend.
+Restart the backend. The button starts working within five minutes (the frontend caches the
+setting briefly), or straight away after restarting the frontend.
 
 **Production** (Vercel → backend project → Settings → Environment Variables): add the same
 two variables, check that `APP_URL` is the live frontend URL, then redeploy the backend.
@@ -101,7 +103,7 @@ two variables, check that `APP_URL` is the live frontend URL, then redeploy the 
 | `Error 400: redirect_uri_mismatch` | The redirect URI in Google Cloud doesn't exactly match `<APP_URL>/api/v1/auth/callback/google`. Check http/https, the domain and no trailing slash. |
 | `Error 403: access_denied` while in Testing | The Google account isn't in the test-user list. Add it, or publish the app. |
 | Back on `/login` with "Google sign-in didn't complete" | The state cookie was lost: usually `APP_URL` points at the backend instead of the frontend, or the browser blocks cookies. |
-| No Google button | `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is empty, or the backend wasn't restarted. Check `GET /api/v1/auth-options`. |
+| "Google sign-in isn't configured yet" | `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` is empty, or the backend wasn't restarted. Check `GET /api/v1/auth-options` returns `google: true`. |
 | Google photo doesn't show | The frontend must allow `lh3.googleusercontent.com` (already set in `frontend/next.config.mjs`). |
 
 ## Security notes

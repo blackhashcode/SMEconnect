@@ -9,6 +9,8 @@ export const images = {
   "machinery-stall": "/images/machinery-stall.jpg",
   "papad-maker": "/images/papad-maker.jpg",
   "shoe-stall": "/images/shoe-stall.jpg",
+  "signup-business": "/images/signup-business.jpg",
+  "signup-investor": "/images/signup-investor.jpg",
   "textile-fair": "/images/textile-fair.jpg",
   logo: "/images/logo.svg",
 } as const;
