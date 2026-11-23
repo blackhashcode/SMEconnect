@@ -18,7 +18,19 @@ import { recordAudit } from "@/server/services/audit-log";
 import { signupRoleSchema } from "@/server/validators/enums";
 
 const secret = process.env.BETTER_AUTH_SECRET;
-const baseURL = process.env.BETTER_AUTH_URL;
+
+// Domains Vercel assigned to this deployment (system environment variables,
+// host names without a scheme). Trusting them means a wrong or missing
+// BETTER_AUTH_URL can't lock users out of the live site.
+const vercelOrigins = [
+  process.env.VERCEL_PROJECT_PRODUCTION_URL,
+  process.env.VERCEL_BRANCH_URL,
+  process.env.VERCEL_URL,
+]
+  .filter((host): host is string => Boolean(host?.trim()))
+  .map((host) => `https://${host.trim().replace(/^https?:\/\//, "").replace(/\/+$/, "")}`);
+
+const baseURL = process.env.BETTER_AUTH_URL?.trim() || vercelOrigins[0];
 
 if (!secret) {
   throw new Error("BETTER_AUTH_SECRET is not set");
@@ -63,7 +75,7 @@ export const auth = betterAuth({
   appName: "SME Connect",
   baseURL,
   basePath: "/api/v1/auth",
-  trustedOrigins: readTrustedOrigins(),
+  trustedOrigins: [...new Set([...readTrustedOrigins(), ...vercelOrigins])],
   secret,
   advanced: {
     // Behind Vercel (and the frontend's /api/v1 rewrite) the visitor's IP is in
