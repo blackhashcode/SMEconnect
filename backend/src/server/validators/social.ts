@@ -1,7 +1,9 @@
 import "@/server/openapi/setup";
 import { z } from "zod";
 import {
+  bdtAmountSchema,
   idSchema,
+  isoDateTimeSchema,
   longTextSchema,
   optionalTextSchema,
   ratingSchema,
@@ -9,32 +11,34 @@ import {
   urlArraySchema,
 } from "@/server/validators/common";
 import {
+  connectionStatusSchema,
   postTypeSchema,
   reportTargetTypeSchema,
 } from "@/server/validators/enums";
 
+/** Clients may only author these post types; loan/repayment posts are system-owned. */
+export const userPostTypeSchema = z.enum(["UPDATE", "MILESTONE"]);
+
 export const createPostSchema = z
   .object({
-    type: postTypeSchema,
+    type: userPostTypeSchema,
     content: longTextSchema,
     imageUrls: urlArraySchema(10).default([]),
-    loanRequestId: idSchema.optional(),
   })
   .strict();
 
 export const updatePostSchema = z
   .object({
-    content: longTextSchema,
+    content: longTextSchema.optional(),
     imageUrls: urlArraySchema(10).optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => Object.keys(value).length > 0, {
+    message: "Provide at least one field to update",
+  });
 
-export const createCommentSchema = z
-  .object({
-    postId: idSchema,
-    content: longTextSchema,
-  })
-  .strict();
+export const createCommentSchema = z.object({ content: longTextSchema }).strict();
+export const updateCommentSchema = z.object({ content: longTextSchema }).strict();
 
 export const followUserSchema = z
   .object({ followeeId: idSchema })
@@ -47,8 +51,20 @@ export const sendConnectionRequestSchema = z
   })
   .strict();
 
+/** Kept for clients that send the connection id in a body; routes use the path id. */
 export const connectionActionSchema = z
   .object({ connectionId: idSchema })
+  .strict();
+
+export const connectionListQuerySchema = z
+  .object({
+    direction: z.enum(["incoming", "outgoing", "all"]).default("all"),
+    status: connectionStatusSchema.optional(),
+  })
+  .strict();
+
+export const feedQuerySchema = z
+  .object({ type: postTypeSchema.optional() })
   .strict();
 
 export const createReviewSchema = z
@@ -67,3 +83,100 @@ export const createReportSchema = z
     reason: shortTextSchema,
   })
   .strict();
+
+// ---------------------------------------------------------------------------
+// Response shapes — explicit allow-lists, never raw Prisma rows
+// ---------------------------------------------------------------------------
+
+/** Shared public author card. Never includes email, phone, ids or documents. */
+export const postAuthorSchema = z
+  .object({
+    name: z.string(),
+    image: z.string().nullable(),
+    role: z.enum(["OWNER", "INVESTOR"]),
+    verified: z.boolean(),
+    shopName: z.string().nullable(),
+    slug: z.string().nullable(),
+    category: z.string().nullable(),
+  })
+  .strict();
+
+export const postLoanRequestSummarySchema = z
+  .object({
+    id: z.string(),
+    amountBdt: bdtAmountSchema,
+    tenureDays: z.number().int().positive(),
+    proposedRatePct: z.string(),
+  })
+  .strict();
+
+export const postRecordSchema = z
+  .object({
+    id: z.string(),
+    type: postTypeSchema,
+    content: z.string(),
+    imageUrls: z.array(z.string()),
+    author: postAuthorSchema,
+    likeCount: z.number().int().nonnegative(),
+    commentCount: z.number().int().nonnegative(),
+    likedByMe: z.boolean(),
+    loanRequest: postLoanRequestSummarySchema.nullable(),
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const commentRecordSchema = z
+  .object({
+    id: z.string(),
+    postId: z.string(),
+    content: z.string(),
+    author: postAuthorSchema,
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const likeResultSchema = z
+  .object({
+    postId: z.string(),
+    liked: z.boolean(),
+    likeCount: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const deleteResultSchema = z
+  .object({ id: z.string(), deleted: z.literal(true) })
+  .strict();
+
+export const connectionRecordSchema = z
+  .object({
+    id: z.string(),
+    user: postAuthorSchema,
+    direction: z.enum(["incoming", "outgoing"]),
+    status: connectionStatusSchema,
+    message: z.string().nullable(),
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const followRecordSchema = z
+  .object({
+    userId: z.string(),
+    user: postAuthorSchema,
+    following: z.literal(true),
+  })
+  .strict();
+
+export const followResultSchema = z
+  .object({
+    userId: z.string(),
+    following: z.boolean(),
+  })
+  .strict();
+
+export const postRecordListSchema = z.array(postRecordSchema);
+export const commentRecordListSchema = z.array(commentRecordSchema);
+export const connectionRecordListSchema = z.array(connectionRecordSchema);
+export const followRecordListSchema = z.array(followRecordSchema);

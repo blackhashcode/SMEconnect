@@ -14,6 +14,20 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/uploads",
     "/api/v1/phone-otp/request",
     "/api/v1/files/private/2f8c1a54-6b7d-4c9e-9f31-0a2b3c4d5e6f.pdf",
+    "/api/v1/feed",
+    "/api/v1/connections",
+    "/api/v1/connections/con_1/accept",
+    "/api/v1/follows",
+    "/api/v1/follows/usr_123",
+    "/api/v1/me/followers",
+    "/api/v1/me/following",
+    "/api/v1/suggestions/businesses",
+    "/api/v1/suggestions/investors",
+    "/api/v1/conversations",
+    "/api/v1/conversations/con_1",
+    "/api/v1/conversations/con_1/messages",
+    "/api/v1/conversations/con_1/read",
+    "/api/v1/messages/msg_1",
   ])("pre-filters %s", (path) => {
     expect(isProtectedApiPath(path)).toBe(true);
   });
@@ -28,6 +42,11 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/profiles/usr_123",
     "/api/v1/loan-requests",
     "/api/v1/loan-requests/lr_1",
+    "/api/v1/posts",
+    "/api/v1/posts/post_1",
+    "/api/v1/posts/post_1/comments",
+    "/api/v1/businesses",
+    "/api/v1/investors",
     "/api/v1/verifications-public",
   ])("leaves %s untouched", (path) => {
     expect(isProtectedApiPath(path)).toBe(false);

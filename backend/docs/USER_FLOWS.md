@@ -10,8 +10,8 @@ Legend:
 - 🧭 **Planned** — described in `BACKEND_PROMPT.md` for a later phase; **not implemented**.
   No planned endpoint below should be treated as callable.
 
-Scope: Phases 0–4 (setup, data model, auth/verification/storage, profiles, loan requests)
-are implemented. Phases 5–11 are not.
+Scope: Phases 0–6 (setup, data model, auth/verification/storage, profiles, loan requests,
+feed/networking/discovery, conversations/messaging) are implemented. Phases 7–11 are not.
 
 > **Frontend status:** the repository's `frontend/` app talks to a stand-in mock API at
 > `http://localhost:4000` (`frontend/src/lib/api.ts`), and no frontend code calls the backend
@@ -432,24 +432,214 @@ calculated or promised.
 
 ---
 
-## F. Planned workflows — placeholders only 🧭
+## F. Feed, networking and discovery ✅ (Phase 5)
+
+All paths below are authenticated unless marked public. Roles are taken from the Better Auth
+session; a client cannot send `authorId`, `userId`, `requesterId`, `status` or `verified`.
+
+### 1. Publishing an update and reading the feed
+
+An OWNER (or INVESTOR) creates a user-authored post. Only `UPDATE` and `MILESTONE` are accepted;
+the system owns `LOAN_REQUEST` and `REPAYMENT` posts created by Phase 4 publishing.
+
+```bash
+curl -X POST http://localhost:3000/api/v1/posts \
+  -H 'Content-Type: application/json' \
+  -d '{"type":"UPDATE","content":"Fresh cookies today!","imageUrls":[]}'
+# 201 { "data": { "id": "post_123", "type": "UPDATE", ..., "likedByMe": false, ... } }
+```
+
+`GET /api/v1/feed` returns posts from the actor, followed users, accepted connections and recent
+OPEN loan-request posts, newest first. `GET /api/v1/posts` is the public recent-post list; an
+authenticated caller additionally sees the correct `likedByMe` flag. Both use
+`?cursor=&limit=` (default 20, max 50) and accept `?type=UPDATE|MILESTONE|LOAN_REQUEST|REPAYMENT`.
+
+Every post carries a safe author card (`name`, `image`, `role`, `verified`, `shopName`, `slug`,
+`category`), `likeCount`, `commentCount` and `likedByMe` — never an email, phone or document URL.
+
+### 2. Liking and commenting
+
+```bash
+curl -X POST http://localhost:3000/api/v1/posts/post_123/like
+# 200 { "data": { "postId": "post_123", "liked": true, "likeCount": 5 } }
+
+curl -X POST http://localhost:3000/api/v1/posts/post_123/comments \
+  -H 'Content-Type: application/json' \
+  -d '{"content":"Congratulations on the new oven!"}'
+# 201 { "data": { "id": "cmt_123", "postId": "post_123", "author": {...}, ... } }
+
+curl 'http://localhost:3000/api/v1/posts/post_123/comments?limit=20'
+# 200 { "data": [ ... ], "meta": { "limit": 20, "nextCursor": null, "hasMore": false } }
+```
+
+A duplicate like returns 409. A second `DELETE /posts/{id}/like` without an existing like
+returns 404. Editing (`PATCH`) and soft-deleting (`DELETE`) a comment is allowed only for its
+author. Deleting a post soft-deletes its comments in a single transaction; system posts cannot
+be edited or deleted by users (403).
+
+### 3. Connecting with another member
+
+```bash
+curl -X POST http://localhost:3000/api/v1/connections \
+  -H 'Content-Type: application/json' \
+  -d '{"addresseeId":"usr_456","message":"I would like to know more about your shop."}'
+# 201 { "data": { "id": "con_123", "status": "PENDING", "direction": "outgoing", ... } }
+
+# The recipient sees it in the incoming list and responds:
+curl 'http://localhost:3000/api/v1/connections?direction=incoming&status=PENDING'
+curl -X POST http://localhost:3000/api/v1/connections/con_123/accept
+# 200 { "data": { "id": "con_123", "status": "ACCEPTED", ... } }
+```
+
+`PENDING → ACCEPTED | DECLINED`; only the addressee may respond (others get 403), and only a
+pending request can be responded to (409 otherwise). Self-connections and duplicate/reciprocal
+requests are rejected. The requester may `DELETE /connections/{id}` to cancel a pending request;
+either party may delete an accepted connection. DECLINED records are read-only history.
+
+### 4. Following members
+
+```bash
+curl -X POST http://localhost:3000/api/v1/follows \
+  -H 'Content-Type: application/json' -d '{"followeeId":"usr_456"}'
+# 201 { "data": { "userId": "usr_456", "user": {...}, "following": true } }
+
+curl http://localhost:3000/api/v1/me/following
+curl http://localhost:3000/api/v1/me/followers
+curl -X DELETE http://localhost:3000/api/v1/follows/usr_456
+# 200 { "data": { "userId": "usr_456", "following": false } }
+```
+
+Follows require an active, non-admin, non-self target; duplicates return 409. Followed authors'
+posts appear in the personalized feed while the follow exists.
+
+### 5. Discovering people and OPEN loan requests
+
+```bash
+# Public: approved owners only
+curl 'http://localhost:3000/api/v1/businesses?category=Food&location=Dhaka&minAmountBdt=20000&sort=trustScore&limit=20'
+
+# Public: approved investors only
+curl 'http://localhost:3000/api/v1/investors?category=Food&minLendBdt=20000&maxLendBdt=100000'
+
+# Authenticated, derived from the session profile — no query filters needed
+curl http://localhost:3000/api/v1/suggestions/businesses   # INVESTOR only
+curl http://localhost:3000/api/v1/suggestions/investors    # OWNER only
+
+# OPEN loan requests remain the Phase 4 endpoint — not duplicated here
+curl 'http://localhost:3000/api/v1/loan-requests?category=Food&sort=amountAsc'
+```
+
+Discovery returns only APPROVED, active users with public profile fields. Email, phone,
+verification documents and internal fields are never exposed. The wrong role gets 403; a user
+without a profile gets 422 on suggestions. Block/unblock is deliberately out of scope (Phase 9).
+
+### Automated tests vs. manual end-to-end workflow testing
+
+The Phase 5 behavior above is covered by **automated** Vitest service and validator tests
+(permissions, ownership, duplicate requests, connection transitions, soft deletion, pagination,
+and public/private data protection). A **real end-to-end business workflow** against a running
+Postgres instance and Mailpit was **not performed** in this phase; the commands above are the
+manual sequence the frontend/QA team can execute against `pnpm dev`.
+
+---
+
+## G. Conversations and messaging ✅ (Phase 6)
+
+All paths below are authenticated and restricted to `OWNER`/`INVESTOR` sessions. The sender is
+always the session user; there is no client-supplied sender id. Messaging is available only when
+the two users have an accepted connection or an existing offer relationship. A block in either
+direction denies access, and only conversation participants may read or modify anything in the
+thread.
+
+### 1. Starting a conversation
+
+An accepted connection (Phase 5) or an offer relationship is required first. The pair is
+canonicalized server-side, so calling this twice returns the same conversation.
+
+```bash
+curl -X POST http://localhost:3000/api/v1/conversations \
+  -H 'Content-Type: application/json' \
+  -d '{"participantId":"usr_456"}'
+# 201 { "data": { "id": "con_123", "participant": {...}, "lastMessage": null, "unreadCount": 0, ... } }
+
+curl 'http://localhost:3000/api/v1/conversations?limit=20'
+# 200 { "data": [ ... ], "meta": { "limit": 20, "nextCursor": null, "hasMore": false } }
+
+curl http://localhost:3000/api/v1/conversations/con_123
+# 200 { "data": { "id": "con_123", "participant": {...}, "lastMessage": {...}, "unreadCount": 2, ... } }
+```
+
+The participant card contains only `id`, `name`, `image`, `role`, `verified`, `shopName`, `slug`
+and `category`. No email, phone or verification document is returned. Self-conversations, admins,
+suspended users, blocked pairs and users without an accepted connection/offer are rejected.
+
+### 2. Sending and polling for messages
+
+Message bodies are sanitized plain text (HTML-like tags and control characters removed, trimmed,
+max 5000 raw characters). Sending touches the conversation's `updatedAt` in the same transaction
+as the message insert.
+
+```bash
+curl -X POST http://localhost:3000/api/v1/conversations/con_123/messages \
+  -H 'Content-Type: application/json' \
+  -d '{"body":"Hello, I would like to know more about your shop."}'
+# 201 { "data": { "id": "msg_123", "conversationId": "con_123", "senderId": "usr_789", "mine": true, ... } }
+
+curl 'http://localhost:3000/api/v1/conversations/con_123/messages?limit=20'
+# 200 { "data": [ ...oldest first... ], "meta": { "limit": 20, "nextCursor": "...", "hasMore": true } }
+
+curl 'http://localhost:3000/api/v1/conversations/con_123/messages?after=msg_123&limit=20'
+# 200 { "data": [ ...messages created after msg_123... ], "meta": { ... } }
+```
+
+`?after=<messageId>` is intended for ordinary HTTP polling: repeat the call with the last seen
+message id. It is a chronological anchor, not a user id filter. Do not combine it with `cursor`.
+No WebSockets or real-time push were implemented in this phase.
+
+### 3. Reading and soft-deleting
+
+```bash
+curl -X POST http://localhost:3000/api/v1/conversations/con_123/read
+# 200 { "data": { "conversationId": "con_123", "markedRead": 2, "unreadCount": 0 } }
+
+curl http://localhost:3000/api/v1/messages/msg_123
+# 200 { "data": { "id": "msg_123", "senderId": "usr_456", "mine": false, ... } }
+
+curl -X DELETE http://localhost:3000/api/v1/messages/msg_123
+# 200 { "data": { "id": "msg_123", "deleted": true } }
+```
+
+Mark-read only affects live incoming messages from the other participant. Delete creates a
+per-user `MessageDeletion`: the caller stops seeing that message in lists, detail and unread
+counts, while the other participant's view is unchanged. Repeating the delete is safe. No global
+`Message.deletedAt` is set by this endpoint.
+
+### Automated tests vs. manual end-to-end workflow testing
+
+The Phase 6 behavior above is covered by **automated** Vitest service, validator and route tests
+(connection/offer eligibility, block enforcement, sender identity, membership, sanitization,
+pagination/polling, unread counts and per-user deletion). A **real end-to-end business workflow**
+against a running Postgres instance and Mailpit was **not performed** in this phase; the commands
+above are the manual sequence the frontend/QA team can execute against `pnpm dev`.
+
+---
+
+## H. Planned workflows — placeholders only 🧭
 
 These are **not implemented**. Endpoint names below are taken from `BACKEND_PROMPT.md` as
 planning hints and may change when the phase is built.
 
 | Phase | Planned workflow | Status |
 |---|---|---|
-| 5 | Posts/likes/comments/follows, `GET /api/v1/feed`, business/investor search and suggestions | 🧭 Not implemented |
-| 6 | Conversations, messages, read/delete, connection-gated messaging | 🧭 Not implemented |
 | 7 | Offers, counters, accept/reject/withdraw, agreement confirmation, `OPEN → IN_DISCUSSION → FUNDED → REPAYING` | 🧭 Not implemented |
 | 8 | Repayment schedule, mark paid / investor confirm, overdue detection, completion | 🧭 Not implemented |
-| 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`) | 🧭 Not implemented |
+| 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`), block/unblock | 🧭 Not implemented |
 | 10 | Admin moderation, reports, `GET /api/v1/admin/stats` | 🧭 Not implemented |
 | 11 | Seed dataset, full API docs, hardening, "Going live" guide | 🧭 Not implemented |
 
 ---
 
-## G. Cross-cutting conventions
+## I. Cross-cutting conventions
 
 - Base path `/api/v1`. Success responses: `{ "data": ..., "meta": ... }`; errors:
   `{ "error": { "code", "message", "details?" } }`. **Exception:** `/api/v1/auth/*` keeps
