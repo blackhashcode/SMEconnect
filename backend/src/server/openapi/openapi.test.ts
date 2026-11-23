@@ -1,0 +1,264 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT } from "@/lib/pagination";
+import {
+  BETTER_AUTH_SESSION_COOKIE,
+  API_TAGS,
+  SECURITY_SCHEME_NAME,
+  isApiDocsEnabled,
+} from "@/server/openapi/config";
+import { generateOpenApiDocument } from "@/server/openapi/document";
+import { HEALTH_OPERATION_ID, HEALTH_PATH } from "@/server/openapi/routes/health";
+import {
+  errorEnvelopeSchema,
+  healthSuccessEnvelopeSchema,
+  paginationQuerySchema,
+  successEnvelope,
+} from "@/server/openapi/schemas";
+import { healthStatusSchema } from "@/server/validators/health";
+
+interface OperationLike {
+  operationId?: string;
+  tags?: string[];
+  summary?: string;
+  security?: unknown[];
+  requestBody?: unknown;
+  responses: Record<
+    string,
+    {
+      description?: string;
+      content?: Record<string, { schema?: unknown; example?: unknown }>;
+      $ref?: string;
+    }
+  >;
+}
+
+interface OpenApiLike {
+  openapi: string;
+  info: { title: string; version: string; description?: string };
+  servers?: Array<{ url: string }>;
+  tags?: Array<{ name: string }>;
+  paths?: Record<string, Record<string, OperationLike>>;
+  components?: {
+    schemas?: Record<string, unknown>;
+    parameters?: Record<string, unknown>;
+    responses?: Record<string, unknown>;
+    securitySchemes?: Record<
+      string,
+      { type?: string; in?: string; name?: string; description?: string }
+    >;
+  };
+}
+
+function generate(): OpenApiLike {
+  return generateOpenApiDocument({
+    serverUrl: "http://localhost:3000",
+  }) as unknown as OpenApiLike;
+}
+
+function collectRefs(value: unknown, refs: string[] = []): string[] {
+  if (Array.isArray(value)) {
+    for (const item of value) collectRefs(item, refs);
+    return refs;
+  }
+
+  if (value && typeof value === "object") {
+    for (const [key, child] of Object.entries(value)) {
+      if (key === "$ref" && typeof child === "string") refs.push(child);
+      else collectRefs(child, refs);
+    }
+  }
+
+  return refs;
+}
+
+function resolveRef(document: OpenApiLike, ref: string): unknown {
+  if (!ref.startsWith("#/")) return undefined;
+
+  let current: unknown = document;
+  for (const segment of ref.slice(2).split("/")) {
+    if (!current || typeof current !== "object") return undefined;
+    current = (current as Record<string, unknown>)[segment];
+  }
+
+  return current;
+}
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe("OpenAPI document generation", () => {
+  it("generates an OpenAPI 3.1 document with metadata, tags and a live server URL", () => {
+    const document = generate();
+
+    expect(document.openapi).toBe("3.1.0");
+    expect(document.info.title).toBe("SME Connect API");
+    expect(document.info.version).toBe("0.1.0");
+    expect(document.servers?.[0]?.url).toBe("http://localhost:3000");
+    expect(document.tags?.map((tag) => tag.name)).toEqual(
+      API_TAGS.map((tag) => tag.name),
+    );
+  });
+
+  it("enables docs locally and respects explicit production overrides", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("API_DOCS_ENABLED", "");
+    expect(isApiDocsEnabled()).toBe(true);
+
+    vi.stubEnv("NODE_ENV", "production");
+    expect(isApiDocsEnabled()).toBe(false);
+
+    vi.stubEnv("API_DOCS_ENABLED", "true");
+    expect(isApiDocsEnabled()).toBe(true);
+  });
+
+  it("is structurally valid: unique operations, described responses and resolvable refs", () => {
+    const document = generate();
+    const operationIds: string[] = [];
+
+    for (const path of Object.values(document.paths ?? {})) {
+      for (const operation of Object.values(path)) {
+        if (operation.operationId) operationIds.push(operation.operationId);
+        for (const response of Object.values(operation.responses)) {
+          if (response.$ref) continue;
+          expect(response.description).toBeTypeOf("string");
+        }
+      }
+    }
+
+    expect(new Set(operationIds).size).toBe(operationIds.length);
+
+    const refs = collectRefs(document);
+    expect(refs.length).toBeGreaterThan(0);
+    for (const ref of new Set(refs)) {
+      expect(resolveRef(document, ref), `Unresolved ref: ${ref}`).toBeDefined();
+    }
+  });
+
+  it("registers reusable error, pagination and security components", () => {
+    const document = generate();
+
+    expect(document.components?.schemas?.ErrorEnvelope).toBeDefined();
+    expect(document.components?.schemas?.PaginationMeta).toBeDefined();
+    expect(document.components?.schemas?.PaginationQuery).toBeDefined();
+    expect(document.components?.parameters?.IdPathParam).toBeDefined();
+    expect(document.components?.responses?.ValidationErrorResponse).toBeDefined();
+    expect(document.components?.responses?.DatabaseUnavailableResponse).toBeDefined();
+  });
+});
+
+describe("health endpoint documentation", () => {
+  it("documents only the real health route", () => {
+    const document = generate();
+
+    expect(Object.keys(document.paths ?? {})).toEqual([HEALTH_PATH]);
+    expect(document.paths?.[HEALTH_PATH]?.get).toBeDefined();
+  });
+
+  it("documents the public GET operation with 200 and 503 responses", () => {
+    const document = generate();
+    const operation = document.paths?.[HEALTH_PATH]?.get;
+
+    expect(operation?.operationId).toBe(HEALTH_OPERATION_ID);
+    expect(operation?.tags).toEqual(["Health"]);
+    expect(operation?.summary).toBe("Check API and database connectivity");
+    expect(operation?.security).toEqual([]);
+    expect(operation?.requestBody).toBeUndefined();
+    expect(Object.keys(operation?.responses ?? {})).toEqual(["200", "503"]);
+    expect(operation?.responses[503]?.$ref).toBe(
+      "#/components/responses/DatabaseUnavailableResponse",
+    );
+  });
+
+  it("uses examples that match the documented schemas", () => {
+    const document = generate();
+    const operation = document.paths?.[HEALTH_PATH]?.get;
+
+    const successExample =
+      operation?.responses[200]?.content?.["application/json"]?.example;
+    expect(healthSuccessEnvelopeSchema.safeParse(successExample).success).toBe(true);
+
+    const errorExample = (
+      document.components?.responses?.DatabaseUnavailableResponse as
+        | { content?: Record<string, { example?: unknown }> }
+        | undefined
+    )?.content?.["application/json"]?.example;
+    expect(errorEnvelopeSchema.safeParse(errorExample).success).toBe(true);
+    expect(errorExample).toMatchObject({
+      error: { code: "DATABASE_UNAVAILABLE" },
+    });
+  });
+
+  it("matches the actual health route handler file", () => {
+    const routePath = fileURLToPath(
+      new URL("../../app/api/v1/health/route.ts", import.meta.url),
+    );
+    const source = readFileSync(routePath, "utf8");
+
+    expect(source).toContain("export async function GET");
+    expect(generate().paths?.[HEALTH_PATH]?.get).toBeDefined();
+  });
+});
+
+describe("Zod-backed schema definitions", () => {
+  it("generates the standard success envelope", () => {
+    const schema = successEnvelope(healthStatusSchema);
+    const valid = {
+      data: {
+        status: "ok",
+        database: "connected",
+        timestamp: "2026-11-23T18:00:00.000Z",
+      },
+      meta: { requestId: "req_123" },
+    };
+
+    expect(schema.safeParse(valid).success).toBe(true);
+    expect(schema.safeParse({}).success).toBe(false);
+    expect(schema.safeParse({ data: { status: "down" } }).success).toBe(false);
+  });
+
+  it("generates the standard error envelope with optional details", () => {
+    expect(
+      errorEnvelopeSchema.safeParse({
+        error: { code: "VALIDATION_ERROR", message: "Invalid input" },
+      }).success,
+    ).toBe(true);
+    expect(
+      errorEnvelopeSchema.safeParse({
+        error: { code: "VALIDATION_ERROR", message: "Invalid input", details: {} },
+      }).success,
+    ).toBe(true);
+    expect(
+      errorEnvelopeSchema.safeParse({ error: { code: "VALIDATION_ERROR" } }).success,
+    ).toBe(false);
+  });
+
+  it("documents cursor pagination defaults and bounds", () => {
+    expect(paginationQuerySchema.parse({}).limit).toBe(DEFAULT_PAGE_LIMIT);
+    expect(paginationQuerySchema.safeParse({ limit: MAX_PAGE_LIMIT }).success).toBe(
+      true,
+    );
+    expect(paginationQuerySchema.safeParse({ limit: MAX_PAGE_LIMIT + 1 }).success).toBe(
+      false,
+    );
+    expect(paginationQuerySchema.safeParse({ cursor: "" }).success).toBe(false);
+  });
+});
+
+describe("Better Auth security scheme", () => {
+  it("documents the real session cookie and invents no bearer mechanism", () => {
+    const document = generate();
+
+    expect(document.components?.securitySchemes?.[SECURITY_SCHEME_NAME]).toMatchObject({
+      type: "apiKey",
+      in: "cookie",
+      name: BETTER_AUTH_SESSION_COOKIE,
+    });
+
+    const serialized = JSON.stringify(document);
+    expect(serialized).not.toContain("BearerAuth");
+    expect(serialized).not.toContain("Authorization: Bearer");
+  });
+});

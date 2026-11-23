@@ -8,3 +8,4 @@ export * from "@/server/validators/offer";
 export * from "@/server/validators/repayment";
 export * from "@/server/validators/social";
 export * from "@/server/validators/message";
+export * from "@/server/validators/health";
