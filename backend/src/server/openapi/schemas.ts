@@ -140,6 +140,15 @@ export const offerListSuccessEnvelopeSchema = successEnvelope(validators.offerRe
 export const acceptOfferSuccessEnvelopeSchema = successEnvelope(validators.acceptOfferResultSchema);
 export const agreementSuccessEnvelopeSchema = successEnvelope(validators.agreementSummarySchema);
 
+// Phase 8 — repayments and loan history
+export const repaymentSuccessEnvelopeSchema = successEnvelope(
+  validators.repaymentRecordSchema,
+);
+export const repaymentListSuccessEnvelopeSchema = successEnvelope(
+  validators.repaymentRecordListSchema,
+);
+export const loanDetailSuccessEnvelopeSchema = successEnvelope(validators.loanDetailSchema);
+
 const cursorSchema = z.string().min(1).openapi({
   param: {
     name: "cursor",
@@ -321,6 +330,13 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["OfferActionRequest", validators.offerActionSchema],
   ["MarkRepaymentPaidRequest", validators.markRepaymentPaidSchema],
   ["ConfirmRepaymentRequest", validators.confirmRepaymentSchema],
+  ["RepaymentListFilters", validators.repaymentListQuerySchema],
+  ["RepaymentRecord", validators.repaymentRecordSchema],
+  ["RepaymentRecordList", validators.repaymentRecordListSchema],
+  ["RepaymentHistoryEvent", validators.repaymentHistoryEventSchema],
+  ["RepaymentHistoryEventList", validators.repaymentHistoryEventListSchema],
+  ["LoanProgress", validators.loanProgressSchema],
+  ["LoanDetail", validators.loanDetailSchema],
 
   // Feed, networking, reputation and messaging requests
   ["CreatePostRequest", validators.createPostSchema],

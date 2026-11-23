@@ -690,7 +690,62 @@ Mailpit was **not performed** in this phase; the commands above are the manual s
 
 ---
 
-## I. Planned workflows — placeholders only 🧭
+## I. Repayment tracking ✅ (Phase 8)
+
+Both loan participants can follow the schedule created by Phase 8's agreement confirmation. The
+owner sees all installments on their loan; the investor sees only loans they funded. A `loanId`
+filter is verified against the session user before it is used.
+
+```bash
+# Owner or investor lists installments and opens the full loan history.
+curl 'http://localhost:3000/api/v1/repayments?loanId=loan_123&limit=20'
+curl http://localhost:3000/api/v1/repayments/rep_1
+curl http://localhost:3000/api/v1/loans/loan_123
+# 200 { "data": { "schedule": [...], "history": [...], "progress": {...}, ... } }
+```
+
+An installment starts `UPCOMING`. If its due date passes before payment it is reported as
+`OVERDUE` on read (and persisted by `pnpm job:overdue`), but it can still follow the normal
+transition. Only the owner marks it paid; only that loan's investor confirms receipt.
+
+```bash
+# Owner marks paid; note is plain text and proofUrl must be an internal private file URL.
+curl -X POST http://localhost:3000/api/v1/repayments/rep_1/mark-paid \
+  -H 'content-type: application/json' \
+  -d '{"note":"Paid from this week'\''s sales"}'
+# 200 { "data": { "status": "MARKED_PAID", "markedPaidAt": "...", ... } }
+
+# Investor confirms; no request body is needed.
+curl -X POST http://localhost:3000/api/v1/repayments/rep_1/confirm
+# 200 { "data": { "status": "CONFIRMED", "confirmedAt": "...", ... } }
+```
+
+Duplicate or out-of-order calls return 409. The final confirmation atomically moves the loan and
+loan request to `COMPLETED`; concurrent confirmations cannot complete or re-complete them twice.
+The counterparty receives an in-app notification inside the transaction and a best-effort email
+after commit, so SMTP failures never roll back repayment state.
+
+Two cron-friendly jobs are available:
+
+```bash
+pnpm job:overdue     # persist past-due UPCOMING rows as OVERDUE
+pnpm job:reminders   # notification + email 2 days before due and when overdue
+```
+
+Reminders are idempotent through deterministic `Notification` rows with `PENDING`/`SENT`
+delivery state stored in the database, not process memory. Repeating the job skips already-sent
+reminders; failed email delivery releases the claim so a later run can retry.
+
+### Automated tests vs. manual end-to-end workflow testing
+
+The Phase 8 behavior above is covered by **automated** Vitest service, validator, route, reminder,
+overdue, notification, concurrency and schedule-consistency tests. A **real end-to-end business
+workflow** against a running Postgres instance and Mailpit was **not performed** in this phase;
+the commands above are the manual sequence for QA.
+
+---
+
+## J. Planned workflows — placeholders only 🧭
 
 These are **not implemented**. Endpoint names below are taken from `BACKEND_PROMPT.md` as
 planning hints and may change when the phase is built.
@@ -698,14 +753,14 @@ planning hints and may change when the phase is built.
 | Phase | Planned workflow | Status |
 |---|---|---|
 | 7 | Offers, counters, accept/reject/withdraw, agreement confirmation, `OPEN → IN_DISCUSSION → FUNDED → REPAYING` | ✅ Implemented in section H |
-| 8 | Repayment schedule, mark paid / investor confirm, overdue detection, completion | 🧭 Not implemented |
+| 8 | Repayment schedule, mark paid / investor confirm, overdue detection, completion | ✅ Implemented in section I |
 | 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`), block/unblock | 🧭 Not implemented |
 | 10 | Admin moderation, reports, `GET /api/v1/admin/stats` | 🧭 Not implemented |
 | 11 | Seed dataset, full API docs, hardening, "Going live" guide | 🧭 Not implemented |
 
 ---
 
-## J. Cross-cutting conventions
+## K. Cross-cutting conventions
 
 - Base path `/api/v1`. Success responses: `{ "data": ..., "meta": ... }`; errors:
   `{ "error": { "code", "message", "details?" } }`. **Exception:** `/api/v1/auth/*` keeps

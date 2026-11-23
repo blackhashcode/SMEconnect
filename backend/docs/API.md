@@ -147,7 +147,8 @@ OTP values are never logged.
 - Public endpoints remain `/api/v1/health`, `/api/v1/auth/*`, `/api/docs`, `/docs`, public
   files, public profiles (`/api/v1/profiles/{userId}`), public loan requests
   (`/api/v1/loan-requests*`), and the root page. Owner-scoped loan request paths under
-  `/api/v1/me/loan-requests*` are protected by the same prefilter as the rest of `/me`.
+  `/api/v1/me/loan-requests*` and the Phase 8 prefixes `/api/v1/repayments*` and
+  `/api/v1/loans/*` are protected by the same prefilter as the rest of the private API.
 
 ## Phone OTP
 
@@ -677,6 +678,83 @@ curl http://localhost:3000/api/v1/agreements/agr_123
 curl -X POST http://localhost:3000/api/v1/agreements/agr_123/confirm
 ```
 
+## Repayments and loan history (Phase 8)
+
+All endpoints below require an authenticated, role-`APPROVED` `OWNER` or `INVESTOR` session and
+verify that the session user is a participant of the underlying loan. A non-participant receives
+404 so loan existence is not leaked. The session supplies all actor identity; client-supplied
+`status`, `payerId`, `confirmedById`, `amountBdt`, `dueDate` or repayment ids in bodies are
+rejected or ignored.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/api/v1/repayments` | List the session user's repayments |
+| GET | `/api/v1/repayments/{repaymentId}` | Repayment detail (either loan party only) |
+| POST | `/api/v1/repayments/{repaymentId}/mark-paid` | Owner marks an installment paid |
+| POST | `/api/v1/repayments/{repaymentId}/confirm` | Investor confirms receipt |
+| GET | `/api/v1/loans/{loanId}` | Full loan schedule, history and progress |
+
+Repayment lists use `?cursor=&limit=` (default 20, max 50) and optionally `?loanId=`. The
+`loanId` filter is verified before the query runs; unknown query keys return 400. Lists return
+`{ data, meta }`; all other Phase 8 endpoints return `{ data }`.
+
+`POST /api/v1/repayments/{repaymentId}/mark-paid` accepts only:
+
+```json
+{
+  "note": "Paid from this week's sales",
+  "proofUrl": "/api/v1/files/private/2f8c1a54-6b7d-4c9e-9f31-0a2b3c4d5e6f.pdf"
+}
+```
+
+`note` is optional plain text (HTML-like tags stripped, max 5000 characters). `proofUrl` is
+optional and must be an internal private storage URL; arbitrary HTTP(S) URLs are rejected so
+verification/payment documents are never served from untrusted hosts. `POST .../confirm` takes
+no body at all.
+
+Repayment rules:
+
+- State machine: `UPCOMING → MARKED_PAID → CONFIRMED`, plus persisted/read-derived `OVERDUE`
+  for a past-due installment that has **not** been marked paid. Marking accepts `UPCOMING` or
+  `OVERDUE`; confirming accepts only `MARKED_PAID`. Duplicate or out-of-order actions return 409.
+- Only the loan owner may mark paid; only that loan's investor may confirm. A different role on
+  the same loan returns 403; a non-participant returns 404.
+- Amounts and due dates come from the Phase 7 `Repayment` rows; they are never recomputed from
+  request bodies. All BDT values remain whole-taka integers.
+- Mark and confirm use conditional `updateMany` calls inside `prisma.$transaction`, so duplicate
+  or concurrent requests cannot overwrite timestamps or emit duplicate state changes.
+- The final confirmation atomically claims `Loan.status = ACTIVE` only when no repayment remains
+  unconfirmed, then moves `LoanRequest REPAYING → COMPLETED`. Concurrent confirmations cannot
+  complete or re-complete the loan twice.
+- Notifications are written inside the same transaction (`REPAYMENT_MARKED_PAID` to the investor,
+  `REPAYMENT_CONFIRMED` to the owner). Best-effort emails are sent **after** commit; SMTP failures
+  are logged without sensitive details and never roll back repayment state.
+- `GET /api/v1/loans/{loanId}` returns `schedule` (stored repayment rows with derived status),
+  `history` (`SCHEDULED`, `OVERDUE`, `MARKED_PAID`, `CONFIRMED` events from server timestamps) and
+  `progress` counts/totals. Party cards contain no email, phone, NID or verification documents.
+
+Overdue handling and jobs:
+
+- `pnpm job:overdue` persists past-due `UPCOMING` rows as `OVERDUE`. It never touches
+  `MARKED_PAID` or `CONFIRMED` rows, so an overdue installment can still be marked paid normally.
+- Reads derive overdue immediately, so the HTTP API is correct even if the cron job has not run.
+- `pnpm job:reminders` sends notification + email reminders two days before the due date and once
+  after overdue. Reminders target both the owner and investor.
+- Reminder idempotency is database-backed: a deterministic `Notification.id` is claimed per
+  `(kind, repayment, recipient)` and records `emailStatus: PENDING|SENT` in its `data`. Repeated
+  cron runs skip `SENT` rows. If email delivery fails, the claim is deleted so a later run retries
+  without duplicating a successful notification.
+
+```bash
+curl 'http://localhost:3000/api/v1/repayments?loanId=loan_123&limit=20'
+curl http://localhost:3000/api/v1/repayments/rep_1
+curl -X POST http://localhost:3000/api/v1/repayments/rep_1/mark-paid \
+  -H 'content-type: application/json' \
+  -d '{"note":"Paid from sales"}'
+curl -X POST http://localhost:3000/api/v1/repayments/rep_1/confirm
+curl http://localhost:3000/api/v1/loans/loan_123
+```
+
 ## System
 
 ### `GET /api/v1/health`
@@ -709,21 +787,22 @@ Reports API and PostgreSQL connectivity. No authentication required.
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–7 endpoints reuse that schema without Prisma
+[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–8 endpoints reuse that schema without Prisma
 changes: `UserVerification` stores KYC state, `Verification` stores phone OTP challenges,
 `Notification` stores verification and lending events, `BusinessProfile`, `InvestorProfile` and
 `ProductImage` store profile data, `LoanRequest` stores requests, `Post` stores both
 auto-generated and user-created feed entries, `Comment`, `Like`, `Follow` and `Connection`
 store Phase 5 interactions, `Conversation`, `Message` and `MessageDeletion` store Phase 6
 threads and per-user soft deletions, and `Offer`, `Loan`, `Agreement` and `Repayment` store the
-Phase 7 lending flow. The one-active-request rule is enforced by the existing partial unique
+Phase 7 lending flow and Phase 8 repayment tracking. The one-active-request rule is enforced by the existing partial unique
 index `loan_request_one_active_per_owner`; the one-pending-offer rule uses
 `offer_one_pending_per_investor_per_request`.
 
 ## Modules (added in later phases)
 
-Messaging (Phase 6) and offers & agreement (Phase 7) are implemented above. Repayment tracking
-(Phase 8), reviews, trust scores, notifications/dashboards and the remaining admin moderation
-endpoints (Phase 9+) are still planned. Repayment **schedule generation** is shared by Phase 7's
-agreement confirmation but there are no Phase 8 repayment endpoints yet. Block/unblock endpoints
-themselves are Phase 9 and are intentionally not implemented in Phase 6.
+Messaging (Phase 6), offers & agreement (Phase 7) and repayment tracking (Phase 8) are implemented
+above. Reviews, trust scores, notification list/unread endpoints, dashboards and the remaining
+admin moderation endpoints (Phase 9+) are still planned. Repayment schedule generation remains
+shared by Phase 7's agreement confirmation; Phase 8 adds the tracking endpoints and jobs but does
+not add a payment gateway. Block/unblock endpoints themselves are Phase 9 and are intentionally
+not implemented in Phase 6.

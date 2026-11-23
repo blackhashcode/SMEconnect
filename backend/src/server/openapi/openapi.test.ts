@@ -23,6 +23,7 @@ import { AGREEMENT_PATHS, OFFER_PATHS } from "@/server/openapi/routes/offers";
 import { SOCIAL_PATHS } from "@/server/openapi/routes/social";
 import { PHONE_OTP_PATHS } from "@/server/openapi/routes/phone-otp";
 import { PROFILE_PATHS } from "@/server/openapi/routes/profiles";
+import { LOAN_PATHS, REPAYMENT_PATHS } from "@/server/openapi/routes/repayments";
 import { STORAGE_PATHS } from "@/server/openapi/routes/storage";
 import { VERIFICATION_PATHS } from "@/server/openapi/routes/verification";
 import {
@@ -167,7 +168,7 @@ describe("OpenAPI document generation", () => {
 });
 
 describe("health endpoint documentation", () => {
-  it("documents only the implemented Phase 0–7 routes", () => {
+  it("documents only the implemented Phase 0–8 routes", () => {
     const document = generate();
 
     expect(Object.keys(document.paths ?? {})).toEqual([
@@ -183,6 +184,8 @@ describe("health endpoint documentation", () => {
       ...MESSAGING_PATHS,
       ...OFFER_PATHS,
       ...AGREEMENT_PATHS,
+      ...REPAYMENT_PATHS,
+      ...LOAN_PATHS,
     ]);
     expect(document.paths?.[HEALTH_PATH]?.get).toBeDefined();
   });
