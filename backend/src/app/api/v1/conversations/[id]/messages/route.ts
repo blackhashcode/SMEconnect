@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { requireRole } from "@/server/auth/guards";
 import type { Actor } from "@/server/auth/policy";
 import { created, handleRequest, ok } from "@/server/http/response";
-import { assertRateLimit } from "@/server/rate-limit";
+import { enforceRateLimit } from "@/server/rate-limit";
 import { listMessages, sendMessage } from "@/server/services/messaging";
 import { idSchema } from "@/server/validators/common";
 import {
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
   return handleRequest(async () => {
     const session = await requireRole("OWNER", "INVESTOR");
     const { id } = await params;
-    assertRateLimit("message:send", session.user.id);
+    await enforceRateLimit("message:send", session.user.id);
     const input = sendMessageSchema.parse(await request.json());
     return created(await sendMessage(session.user as Actor, idSchema.parse(id), input));
   });

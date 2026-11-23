@@ -54,6 +54,11 @@ export const auth = betterAuth({
   basePath: "/api/v1/auth",
   trustedOrigins: readTrustedOrigins(),
   secret,
+  advanced: {
+    // Behind Vercel (and the frontend's /api/v1 rewrite) the visitor's IP is in
+    // these headers; rate limits must key on it, not on the proxy's address.
+    ipAddress: { ipAddressHeaders: ["x-vercel-forwarded-for", "x-forwarded-for", "x-real-ip"] },
+  },
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,
@@ -75,7 +80,8 @@ export const auth = betterAuth({
   },
   rateLimit: {
     enabled: true,
-    storage: "memory",
+    // "database" shares counters across serverless instances (RATE_LIMIT_STORE=database).
+    storage: process.env.RATE_LIMIT_STORE === "database" ? "database" : "memory",
     window: 10,
     max: 100,
     customRules: {

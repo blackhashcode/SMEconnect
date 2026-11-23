@@ -103,6 +103,9 @@ export const loanRequestRecordSchema = z
 /** Mini profile embedded in public requests — no account email/phone or ids. */
 export const publicLoanRequestOwnerSchema = z
   .object({
+    // Public user id (also exposed by /businesses) so clients can open the
+    // owner's profile or start a conversation from a loan card.
+    id: z.string(),
     name: z.string(),
     image: z.string().nullable(),
     shopName: z.string(),

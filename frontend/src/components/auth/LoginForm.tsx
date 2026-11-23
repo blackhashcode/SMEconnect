@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { ArrowRight, LoaderCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { FormAlert, FormField, postJson, type FieldErrors } from "./FormField";
+import { FormAlert, FormField } from "./FormField";
+import { api, type FieldErrors } from "@/lib/client-api";
 
 type DemoAccount = { label: string; email: string };
 
@@ -30,11 +31,23 @@ export function LoginForm({
     setPending(true);
     setError(null);
     setFields({});
-    const result = await postJson("/api/auth/login", { email, password });
+    const result = await api.post("/auth/sign-in/email", { email, password });
     if (!result.ok) {
-      setError(result.error);
-      setFields(result.fields);
       setPending(false);
+      // Unverified email: send a fresh code and continue on the code page.
+      if (result.code === "EMAIL_NOT_VERIFIED") {
+        await api.post("/auth/email-otp/send-verification-otp", { email, type: "email-verification" });
+        router.push(`/verify-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent(nextPath)}`);
+        return;
+      }
+      setError(
+        result.status === 401
+          ? "That email and password don't match."
+          : result.status === 429
+            ? "Too many attempts. Please wait a minute and try again."
+            : result.error,
+      );
+      setFields(result.fields);
       return;
     }
     // Moving from the public layout to the app layout; start the new page at the top.

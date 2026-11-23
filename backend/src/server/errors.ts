@@ -116,6 +116,25 @@ export function toErrorPayload(error: unknown): MappedError {
     };
   }
 
+  // Database constraint errors are client problems (duplicates, stale ids),
+  // not server crashes. Duck-typed so this module stays free of Prisma imports.
+  const prismaCode =
+    typeof error === "object" && error !== null && "code" in error && typeof error.code === "string"
+      ? error.code
+      : null;
+  if (prismaCode === "P2002" || prismaCode === "P2003") {
+    return {
+      status: 409,
+      body: { error: { code: "CONFLICT", message: "This conflicts with existing data" } },
+    };
+  }
+  if (prismaCode === "P2025") {
+    return {
+      status: 404,
+      body: { error: { code: "NOT_FOUND", message: "Resource not found" } },
+    };
+  }
+
   // Never expose internal error messages or stacks to clients.
   return {
     status: 500,

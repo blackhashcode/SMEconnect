@@ -11,10 +11,11 @@ import { LinkButton } from "@/components/ui/Button";
 import { TimeAgo } from "@/components/ui/TimeAgo";
 import { MessageThread } from "./MessageThread";
 import { profileHref } from "@/lib/profile";
-import type { Role, ThreadView } from "@/data/types";
+import { partyPerson } from "@/lib/backend/mappers";
+import type { Conversation } from "@/data/types";
 import { cn } from "@/lib/cn";
 
-export function MessagesWorkspace({ threads: initialThreads, initialThreadId, viewerRole }: { threads: ThreadView[]; initialThreadId: string | null; viewerRole: Role }) {
+export function MessagesWorkspace({ conversations: initialThreads, initialId: initialThreadId }: { conversations: Conversation[]; initialId: string | null }) {
   const router = useRouter();
   const [threads, setThreads] = useState(initialThreads);
   const [activeId, setActiveId] = useState(initialThreadId);
@@ -25,26 +26,26 @@ export function MessagesWorkspace({ threads: initialThreads, initialThreadId, vi
   useEffect(() => setThreads(initialThreads), [initialThreads]);
 
   const active = threads.find((thread) => thread.id === activeId) ?? null;
-  const totalUnread = threads.reduce((sum, thread) => sum + thread.unread, 0);
+  const totalUnread = threads.reduce((sum, thread) => sum + thread.unreadCount, 0);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return threads;
-    return threads.filter((thread) => `${thread.other.name} ${thread.subject} ${thread.business?.name ?? ""} ${thread.lastMessage}`.toLowerCase().includes(q));
+    return threads.filter((thread) => `${thread.participant.name} ${thread.participant.shopName ?? ""} ${thread.lastMessage?.body ?? ""}`.toLowerCase().includes(q));
   }, [threads, query]);
 
   function select(id: string) {
     setActiveId(id);
     setShowListOnMobile(false);
     // Keep the URL shareable and the back button meaningful.
-    router.replace(`/messages?thread=${id}`, { scroll: false });
+    router.replace(`/messages?conversation=${id}`, { scroll: false });
   }
 
   /** Called by the thread when it changes (sent, read), so the inbox preview stays current. */
-  const onThreadChange = useCallback((update: Partial<ThreadView> & { id: string }) => {
+  const onThreadChange = useCallback((update: Partial<Conversation> & { id: string }) => {
     setThreads((current) =>
       current
         .map((thread) => (thread.id === update.id ? { ...thread, ...update } : thread))
-        .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)),
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     );
   }, []);
 
@@ -98,17 +99,17 @@ export function MessagesWorkspace({ threads: initialThreads, initialThreadId, vi
                   activeId === thread.id && "bg-surface-container-low shadow-[inset_3px_0_0] shadow-primary",
                 )}
               >
-                <Avatar src={thread.other.avatar} alt={thread.other.name} size="sm" />
+                <Avatar src={thread.participant.image ?? ""} alt={thread.participant.name} size="sm" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center justify-between gap-2">
-                    <span className={cn("truncate text-label-md text-on-surface", thread.unread > 0 ? "font-extrabold" : "font-bold")}>{thread.other.name}</span>
-                    <TimeAgo iso={thread.lastMessageAt} className="shrink-0 text-[10px] text-outline" />
+                    <span className={cn("truncate text-label-md text-on-surface", thread.unreadCount > 0 ? "font-extrabold" : "font-bold")}>{thread.participant.name}</span>
+                    <TimeAgo iso={thread.updatedAt} className="shrink-0 text-[10px] text-outline" />
                   </span>
-                  <span className="block truncate text-body-sm text-outline">{thread.business?.name ?? thread.subject}</span>
-                  <span className={cn("mt-0.5 block truncate text-body-sm", thread.unread > 0 ? "font-semibold text-on-surface" : "text-on-surface-variant")}>{thread.lastMessage || "No messages yet"}</span>
+                  <span className="block truncate text-body-sm text-outline">{thread.participant.shopName ?? (thread.participant.role === "INVESTOR" ? "Investor" : "Business owner")}</span>
+                  <span className={cn("mt-0.5 block truncate text-body-sm", thread.unreadCount > 0 ? "font-semibold text-on-surface" : "text-on-surface-variant")}>{thread.lastMessage?.body || "No messages yet"}</span>
                 </span>
-                {thread.unread > 0 && (
-                  <span className="mt-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-on-secondary">{thread.unread}</span>
+                {thread.unreadCount > 0 && (
+                  <span className="mt-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold text-on-secondary">{thread.unreadCount}</span>
                 )}
               </button>
             ))}
@@ -127,17 +128,13 @@ export function MessagesWorkspace({ threads: initialThreads, initialThreadId, vi
                   <ArrowLeft className="h-4 w-4" aria-hidden /> All conversations
                 </button>
                 <div className="flex flex-wrap items-center gap-space-sm">
-                  <Link href={profileHref(active.other, active.business?.id)} className="flex items-center gap-1 text-label-md font-semibold text-primary hover:underline">
+                  <Link href={profileHref(partyPerson(active.participant))} className="flex items-center gap-1 text-label-md font-semibold text-primary hover:underline">
                     View profile <ArrowUpRight className="h-4 w-4" aria-hidden />
                   </Link>
-                  {viewerRole === "investor" && active.loanRequestId && active.other.role === "business" && (
-                    <LinkButton href={`/loans/offers/new?request=${active.loanRequestId}`} variant="secondary" size="sm">
-                      Make an offer
-                    </LinkButton>
-                  )}
+
                 </div>
               </div>
-              <MessageThread key={active.id} thread={active} onChange={onThreadChange} />
+              <MessageThread key={active.id} conversation={active} onChange={onThreadChange} />
             </>
           ) : (
             <EmptyState icon={MessageSquareText} title="Pick a conversation" description="Choose someone from your inbox to see your messages." />

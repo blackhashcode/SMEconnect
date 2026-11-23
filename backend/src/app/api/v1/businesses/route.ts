@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { parsePagination } from "@/lib/pagination";
-import { handleRequest, ok } from "@/server/http/response";
+import { handleRequest, okPublic } from "@/server/http/response";
 import { discoverBusinesses } from "@/server/services/discovery";
 import { businessesQuerySchema } from "@/server/validators/discovery";
 
@@ -17,6 +17,6 @@ export async function GET(request: NextRequest) {
       ),
     );
     const result = await discoverBusinesses({ ...pagination, ...filters });
-    return ok(result.items, result.meta);
+    return okPublic(result.items, result.meta);
   });
 }

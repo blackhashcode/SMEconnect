@@ -28,7 +28,7 @@ export function FeedTabs({ loans, businesses, members }: { loans: LoanRequestVie
           {loans.length === 0 && (
             <EmptyState icon={FileSearch} title="No open requests right now" description="New loan requests from verified businesses will appear here." />
           )}
-          {loans.map((loan, index) => <LoanCard key={loan.id} loan={loan} featured={index === 0 && Boolean(loan.image)} />)}
+          {loans.map((loan, index) => <LoanCard key={loan.id} loan={loan} featured={index === 0 && Boolean(loan.business.image)} />)}
         </div>
       )}
       {active === "businesses" && (

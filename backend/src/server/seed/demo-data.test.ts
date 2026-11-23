@@ -8,7 +8,6 @@ import {
 } from "@/server/seed/demo-data";
 import {
   privateFileUrlSchema,
-  publicFileUrlSchema,
 } from "@/server/validators/storage";
 
 function env(values: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
@@ -348,9 +347,10 @@ describe("demo dataset", () => {
         expect(privateFileUrlSchema.parse(repayment.proofUrl)).toBe(repayment.proofUrl);
       }
     }
+    // Demo photos are static assets served by the web app (frontend/public/images).
     for (const post of dataset.posts) {
       for (const url of post.imageUrls) {
-        expect(publicFileUrlSchema.parse(url)).toBe(url);
+        expect(url).toMatch(/^\/images\/[a-z0-9-]+\.jpg$/);
       }
     }
   });

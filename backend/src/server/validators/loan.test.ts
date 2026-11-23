@@ -111,6 +111,7 @@ describe("loan request response shapes", () => {
     publishedAt: "2026-11-23T18:30:00.000Z",
     createdAt: "2026-11-23T18:00:00.000Z",
     owner: {
+      id: "usr_owner_02",
       name: "Nusrat Akter",
       image: null,
       shopName: "Nusrat's Home Kitchen",

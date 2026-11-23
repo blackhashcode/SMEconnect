@@ -18,8 +18,11 @@ cp .env.example .env          # then review the values
 pnpm install
 pnpm db:migrate               # apply committed migrations
 pnpm db:seed                  # deterministic demo data; no emails are sent
-pnpm dev                      # http://localhost:3000
+pnpm dev                      # http://localhost:4000 (the frontend runs on :3000)
 ```
+
+If port 5432 is already taken, set `POSTGRES_PORT` (e.g. `5433`) in `.env` and use the same
+port in `DATABASE_URL`.
 
 Use `pnpm db:reset` instead of `db:migrate` + `db:seed` when you want a completely fresh
 local database. Never use `prisma db push` for shared database changes.
@@ -29,17 +32,21 @@ local database. Never use `prisma db push` for shared database changes.
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string. Works with local Docker, Neon, Supabase or Railway unchanged. |
+| `DIRECT_URL` | Optional direct connection for Prisma CLI (migrations); the app always uses `DATABASE_URL`. |
+| `DATABASE_POOL_MAX` | Connections per instance (default 5). Keep small on serverless and use a pooled URL. |
+| `POSTGRES_PORT` | Host port for the Docker Postgres container (default 5432). |
 | `BETTER_AUTH_SECRET` | Secret used by Better Auth. Generate with `openssl rand -base64 32`. |
 | `BETTER_AUTH_URL` | Canonical backend origin used by auth callbacks. |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated extra frontend origins allowed by Better Auth. |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated frontend origins allowed by Better Auth (the frontend URL). |
 | `APP_URL` | Public origin used in generated docs and links. |
 | `API_DOCS_ENABLED` | Leave empty for local-only docs; set `true` or `false` explicitly in production. |
 | `NEXT_ALLOWED_DEV_ORIGINS` | Extra hostnames allowed by the Next.js dev server. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | SMTP delivery. Defaults point at local Mailpit. |
 | `EMAIL_FROM` | Sender address used by the email layer. |
 | `OTP_DELIVERY_PROVIDER` | `email` (Mailpit locally) or `console` (metadata only, never the OTP). |
-| `MESSAGE_RATE_LIMIT_MAX`, `MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | In-process message-send limiter (per authenticated user). |
-| `STORAGE_PROVIDER` | `local` today; the abstraction allows S3/Cloudinary later. |
+| `RATE_LIMIT_STORE` | `memory` (one process) or `database` (shared across instances; use in production). Applies to auth, messages and uploads. |
+| `MESSAGE_RATE_LIMIT_MAX`, `MESSAGE_RATE_LIMIT_WINDOW_SECONDS` | Message-send limit per authenticated user. |
+| `STORAGE_PROVIDER` | `local` (disk, dev only) or `database` (Postgres; works on serverless). |
 | `UPLOAD_DIR` | Local upload directory. Private files are never served publicly. |
 | `SEED_DEMO_PASSWORD` | Optional demo password override. The default is `Password123!`. |
 | `SEED_ADMIN_EMAIL` | Optional admin demo email override. |
@@ -56,6 +63,8 @@ local database. Never use `prisma db push` for shared database changes.
 | `pnpm lint` | ESLint. |
 | `pnpm typecheck` | TypeScript type check. |
 | `pnpm test` | Vitest unit and service tests. |
+| `pnpm smoke` | End-to-end journey against a running API and Mailpit (`SMOKE_BASE_URL`, `SMOKE_MAILPIT_URL`). |
+| `pnpm vercel-build` | What Vercel runs: generate client, apply migrations, build. |
 | `pnpm db:migrate` | Create and apply a development migration. |
 | `pnpm db:seed` | Re-run the deterministic demo seed (idempotent). |
 | `pnpm db:reset` | Reset the database, migrate and seed. |
@@ -76,7 +85,7 @@ set, the seed prints that it used the configured password but never prints the s
 
 | Role | Email | Notes |
 |---|---|---|
-| `OWNER` | `fahimbinimam@gmail.com` | Personalized demo account — Fahim's Home Kitchen. This is the only account using this address. |
+| `OWNER` | `owner01@smeconnect.local` | Fahim's Home Kitchen. Set `SEED_PERSONAL_EMAIL` in your local `.env` to use your own address instead. |
 | `OWNER` | `owner02@smeconnect.local` | Nusrat's Home Kitchen — food, Dhanmondi, Dhaka. |
 | `OWNER` | `owner03@smeconnect.local` | Deshi Threads — fashion, Chattogram. |
 | `INVESTOR` | `investor01@smeconnect.local` | Rafiq Ahmed — ৳20,000–৳1,00,000, food & fashion. |
@@ -88,8 +97,13 @@ fictional; no admin or investor uses the personal identity.
 ## Security notes
 
 - Passwords are hashed with Better Auth's password helper; the seed never stores plaintext.
-- Auth routes and email OTPs are rate limited by Better Auth/the OTP service. Message sends use
-  the in-process limiter above. Use a shared store before running multiple API instances.
+- Auth, OTP, message and upload endpoints are rate limited. With `RATE_LIMIT_STORE=database`
+  the counters live in Postgres, so the limits hold across serverless instances.
+- Uploads are capped at 5 MB and identified by their magic bytes (JPEG, PNG, WebP, PDF); a file
+  whose content doesn't match its declared type is rejected.
+- Session tokens are stripped from auth JSON responses; the session lives only in the httpOnly cookie.
+- Security headers (HSTS, `X-Frame-Options: DENY`, `nosniff`, Referrer and Permissions policies)
+  are set on every response. Unexpected errors return a request ID and log the details server-side only.
 - All client-authored text is sanitized by shared Zod schemas before reaching services.
 - Private files require an authenticated owner, loan counterparty or admin; the authorization
   check runs before storage is read.
@@ -98,25 +112,8 @@ fictional; no admin or investor uses the personal identity.
 
 ## Going live
 
-Change all of the following before a public deployment:
+The step-by-step free-tier deployment (Vercel + Neon, Brevo email, GitHub Actions for the
+scheduled jobs) is in [`../docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md). Never run the demo seed
+or `db:reset` against production.
 
-1. **Database:** set a managed `DATABASE_URL`, run `pnpm prisma migrate deploy`, enable TLS,
-   back up regularly, and never run the demo seed or `db:reset` against production.
-2. **Storage:** implement/select a cloud `StorageProvider`, set `STORAGE_PROVIDER` and its
-   credentials via environment variables, and keep private objects behind the same
-   authorization rules. Do not rely on the local `UPLOAD_DIR` filesystem.
-3. **Email/SMS:** replace Mailpit with a real SMTP provider (and set `EMAIL_FROM`), choose the
-   production `OTP_DELIVERY_PROVIDER`, and add a real SMS gateway for phone OTP if that flow
-   is enabled for users.
-4. **Auth:** set a strong `BETTER_AUTH_SECRET`, canonical `BETTER_AUTH_URL`,
-   `BETTER_AUTH_TRUSTED_ORIGINS` and `APP_URL`; enforce HTTPS so Better Auth cookies are
-   `Secure`. Leave `API_DOCS_ENABLED` empty or set it to `false`.
-5. **Cron jobs:** schedule `pnpm job:overdue` (for example every 15 minutes) and
-   `pnpm job:reminders` (for example daily) with retries and monitoring. The Next.js app does
-   not run these automatically.
-6. **Rate limiting:** move the message limiter to a shared store (Redis or equivalent) when
-   more than one API instance serves traffic.
-7. **Demo data:** delete or reset the seeded database before accepting real users. Never use
-   the demo password or personal demo address in production.
-
-See `docs/API.md` for the full endpoint contract and `docs/USER_FLOWS.md` for client flows.
+See `docs/API.md` for the endpoint contract and `docs/USER_FLOWS.md` for client flows.

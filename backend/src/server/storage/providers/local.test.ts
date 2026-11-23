@@ -43,7 +43,7 @@ describe("local storage provider", () => {
   });
 
   it("reads back stored content using the derived content type", async () => {
-    const data = Buffer.from("png-bytes");
+    const data = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]);
     const stored = await localStorageProvider.save({
       data,
       contentType: "image/png",
@@ -75,6 +75,16 @@ describe("local storage provider", () => {
     ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 
+  it("rejects files whose contents don't match the declared type", async () => {
+    await expect(
+      localStorageProvider.save({
+        data: Buffer.from("<html><script>alert(1)</script></html>"),
+        contentType: "image/png",
+        visibility: "public",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
   it("never resolves traversal paths", async () => {
     await expect(
       localStorageProvider.read("private", "../../etc/passwd"),
@@ -89,7 +99,7 @@ describe("local storage provider", () => {
 
     await expect(
       localStorageProvider.save({
-        data: Buffer.from("pdf"),
+        data: Buffer.from("%PDF-1.4 test"),
         contentType: "application/pdf",
         visibility: "private",
       }),

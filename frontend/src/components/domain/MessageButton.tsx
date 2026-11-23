@@ -4,20 +4,18 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { postJson } from "@/lib/client-api";
-import type { ThreadView } from "@/data/types";
+import { api } from "@/lib/client-api";
+import type { Conversation } from "@/data/types";
 
 /** Opens (or reuses) a conversation with a member and jumps to it in Messages. */
 export function MessageButton({
   participantId,
-  subject,
   children,
   variant = "outline",
   size = "md",
   className,
 }: {
   participantId: string;
-  subject?: string;
   children: ReactNode;
   variant?: "primary" | "secondary" | "outline" | "ghost" | "soft";
   size?: "sm" | "md" | "lg";
@@ -30,13 +28,13 @@ export function MessageButton({
   async function open() {
     setPending(true);
     setError(null);
-    const result = await postJson<{ thread: ThreadView }>("/api/threads", { participantId, subject });
+    const result = await api.post<Conversation>("/conversations", { participantId });
     if (!result.ok) {
       setError(result.error);
       setPending(false);
       return;
     }
-    router.push(`/messages?thread=${result.data.thread.id}`);
+    router.push(`/messages?conversation=${result.data.id}`);
   }
 
   return (

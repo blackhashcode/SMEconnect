@@ -4,9 +4,9 @@
   "private": true,
   "packageManager": "pnpm@10.34.9",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 4000",
     "build": "prisma generate && next build",
-    "start": "next start",
+    "start": "next start --port 4000",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "typecheck": "tsc --noEmit",
@@ -19,7 +19,9 @@
     "db:studio": "prisma studio",
     "job:overdue": "tsx src/jobs/overdue.ts",
     "job:reminders": "tsx src/jobs/reminders.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "smoke": "node scripts/smoke.mjs",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "9.1.0",
@@ -49,5 +51,8 @@
     "tsx": "^4.20.6",
     "typescript": "5.9.3",
     "vitest": "^5.1.1"
+  },
+  "engines": {
+    "node": ">=22.12"
   }
 }

@@ -6,11 +6,11 @@ import { Bell, MessageCircle, Search } from "lucide-react";
 import { BrandLogo } from "./BrandLogo";
 import { useScrolled } from "./useScrolled";
 import { UserMenu } from "./UserMenu";
-import { appNavFor, isActivePath, unreadCounts } from "@/data/nav";
+import { appNavFor, isActivePath } from "@/data/nav";
 import type { SessionUser } from "@/data/types";
 import { cn } from "@/lib/cn";
 
-export function AppHeader({ user, unreadMessages }: { user: SessionUser; unreadMessages: number }) {
+export function AppHeader({ user, unreadMessages, unreadNotifications }: { user: SessionUser; unreadMessages: number; unreadNotifications: number }) {
   const pathname = usePathname();
   const scrolled = useScrolled();
 
@@ -66,7 +66,7 @@ export function AppHeader({ user, unreadMessages }: { user: SessionUser; unreadM
             href="/notifications"
             label="Notifications"
             active={isActivePath(pathname, "/notifications")}
-            count={unreadCounts.notifications}
+            count={unreadNotifications}
           >
             <Bell className="h-5 w-5" aria-hidden />
           </HeaderIcon>

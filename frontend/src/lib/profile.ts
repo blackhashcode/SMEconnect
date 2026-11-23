@@ -1,9 +1,8 @@
 import type { Person } from "@/data/types";
 
-/** Where a member's public profile lives: business owners show their business page. */
-export function profileHref(person: Pick<Person, "id" | "role">, businessId?: string | null) {
-  if (person.role === "business" && businessId) return `/businesses/${businessId}`;
-  return `/investors/${person.id}`;
+/** Where a member's public profile lives. Businesses are keyed by their owner's user id. */
+export function profileHref(person: Pick<Person, "id" | "role">) {
+  return person.role === "business" ? `/businesses/${person.id}` : `/investors/${person.id}`;
 }
 
 const ORIGIN = "http://same-origin.invalid";

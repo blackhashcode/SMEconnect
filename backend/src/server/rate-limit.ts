@@ -1,6 +1,6 @@
 import { RateLimitError } from "@/server/errors";
 
-export type RateLimitAction = "message:send";
+export type RateLimitAction = "message:send" | "upload:create";
 
 export interface RateLimitRule {
   limit: number;
@@ -13,6 +13,7 @@ type RateLimitStore = Map<string, number[]>;
 
 const DEFAULT_RULES: RateLimitRules = {
   "message:send": { limit: 30, windowMs: 60_000 },
+  "upload:create": { limit: 20, windowMs: 10 * 60_000 },
 };
 
 const globalForRateLimit = globalThis as unknown as {
@@ -38,6 +39,7 @@ export function rateLimitRulesFromEnv(env: NodeJS.ProcessEnv): RateLimitRules {
           DEFAULT_RULES["message:send"].windowMs / 1000,
         ) * 1000,
     },
+    "upload:create": DEFAULT_RULES["upload:create"],
   };
 }
 
@@ -110,6 +112,45 @@ export function assertRateLimit(
   if (!result.allowed) {
     throw new RateLimitError("Too many messages. Please slow down.", {
       retryAfterSeconds: result.retryAfterSeconds,
+    });
+  }
+}
+
+/**
+ * Fixed-window counter in Postgres: one atomic upsert per request, so the limit
+ * is shared by every API instance (serverless functions don't share memory).
+ */
+async function hitSharedWindow(key: string, rule: RateLimitRule, now: Date) {
+  const windowCutoff = new Date(now.getTime() - rule.windowMs);
+  // Imported lazily so the in-memory limiter works without a database (tests, dev).
+  const { prisma } = await import("@/server/db");
+  const rows = await prisma.$queryRaw<{ count: number; windowStart: Date }[]>`
+    INSERT INTO "api_rate_limit" ("key", "windowStart", "count")
+    VALUES (${key}, ${now}, 1)
+    ON CONFLICT ("key") DO UPDATE SET
+      "count" = CASE WHEN "api_rate_limit"."windowStart" <= ${windowCutoff} THEN 1 ELSE "api_rate_limit"."count" + 1 END,
+      "windowStart" = CASE WHEN "api_rate_limit"."windowStart" <= ${windowCutoff} THEN ${now} ELSE "api_rate_limit"."windowStart" END
+    RETURNING "count", "windowStart"`;
+  return rows[0];
+}
+
+/**
+ * Route-level limiter. Uses the shared Postgres store when
+ * RATE_LIMIT_STORE=database (set this in production), otherwise the
+ * in-process limiter above, which is fine for a single dev server.
+ */
+export async function enforceRateLimit(action: RateLimitAction, key: string): Promise<void> {
+  if (process.env.RATE_LIMIT_STORE !== "database") {
+    assertRateLimit(action, key);
+    return;
+  }
+  const rule = rateLimitRulesFromEnv(process.env)[action];
+  const now = new Date();
+  const hit = await hitSharedWindow(`${action}:${key}`, rule, now);
+  if (hit && hit.count > rule.limit) {
+    const retryAfterMs = hit.windowStart.getTime() + rule.windowMs - now.getTime();
+    throw new RateLimitError("Too many requests. Please slow down.", {
+      retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)),
     });
   }
 }

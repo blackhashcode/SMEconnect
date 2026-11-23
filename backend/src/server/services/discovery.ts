@@ -57,6 +57,14 @@ function ilike(value?: string) {
   return value ? { contains: value, mode: "insensitive" as const } : undefined;
 }
 
+/**
+ * Filter on a required one-to-one relation. Prisma rejects mixing `isNot: null`
+ * with field filters in the same object, so field filters go under `is`.
+ */
+function hasProfile(filters: Record<string, unknown>[]) {
+  return filters.length > 0 ? { is: { AND: filters } } : { isNot: null };
+}
+
 /** Authenticated suggestions never surface a user in either direction of a block. */
 function excludeBlocked(actorId: string) {
   return {
@@ -179,10 +187,7 @@ export async function discoverBusinesses(
   const where: Record<string, unknown> = {
     role: "OWNER",
     status: "ACTIVE",
-    businessProfile: {
-      isNot: null,
-      ...(profileFilters.length > 0 ? { AND: profileFilters } : {}),
-    },
+    businessProfile: hasProfile(profileFilters),
     verificationsSubmitted: { some: { type: "OWNER", status: "APPROVED" } },
     ...(usesLoanFilter ? { loanRequests: { some: { AND: loanFilters } } } : {}),
   };
@@ -241,11 +246,8 @@ export async function discoverInvestors(
   const where: Record<string, unknown> = {
     role: "INVESTOR",
     status: "ACTIVE",
-    investorProfile: { isNot: null },
+    investorProfile: hasProfile(profileFilters),
     verificationsSubmitted: { some: { type: "INVESTOR", status: "APPROVED" } },
-    ...(profileFilters.length > 0
-      ? { investorProfile: { isNot: null, AND: profileFilters } }
-      : {}),
   };
 
   const profileOrder: Record<string, SortOrder> =
@@ -314,10 +316,7 @@ export async function suggestBusinesses(
   const where: Record<string, unknown> = {
     role: "OWNER",
     status: "ACTIVE",
-    businessProfile: {
-      isNot: null,
-      ...(ownerFilters.length > 0 ? { AND: ownerFilters } : {}),
-    },
+    businessProfile: hasProfile(ownerFilters),
     verificationsSubmitted: { some: { type: "OWNER", status: "APPROVED" } },
     loanRequests: { some: { AND: loanFilters } },
     ...excludeBlocked(actor.id),
@@ -366,10 +365,7 @@ export async function suggestInvestors(
   const where: Record<string, unknown> = {
     role: "INVESTOR",
     status: "ACTIVE",
-    investorProfile: {
-      isNot: null,
-      ...(filters.length > 0 ? { AND: filters } : {}),
-    },
+    investorProfile: hasProfile(filters),
     verificationsSubmitted: { some: { type: "INVESTOR", status: "APPROVED" } },
     ...excludeBlocked(actor.id),
   };

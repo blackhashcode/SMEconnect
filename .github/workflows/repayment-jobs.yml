@@ -1,0 +1,41 @@
+# Vercel doesn't run background jobs, so GitHub Actions does: mark overdue
+# instalments every 6 hours and send reminder emails once a day (free for
+# public and private repos within the Actions free minutes).
+#
+# Needs repository secrets: DATABASE_URL, SMTP_HOST, SMTP_PORT, SMTP_USER,
+# SMTP_PASSWORD, EMAIL_FROM (same values as the backend on Vercel).
+name: Repayment jobs
+
+on:
+  schedule:
+    - cron: "0 */6 * * *" # overdue check
+    - cron: "0 3 * * *" # reminders, 09:00 Bangladesh time
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      SMTP_HOST: ${{ secrets.SMTP_HOST }}
+      SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      SMTP_USER: ${{ secrets.SMTP_USER }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: backend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Mark overdue instalments
+        run: pnpm job:overdue
+      - name: Send repayment reminders
+        if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+        run: pnpm job:reminders

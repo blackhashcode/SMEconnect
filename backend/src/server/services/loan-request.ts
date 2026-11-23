@@ -144,6 +144,7 @@ function toPublicView(row: PublicLoanRequestRow, verified: boolean) {
     publishedAt: toIso(row.publishedAt),
     createdAt: row.createdAt.toISOString(),
     owner: {
+      id: owner.id,
       name: owner.name,
       image: owner.image ?? null,
       shopName: profile.shopName,

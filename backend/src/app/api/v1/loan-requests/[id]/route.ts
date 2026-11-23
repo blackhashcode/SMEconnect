@@ -1,4 +1,4 @@
-import { handleRequest, ok } from "@/server/http/response";
+import { handleRequest, okPublic } from "@/server/http/response";
 import { getPublicLoanRequest } from "@/server/services/loan-request";
 import { idSchema } from "@/server/validators/common";
 
@@ -10,6 +10,6 @@ interface RouteContext {
 export async function GET(_request: Request, { params }: RouteContext) {
   return handleRequest(async () => {
     const { id: rawId } = await params;
-    return ok(await getPublicLoanRequest(idSchema.parse(rawId)));
+    return okPublic(await getPublicLoanRequest(idSchema.parse(rawId)));
   });
 }

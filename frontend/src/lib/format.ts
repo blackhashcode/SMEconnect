@@ -24,10 +24,19 @@ export function clockTime(iso: string) {
   return Number.isNaN(date.getTime()) ? iso : date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-/** Flat-rate repayment estimate used across offer and agreement screens. */
-export function repaymentPlan(amount: number, rate: number, tenureMonths: number, frequency: string) {
-  const total = Math.round(amount * (1 + (rate / 100) * (tenureMonths / 12)));
-  const perMonth = frequency === "Weekly" ? 52 / 12 : frequency === "Bi-weekly" ? 26 / 12 : 1;
-  const cycles = Math.max(1, Math.round(tenureMonths * perMonth));
-  return { total, cycles, installment: Math.round(total / cycles) };
+/**
+ * Simple-interest estimate for previews while a member types terms. The backend
+ * computes the binding schedule when an offer is accepted.
+ */
+export function repaymentEstimate(amount: number, ratePct: number, tenureDays: number, frequency: "WEEKLY" | "BIWEEKLY" | "MONTHLY") {
+  const total = Math.round(amount * (1 + (ratePct / 100) * (tenureDays / 365)));
+  const periodDays = frequency === "WEEKLY" ? 7 : frequency === "BIWEEKLY" ? 14 : 30;
+  const instalments = Math.max(1, Math.ceil(tenureDays / periodDays));
+  return { total, instalments, instalment: Math.round(total / instalments) };
+}
+
+/** "12 Mar 2026" */
+export function shortDate(iso: string) {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }

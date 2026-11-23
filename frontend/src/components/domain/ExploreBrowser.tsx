@@ -34,7 +34,7 @@ export function ExploreBrowser({ businesses, people, loans }: { businesses: Busi
     return person.role === "investor" && matchesQuery;
   });
   const filteredLoans = loans.filter((loan) => {
-    const matchesQuery = `${loan.title} ${loan.purpose} ${loan.business.name}`.toLowerCase().includes(query.toLowerCase());
+    const matchesQuery = `${loan.title} ${loan.description} ${loan.business.name}`.toLowerCase().includes(query.toLowerCase());
     return matchesQuery && (category === "All categories" || loan.business.category === category);
   });
 

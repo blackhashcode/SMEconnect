@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Compass, LayoutDashboard, LoaderCircle, LogOut, UserRound } from "lucide-react";
+import { BadgeCheck, ChevronDown, Compass, LayoutDashboard, LoaderCircle, LogOut, UserRound } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { useLogout } from "@/components/auth/useLogout";
 import { profileHref } from "@/lib/profile";
@@ -35,7 +35,12 @@ export function UserMenu({ user }: { user: SessionUser }) {
 
   const hub = hubFor(user.role);
   const items = [
-    ...(user.role === "admin" ? [] : [{ label: "View my profile", href: profileHref(user, user.businessId), icon: UserRound }]),
+    ...(user.role === "admin"
+      ? []
+      : [
+          { label: "View my profile", href: profileHref(user), icon: UserRound },
+          { label: "Profile & verification", href: "/onboarding", icon: BadgeCheck },
+        ]),
     { label: hub.label, href: hub.href, icon: LayoutDashboard },
     { label: "Explore members", href: "/explore", icon: Compass },
   ];

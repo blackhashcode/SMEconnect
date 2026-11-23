@@ -11,11 +11,11 @@ const mocks = vi.hoisted(() => ({
   markConversationRead: vi.fn(),
   getMessage: vi.fn(),
   deleteMessage: vi.fn(),
-  assertRateLimit: vi.fn(),
+  enforceRateLimit: vi.fn(),
 }));
 
 vi.mock("@/server/auth/guards", () => ({ requireRole: mocks.requireRole }));
-vi.mock("@/server/rate-limit", () => ({ assertRateLimit: mocks.assertRateLimit }));
+vi.mock("@/server/rate-limit", () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock("@/server/services/messaging", () => ({
   createOrGetConversation: mocks.createOrGetConversation,
   listConversations: mocks.listConversations,
@@ -133,7 +133,7 @@ describe("message routes", () => {
   });
 
   it("returns 429 when the message-send rate limit is exceeded", async () => {
-    mocks.assertRateLimit.mockImplementationOnce(() => {
+    mocks.enforceRateLimit.mockImplementationOnce(() => {
       throw new RateLimitError("Too many messages", { retryAfterSeconds: 12 });
     });
 
@@ -146,7 +146,7 @@ describe("message routes", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: { code: "RATE_LIMITED", details: { retryAfterSeconds: 12 } },
     });
-    expect(mocks.assertRateLimit).toHaveBeenCalledWith("message:send", actor.id);
+    expect(mocks.enforceRateLimit).toHaveBeenCalledWith("message:send", actor.id);
     expect(mocks.sendMessage).not.toHaveBeenCalled();
   });
 

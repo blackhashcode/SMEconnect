@@ -6,7 +6,9 @@ import { useState, type FormEvent } from "react";
 import { ArrowRight, BadgeCheck, Building2, Check, Handshake, LoaderCircle, ShieldCheck, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Photo } from "@/components/ui/Photo";
-import { FormAlert, FormField, postJson, type FieldErrors } from "@/components/auth/FormField";
+import { FormAlert, FormField } from "@/components/auth/FormField";
+import { api, type FieldErrors } from "@/lib/client-api";
+import { saveOnboardingDraft } from "@/lib/onboarding-draft";
 import { images } from "@/data/images";
 import { cn } from "@/lib/cn";
 
@@ -33,13 +35,14 @@ const roles = [
 
 type RoleId = (typeof roles)[number]["id"];
 
-const categories = ["Food & Beverage", "Textile & Fashion", "Handicrafts", "Logistics", "Beauty & Personal Care", "Food & Agriculture", "Retail", "Other"];
+// Same names the backend and demo data use, so discovery filters line up.
+const categories = ["Food", "Fashion", "Handicrafts", "Cosmetics", "Gadgets", "Home Décor", "Other"];
 
 export function RoleSelector() {
   const router = useRouter();
   const [selected, setSelected] = useState<RoleId>("business");
   const role = roles.find((item) => item.id === selected) ?? roles[0];
-  const [form, setForm] = useState({ name: "", email: "", phone: "", password: "", businessName: "", category: categories[0], location: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", businessName: "", category: categories[0], location: "" });
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldErrors>({});
   const [pending, setPending] = useState(false);
@@ -51,28 +54,42 @@ export function RoleSelector() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPending(true);
-    setError(null);
-    const body = {
-      name: form.name,
-      email: form.email,
-      phone: form.phone,
-      password: form.password,
-      role: selected,
-      location: form.location,
-      ...(selected === "business" ? { businessName: form.businessName, category: form.category } : {}),
-    };
-    const result = await postJson("/api/auth/signup", body);
-    if (!result.ok) {
-      setError(result.error);
-      setFields(result.fields);
-      setPending(false);
+    const local: FieldErrors = {};
+    if (form.name.trim().length < 2) local.name = ["Enter your full name."];
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) local.email = ["Enter a valid email address."];
+    if (form.password.length < 8) local.password = ["Use at least 8 characters."];
+    if (selected === "business" && form.businessName.trim().length < 2) local.businessName = ["Enter your business name."];
+    if (Object.keys(local).length) {
+      setFields(local);
+      setError("Please fix the highlighted fields.");
       return;
     }
-    // Moving from the public layout to the app layout; start the new page at the top.
+
+    setPending(true);
+    setError(null);
+    const email = form.email.trim().toLowerCase();
+    const result = await api.post("/auth/sign-up/email", {
+      name: form.name.trim(),
+      email,
+      password: form.password,
+      signupRole: selected === "business" ? "OWNER" : "INVESTOR",
+    });
+    if (!result.ok) {
+      setPending(false);
+      setError(
+        result.code === "USER_ALREADY_EXISTS" || result.status === 422
+          ? "An account with this email already exists. Try logging in."
+          : result.status === 429
+            ? "Too many attempts. Please wait a minute and try again."
+            : result.error,
+      );
+      return;
+    }
+    // The rest of the profile is completed after email verification; keep what
+    // was typed so onboarding can pre-fill it.
+    saveOnboardingDraft({ businessName: form.businessName.trim(), category: form.category, city: form.location.trim() });
     window.scrollTo({ top: 0 });
-    router.replace("/feed");
-    router.refresh();
+    router.push(`/verify-email?email=${encodeURIComponent(email)}&next=${encodeURIComponent("/onboarding")}`);
   }
 
   return (
@@ -146,7 +163,6 @@ export function RoleSelector() {
         <div className="mt-space-lg grid gap-space-md sm:grid-cols-2">
           <FormField label="Full name" name="name" autoComplete="name" placeholder="e.g. Ayesha Rahman" value={form.name} onChange={update("name")} error={fields.name?.[0]} required />
           <FormField label="Email address" type="email" name="email" autoComplete="email" placeholder="you@example.com" value={form.email} onChange={update("email")} error={fields.email?.[0]} required />
-          <FormField label="Phone number (optional)" type="tel" name="phone" autoComplete="tel" placeholder="+880 1XXX-XXXXXX" value={form.phone} onChange={update("phone")} error={fields.phone?.[0]} />
           <FormField
             label="Password"
             type="password"
