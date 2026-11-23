@@ -6,8 +6,9 @@ interface PrivateFileDeps {
 }
 
 /**
- * A private file is readable only by the verification owner it is attached to,
- * or by an admin. Randomized URLs are not treated as authorization.
+ * A private file is readable only by an admin, the verification owner it is
+ * attached to, or a party to the loan whose repayment proof it is. Randomized
+ * URLs are not treated as authorization.
  */
 export async function canAccessPrivateFile(
   url: string,
@@ -18,13 +19,24 @@ export async function canAccessPrivateFile(
   if (actor.role !== "OWNER" && actor.role !== "INVESTOR") return false;
 
   const db = deps.db ?? prisma;
-  const record = await db.userVerification.findFirst({
-    where: {
-      userId: actor.id,
-      OR: [{ idDocumentUrl: url }, { salesProofUrls: { has: url } }],
-    },
-    select: { id: true },
-  });
+  const [verification, repaymentProof] = await Promise.all([
+    db.userVerification.findFirst({
+      where: {
+        userId: actor.id,
+        OR: [{ idDocumentUrl: url }, { salesProofUrls: { has: url } }],
+      },
+      select: { id: true },
+    }),
+    db.repayment.findFirst({
+      where: {
+        proofUrl: url,
+        loan: {
+          OR: [{ ownerId: actor.id }, { investorId: actor.id }],
+        },
+      },
+      select: { id: true },
+    }),
+  ]);
 
-  return record !== null;
+  return verification !== null || repaymentProof !== null;
 }

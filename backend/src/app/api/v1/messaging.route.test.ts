@@ -11,9 +11,11 @@ const mocks = vi.hoisted(() => ({
   markConversationRead: vi.fn(),
   getMessage: vi.fn(),
   deleteMessage: vi.fn(),
+  assertRateLimit: vi.fn(),
 }));
 
 vi.mock("@/server/auth/guards", () => ({ requireRole: mocks.requireRole }));
+vi.mock("@/server/rate-limit", () => ({ assertRateLimit: mocks.assertRateLimit }));
 vi.mock("@/server/services/messaging", () => ({
   createOrGetConversation: mocks.createOrGetConversation,
   listConversations: mocks.listConversations,
@@ -25,7 +27,7 @@ vi.mock("@/server/services/messaging", () => ({
   deleteMessage: mocks.deleteMessage,
 }));
 
-import { UnauthorizedError } from "@/server/errors";
+import { RateLimitError, UnauthorizedError } from "@/server/errors";
 import * as conversationsRoute from "./conversations/route";
 import * as conversationRoute from "./conversations/[id]/route";
 import * as messagesRoute from "./conversations/[id]/messages/route";
@@ -128,6 +130,24 @@ describe("message routes", () => {
 
     expect(response.status).toBe(201);
     expect(mocks.sendMessage).toHaveBeenCalledWith(actor, "con_1", { body: "Hello" });
+  });
+
+  it("returns 429 when the message-send rate limit is exceeded", async () => {
+    mocks.assertRateLimit.mockImplementationOnce(() => {
+      throw new RateLimitError("Too many messages", { retryAfterSeconds: 12 });
+    });
+
+    const response = await messagesRoute.POST(
+      jsonRequest("http://localhost/api/v1/conversations/con_1/messages", { body: "Hello" }),
+      { params: Promise.resolve({ id: "con_1" }) },
+    );
+
+    expect(response.status).toBe(429);
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "RATE_LIMITED", details: { retryAfterSeconds: 12 } },
+    });
+    expect(mocks.assertRateLimit).toHaveBeenCalledWith("message:send", actor.id);
+    expect(mocks.sendMessage).not.toHaveBeenCalled();
   });
 
   it("returns 400 for an empty message body", async () => {

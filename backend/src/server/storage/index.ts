@@ -2,6 +2,8 @@ import { AppError } from "@/server/errors";
 import { localStorageProvider } from "@/server/storage/providers/local";
 import type { StorageProvider } from "@/server/storage/types";
 
+export { MAX_UPLOAD_BYTES } from "@/server/storage/providers/local";
+
 /** Storage is selected by env so a cloud provider can be added without touching callers. */
 export function getStorageProvider(): StorageProvider {
   const configured = process.env.STORAGE_PROVIDER?.trim() || "local";

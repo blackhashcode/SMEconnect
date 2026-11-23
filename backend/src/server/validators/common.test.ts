@@ -4,9 +4,12 @@ import {
   bdtAmountSchema,
   emailSchema,
   isoDateTimeSchema,
+  longTextSchema,
   normalizeRatePct,
+  optionalTextSchema,
   positiveBdtSchema,
   ratePctSchema,
+  shortTextSchema,
   urlSchema,
 } from "@/server/validators/common";
 
@@ -51,6 +54,25 @@ describe("ratePctSchema", () => {
   it("normalizes decimal strings to two places", () => {
     expect(normalizeRatePct("7")).toBe("7.00");
     expect(normalizeRatePct("7.5")).toBe("7.50");
+  });
+});
+
+describe("sanitized text validators", () => {
+  it("strips markup and control characters before storing text", () => {
+    expect(shortTextSchema.parse("  <b>Nusrat's</b> Kitchen  ")).toBe("Nusrat's Kitchen");
+    expect(longTextSchema.parse("Line 1\r\n<script>alert(1)</script>\n\n\nLine 2")).toBe(
+      "Line 1\n\nLine 2",
+    );
+  });
+
+  it("rejects text that is only markup", () => {
+    expect(shortTextSchema.safeParse("<p></p>").success).toBe(false);
+    expect(longTextSchema.safeParse("<script>x</script>").success).toBe(false);
+  });
+
+  it("allows intentionally empty optional text", () => {
+    expect(optionalTextSchema.parse("<b></b>")).toBe("");
+    expect(optionalTextSchema.parse(undefined)).toBeUndefined();
   });
 });
 

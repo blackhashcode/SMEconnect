@@ -224,7 +224,7 @@ describe("OpenAPI document generation", () => {
 });
 
 describe("health endpoint documentation", () => {
-  it("documents only the implemented Phase 0–10 routes", () => {
+  it("documents only the implemented routes", () => {
     const document = generate();
 
     expect(Object.keys(document.paths ?? {})).toEqual([
@@ -246,6 +246,42 @@ describe("health endpoint documentation", () => {
       ...ADMIN_PATHS,
     ]);
     expect(document.paths?.[HEALTH_PATH]?.get).toBeDefined();
+  });
+
+  it("matches the written API contract exactly", () => {
+    const document = generate();
+    const apiMarkdown = readFileSync(
+      fileURLToPath(new URL("../../../docs/API.md", import.meta.url)),
+      "utf8",
+    );
+    const tableRows = apiMarkdown.matchAll(
+      /^\|\s*(GET|POST|PUT|PATCH|DELETE)\s*\|\s*`([^`]+)`\s*\|/gm,
+    );
+    const headings = apiMarkdown.matchAll(
+      /^#{2,4}\s+`(GET|POST|PUT|PATCH|DELETE)\s+([^`]+)`/gm,
+    );
+    const documented = new Map<string, Set<string>>();
+
+    const addOperation = (method: string, rawPath: string) => {
+      const path = rawPath.split("?")[0] ?? rawPath;
+      const methods = documented.get(path) ?? new Set<string>();
+      methods.add(method.toLowerCase());
+      documented.set(path, methods);
+    };
+    for (const [, method, rawPath] of tableRows) addOperation(method, rawPath);
+    for (const [, method, rawPath] of headings) addOperation(method, rawPath);
+    expect(documented.size).toBeGreaterThan(0);
+
+    for (const [path, methods] of documented) {
+      for (const method of methods) {
+        expect(document.paths?.[path]?.[method], `API.md: ${method} ${path}`).toBeDefined();
+      }
+    }
+    for (const [path, operations] of Object.entries(document.paths ?? {})) {
+      for (const method of Object.keys(operations)) {
+        expect(documented.get(path)?.has(method), `OpenAPI: ${method} ${path}`).toBe(true);
+      }
+    }
   });
 
   it("documents the public GET operation with 200 and 503 responses", () => {

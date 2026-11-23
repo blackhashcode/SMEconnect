@@ -178,8 +178,22 @@ function json(schema: { $ref: string }, example: unknown) {
   return { "application/json": { schema, example } };
 }
 
+const SUCCESS_ENVELOPES: Record<string, string> = {
+  AdminUserRecord: "AdminUserListSuccessEnvelope",
+  AdminUserDetail: "AdminUserDetailSuccessEnvelope",
+  AdminUserStatusResult: "AdminUserStatusResultSuccessEnvelope",
+  ReportRecord: "AdminReportListSuccessEnvelope",
+  AdminReportDetail: "AdminReportDetailSuccessEnvelope",
+  AdminModerationAction: "AdminModerationActionSuccessEnvelope",
+  AdminReportResolutionResult: "AdminReportResolutionSuccessEnvelope",
+  AdminPostRecord: "AdminPostListSuccessEnvelope",
+  AdminDeleteResult: "AdminDeleteResultSuccessEnvelope",
+  AdminCommentRecord: "AdminCommentListSuccessEnvelope",
+  AdminStats: "AdminStatsSuccessEnvelope",
+};
+
 function successContent(refName: string) {
-  return { $ref: `#/components/schemas/${refName}` };
+  return { $ref: `#/components/schemas/${SUCCESS_ENVELOPES[refName] ?? refName}` };
 }
 
 function body(refName: string) {

@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { isProtectedApiPath } from "@/server/auth/proxy-policy";
+import { config as proxyConfig } from "@/proxy";
+import { isProtectedApiPath, PROTECTED_API_PREFIXES } from "@/server/auth/proxy-policy";
+
+function matcherCoversPath(pathname: string): boolean {
+  return proxyConfig.matcher.some((pattern) => {
+    if (pattern.endsWith("/:path*")) {
+      const prefix = pattern.slice(0, -"/:path*".length);
+      return pathname === prefix || pathname.startsWith(`${prefix}/`);
+    }
+    return pathname === pattern;
+  });
+}
 
 describe("optimistic proxy prefixes", () => {
   it.each([
@@ -49,6 +60,13 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/dashboard/investor",
   ])("pre-filters %s", (path) => {
     expect(isProtectedApiPath(path)).toBe(true);
+  });
+
+  it.each(PROTECTED_API_PREFIXES)("proxy matcher includes prefix %s", (prefix) => {
+    expect(matcherCoversPath(prefix)).toBe(true);
+    if (isProtectedApiPath(`${prefix}/example`)) {
+      expect(matcherCoversPath(`${prefix}/example`)).toBe(true);
+    }
   });
 
   it.each([

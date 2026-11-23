@@ -7,11 +7,11 @@ It is written from the code, `docs/API.md` and the implementation reports in
 Legend:
 
 - ✅ **Implemented** — endpoint exists and is documented in `docs/API.md` / OpenAPI.
-- 🧭 **Planned** — described in `BACKEND_PROMPT.md` for a later phase; **not implemented**.
-  No planned endpoint below should be treated as callable.
 
-Scope: Phases 0–6 (setup, data model, auth/verification/storage, profiles, loan requests,
-feed/networking/discovery, conversations/messaging) are implemented. Phases 7–11 are not.
+Scope: Phases 0–11 are implemented: setup, data model, auth/verification/storage, profiles,
+loan requests, feed/networking/discovery, conversations/messaging, offers and agreements,
+repayment tracking, reputation/notifications/dashboards, administration, and the final demo
+seed, documentation and hardening pass. There are no planned endpoints left in this guide.
 
 > **Frontend status:** the repository's `frontend/` app talks to a stand-in mock API at
 > `http://localhost:4000` (`frontend/src/lib/api.ts`), and no frontend code calls the backend
@@ -220,7 +220,8 @@ use the phone OTP flow below.
    verification records or review notes are exposed.
 
 Public lookup is by **userId**, not by slug. Active loan requests, repayment history and
-reviews are **not** yet part of the public profile (Phases 4/9 scope).
+reviews are not part of the public profile; use the dedicated loan-request, loan-history and
+review endpoints for that data.
 
 ---
 
@@ -274,8 +275,8 @@ flowchart LR
 - A pending or approved verification cannot be resubmitted (409); a rejected one is replaced
   and reset to `PENDING`.
 
-**Actions that require APPROVED verification today:** publishing and resuming a loan request
-(Phase 4). Verification submission itself is available to unverified users. Public profiles
+**Actions that require APPROVED verification:** publishing and resuming a loan request, and
+sending an offer. Verification submission itself is available to unverified users. Public profiles
 and public loan requests show only a derived `verified: true` boolean — no documents, status
 history or review notes.
 
@@ -308,7 +309,7 @@ flowchart TD
     D -->|PATCH /{id}| D
     D -->|POST /{id}/resume| C
     D -->|POST /{id}/cancel| X
-    C -.->|first offer: Phase 7, not implemented| I[IN_DISCUSSION]
+    C -.->|first offer, section H| I[IN_DISCUSSION]
 ```
 
 In the diagram, `/{id}` and its suffixes are shorthand for `/api/v1/me/loan-requests/{id}`;
@@ -440,7 +441,7 @@ session; a client cannot send `authorId`, `userId`, `requesterId`, `status` or `
 ### 1. Publishing an update and reading the feed
 
 An OWNER (or INVESTOR) creates a user-authored post. Only `UPDATE` and `MILESTONE` are accepted;
-the system owns `LOAN_REQUEST` and `REPAYMENT` posts created by Phase 4 publishing.
+the system owns `LOAN_REQUEST` and `REPAYMENT` posts created by loan publishing and repayment events.
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/posts \
@@ -525,13 +526,13 @@ curl 'http://localhost:3000/api/v1/investors?category=Food&minLendBdt=20000&maxL
 curl http://localhost:3000/api/v1/suggestions/businesses   # INVESTOR only
 curl http://localhost:3000/api/v1/suggestions/investors    # OWNER only
 
-# OPEN loan requests remain the Phase 4 endpoint — not duplicated here
+# OPEN loan requests use their dedicated endpoint — not duplicated here
 curl 'http://localhost:3000/api/v1/loan-requests?category=Food&sort=amountAsc'
 ```
 
 Discovery returns only APPROVED, active users with public profile fields. Email, phone,
 verification documents and internal fields are never exposed. The wrong role gets 403; a user
-without a profile gets 422 on suggestions. Block/unblock is deliberately out of scope (Phase 9).
+without a profile gets 422 on suggestions. Block/unblock is available in section J.
 
 ### Automated tests vs. manual end-to-end workflow testing
 
@@ -908,18 +909,24 @@ this phase; the commands above are the manual QA sequence.
 
 ---
 
-## L. Planned workflows — placeholders only 🧭
+## L. Demo seed, final docs and hardening ✅ (Phase 11)
 
-These are **not implemented**. Endpoint names below are taken from `BACKEND_PROMPT.md` as
-planning hints and may change when the phase is built.
+There are no additional API endpoints in this phase. It completes the backend deliverables:
 
-| Phase | Planned workflow | Status |
-|---|---|---|
-| 7 | Offers, counters, accept/reject/withdraw, agreement confirmation, `OPEN → IN_DISCUSSION → FUNDED → REPAYING` | ✅ Implemented in section H |
-| 8 | Repayment schedule, mark paid / investor confirm, overdue detection, completion | ✅ Implemented in section I |
-| 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`), block/unblock | ✅ Implemented in section J |
-| 10 | Admin report resolution, profile/post moderation, `GET /api/v1/admin/stats` | ✅ Implemented in section K |
-| 11 | Seed dataset, full API docs, hardening, "Going live" guide | 🧭 Not implemented |
+- `pnpm db:seed` writes a deterministic, idempotent dataset directly to Postgres. It creates
+  one admin, ten owners and six investors, every loan-request and offer status, a counter-offer
+  chain, funded/repaying/completed loans with mixed repayment states, feed content, social
+  connections, messages, reviews, notifications and moderation records. It sends **no email**.
+- Exactly one OWNER uses `fahimbinimam@gmail.com`; all other identities are fictional. Every
+  demo account uses `Password123!` unless `SEED_DEMO_PASSWORD` is set. The seed prints the
+  demo logins and never prints a custom password.
+- `docs/API.md` is the complete endpoint contract, OpenAPI documents exactly the implemented
+  paths, and the backend `README.md` covers local setup, environment variables, demo accounts
+  and the production "Going live" checklist.
+- Hardening covers auth/OTP/message rate limits, shared plain-text sanitization, strict
+  validators, capped pagination, safe error envelopes, early upload-size rejection,
+  authorize-before-read private files, repayment-proof access for loan parties, and proxy
+  matcher/policy synchronization.
 
 ---
 
