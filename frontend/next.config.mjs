@@ -25,9 +25,10 @@ const nextConfig = {
     ];
   },
   images: {
-    // Serve modern formats; Next resizes each image to the size it's displayed at.
-    formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 60 * 60 * 24 * 30,
+    // Vercel's image optimizer (/_next/image) isn't available to a Next.js app
+    // running as a Vercel *service* (beta): it returned 404 for every photo.
+    // The photos are pre-compressed (see public/images), so serve them as-is.
+    unoptimized: true,
     // Demo photos ship in public/images; uploads are served by the backend
     // through the /api/v1 rewrite below.
     localPatterns: [{ pathname: "/images/**" }, { pathname: "/api/v1/files/public/**" }],
