@@ -119,6 +119,21 @@ export const discoveryInvestorListSuccessEnvelopeSchema = successEnvelope(
   validators.discoveryInvestorListSchema,
 );
 
+// Phase 6 — conversations and messaging
+export const conversationSuccessEnvelopeSchema = successEnvelope(
+  validators.conversationRecordSchema,
+);
+export const conversationListSuccessEnvelopeSchema = successEnvelope(
+  validators.conversationRecordListSchema,
+);
+export const messageSuccessEnvelopeSchema = successEnvelope(validators.messageRecordSchema);
+export const messageListSuccessEnvelopeSchema = successEnvelope(
+  validators.messageRecordListSchema,
+);
+export const markReadResultSuccessEnvelopeSchema = successEnvelope(
+  validators.markReadResultSchema,
+);
+
 const cursorSchema = z.string().min(1).openapi({
   param: {
     name: "cursor",
@@ -328,7 +343,13 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["CreateReportRequest", validators.createReportSchema],
   ["CreateConversationRequest", validators.createConversationSchema],
   ["SendMessageRequest", validators.sendMessageSchema],
+  ["MessageListFilters", validators.messageListQuerySchema],
   ["MessageActionRequest", validators.messageActionSchema],
+  ["MessageParticipant", validators.messageParticipantSchema],
+  ["MessageSummary", validators.messageSummarySchema],
+  ["MessageRecord", validators.messageRecordSchema],
+  ["ConversationRecord", validators.conversationRecordSchema],
+  ["MarkReadResult", validators.markReadResultSchema],
 
   // Shared responses
   ["ErrorEnvelope", errorEnvelopeSchema],

@@ -18,7 +18,8 @@ as proof that a report exists.
 | 3 — Profiles | [PHASE_03_PROFILES.md](./PHASE_03_PROFILES.md) | Implemented | part of `072f2b5` |
 | 4 — Loan requests | [PHASE_04_LOAN_REQUESTS.md](./PHASE_04_LOAN_REQUESTS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
 | 5 — Feed, networking & discovery | [PHASE_05_FEED_NETWORKING_DISCOVERY.md](./PHASE_05_FEED_NETWORKING_DISCOVERY.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 6+ — Messaging, offers, repayments, reputation, admin | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
+| 6 — Messaging | [PHASE_06_MESSAGING.md](./PHASE_06_MESSAGING.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
+| 7+ — Offers, repayments, reputation, admin | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
 
 Related reading:
 

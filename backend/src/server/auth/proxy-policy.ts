@@ -13,6 +13,8 @@ export const PROTECTED_API_PREFIXES = [
   "/api/v1/connections",
   "/api/v1/follows",
   "/api/v1/suggestions",
+  "/api/v1/conversations",
+  "/api/v1/messages",
 ] as const;
 
 export function isProtectedApiPath(pathname: string): boolean {

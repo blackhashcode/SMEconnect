@@ -524,6 +524,70 @@ duplicating it here.
 No new endpoint was added. `GET /api/v1/loan-requests` remains the canonical public listing of
 OPEN requests with category/location/amount/tenure filters, sorting and cursor pagination.
 
+## Conversations and messaging (Phase 6)
+
+All endpoints below require an authenticated `OWNER` or `INVESTOR` session. The acting user is
+always taken from the session; client-supplied `senderId`, `userId`, `role` or `conversationId`
+fields are rejected by strict validation.
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/v1/conversations` | Create or retrieve the conversation with another user |
+| GET | `/api/v1/conversations` | List the actor's conversations (cursor pagination) |
+| GET | `/api/v1/conversations/{id}` | Conversation detail with participant, latest message and unread count |
+| GET | `/api/v1/conversations/{id}/messages` | List messages oldest-first; supports `?after=<messageId>` polling |
+| POST | `/api/v1/conversations/{id}/messages` | Send a message |
+| POST | `/api/v1/conversations/{id}/read` | Mark incoming messages in the conversation as read |
+| GET | `/api/v1/messages/{messageId}` | Message detail (participants only) |
+| DELETE | `/api/v1/messages/{messageId}` | Soft-delete the message from the caller's view |
+
+A conversation may only be created when the two users have an **accepted connection** or an
+**existing offer relationship** in either direction. A `Block` row in either direction denies
+conversation and message access. Participant ids are canonicalized before lookup/creation, so a
+pair has exactly one conversation; repeating `POST /conversations` returns the same record instead
+of creating a duplicate. Only participants can read, send, mark read or delete inside a
+conversation. If the relationship is later removed, conversation and message access is denied.
+
+`GET /conversations` returns only eligible, unblocked conversations, newest activity first. Each
+entry has `id`, a safe `participant` card (`id`, `name`, `image`, `role`, `verified`, `shopName`,
+`slug`, `category`), a `lastMessage` summary (`null` when none is visible), `unreadCount` and
+timestamps. It uses `?cursor=&limit=` (default 20, max 50). `unreadCount` counts only live incoming
+messages that are unread and not deleted by the caller.
+
+`GET /conversations/{id}/messages` is oldest-first and cursor-paginated. For standard HTTP polling,
+pass `?after=<messageId>` to receive messages created strictly after that id; omit both `after` and
+`cursor` for the first page. `after` is resolved against the conversation, so an id from another
+thread returns 404. Do not combine `after` and `cursor` (400). There are **no WebSockets** and no
+real-time push in this phase.
+
+Message bodies are plain text: HTML-like tags and control characters are stripped, whitespace is
+trimmed, excessive blank lines are collapsed and the raw input is capped at 5000 characters.
+Empty/sanitized-away bodies return 400. The sender is always the session user and the recipient is
+derived from the conversation's other participant.
+
+`POST /conversations/{id}/read` sets `readAt` on every live, unread message sent by the other
+participant and returns `{ conversationId, markedRead, unreadCount }`. Messages the caller has
+deleted are ignored. `DELETE /messages/{messageId}` creates a `MessageDeletion` for the caller:
+the message disappears only from that user's reads/counts and the operation is idempotent. It does
+not set the global `Message.deletedAt`, so the other participant still sees the message. Globally
+deleted messages (moderation) are omitted for everyone.
+
+Request examples:
+
+```json
+{ "participantId": "usr_456" }
+```
+
+```json
+{ "body": "Hello, I would like to know more about your shop." }
+```
+
+```bash
+curl 'http://localhost:3000/api/v1/conversations/con_123/messages?after=msg_123&limit=20'
+curl -X POST http://localhost:3000/api/v1/conversations/con_123/read
+curl -X DELETE http://localhost:3000/api/v1/messages/msg_123
+```
+
 ## System
 
 ### `GET /api/v1/health`
@@ -556,17 +620,18 @@ Reports API and PostgreSQL connectivity. No authentication required.
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–5 endpoints reuse that schema without Prisma
+[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–6 endpoints reuse that schema without Prisma
 changes: `UserVerification` stores KYC state, `Verification` stores phone OTP challenges,
 `Notification` stores verification results, `BusinessProfile`, `InvestorProfile` and
 `ProductImage` store profile data, `LoanRequest` stores requests, `Post` stores both
-auto-generated and user-created feed entries, and `Comment`, `Like`, `Follow` and `Connection`
-store Phase 5 interactions. The one-active-request rule is enforced by the existing partial
-unique index `loan_request_one_active_per_owner`.
+auto-generated and user-created feed entries, `Comment`, `Like`, `Follow` and `Connection`
+store Phase 5 interactions, and `Conversation`, `Message` and `MessageDeletion` store Phase 6
+threads and per-user soft deletions. The one-active-request rule is enforced by the existing
+partial unique index `loan_request_one_active_per_owner`.
 
 ## Modules (added in later phases)
 
-Messaging (Phase 6, includes block/unblock enforcement), offers & agreement (Phase 7), loans and
-repayments (Phase 8), reviews/dashboards/analytics and the remaining admin moderation endpoints
-(Phase 9+). Block/unblock endpoints themselves are Phase 9 and are intentionally not implemented
-in Phase 5.
+Messaging is implemented in Phase 6 above, including enforcement of any existing `Block` rows.
+Offers & agreement (Phase 7), loans and repayments (Phase 8), reviews/dashboards/analytics and the
+remaining admin moderation endpoints (Phase 9+) are still planned. Block/unblock endpoints
+themselves are Phase 9 and are intentionally not implemented in Phase 6.

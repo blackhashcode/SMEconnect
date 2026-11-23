@@ -23,6 +23,11 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/me/following",
     "/api/v1/suggestions/businesses",
     "/api/v1/suggestions/investors",
+    "/api/v1/conversations",
+    "/api/v1/conversations/con_1",
+    "/api/v1/conversations/con_1/messages",
+    "/api/v1/conversations/con_1/read",
+    "/api/v1/messages/msg_1",
   ])("pre-filters %s", (path) => {
     expect(isProtectedApiPath(path)).toBe(true);
   });

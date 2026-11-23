@@ -3,6 +3,7 @@ import { registerAuthRoutes } from "@/server/openapi/routes/auth";
 import { registerDiscoveryRoutes } from "@/server/openapi/routes/discovery";
 import { registerHealthRoute } from "@/server/openapi/routes/health";
 import { registerLoanRequestRoutes } from "@/server/openapi/routes/loan-requests";
+import { registerMessagingRoutes } from "@/server/openapi/routes/messaging";
 import { registerPhoneOtpRoutes } from "@/server/openapi/routes/phone-otp";
 import { registerProfileRoutes } from "@/server/openapi/routes/profiles";
 import { registerSocialRoutes } from "@/server/openapi/routes/social";
@@ -23,5 +24,6 @@ export function registerApiRoutes() {
   registerVerificationRoutes();
   registerSocialRoutes();
   registerDiscoveryRoutes();
+  registerMessagingRoutes();
   registered = true;
 }

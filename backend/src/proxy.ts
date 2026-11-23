@@ -43,5 +43,8 @@ export const config = {
     "/api/v1/follows",
     "/api/v1/follows/:path*",
     "/api/v1/suggestions/:path*",
+    "/api/v1/conversations",
+    "/api/v1/conversations/:path*",
+    "/api/v1/messages/:path*",
   ],
 };

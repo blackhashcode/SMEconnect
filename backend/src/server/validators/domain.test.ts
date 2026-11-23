@@ -144,11 +144,6 @@ describe("reputation, moderation and messaging schemas", () => {
   });
 
   it("rejects empty message bodies", () => {
-    expect(
-      sendMessageSchema.safeParse({
-        conversationId: "conv-1",
-        body: "   ",
-      }).success,
-    ).toBe(false);
+    expect(sendMessageSchema.safeParse({ body: "   " }).success).toBe(false);
   });
 });
