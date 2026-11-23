@@ -18,8 +18,10 @@ export function PublicHeader() {
   const [signedIn, setSignedIn] = useState(false);
   useEffect(() => {
     let active = true;
-    fetch("/api/auth/me", { cache: "no-store" })
-      .then((res) => active && setSignedIn(res.ok))
+    // Better Auth answers 200 with `null` when nobody is signed in.
+    fetch("/api/v1/auth/get-session", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((session) => active && setSignedIn(Boolean(session?.user)))
       .catch(() => {});
     return () => {
       active = false;

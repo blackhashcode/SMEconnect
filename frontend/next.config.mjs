@@ -2,7 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
-const apiUrl = process.env.API_URL ?? "http://localhost:4000";
+// The backend API (../backend). In production set BACKEND_URL to its deployed URL.
+const backendUrl = (process.env.BACKEND_URL ?? "http://localhost:4000").replace(/\/+$/, "");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -25,15 +26,19 @@ const nextConfig = {
     // Serve modern formats; Next resizes each image to the size it's displayed at.
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,
+    // Demo photos ship in public/images; uploads are served by the backend
+    // through the /api/v1 rewrite below.
+    localPatterns: [{ pathname: "/images/**" }, { pathname: "/api/v1/files/public/**" }],
   },
   experimental: {
     // Tree-shake icon imports so only the icons actually used are bundled.
     optimizePackageImports: ["lucide-react"],
   },
-  // The browser calls /api/* on this origin; Next forwards it to the Express API
-  // in mock-api/. Same origin means the session cookie just works, no CORS needed.
+  // The browser calls /api/v1/* on this origin and Next forwards it to the
+  // backend. Same origin means the session cookie is first-party: no CORS, and
+  // SameSite=Lax cookies keep working.
   async rewrites() {
-    return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }];
+    return [{ source: "/api/v1/:path*", destination: `${backendUrl}/api/v1/:path*` }];
   },
   // Pin the workspace root so a stray lockfile in the user home cannot confuse
   // Turbopack's workspace-root detection.

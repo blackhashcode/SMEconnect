@@ -1,39 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Building2, Handshake, MapPin, TrendingUp } from "lucide-react";
+import { ArrowUpRight, MapPin, ShieldCheck, TrendingUp } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge, VerifiedBadge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { Photo } from "@/components/ui/Photo";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { TimeAgo } from "@/components/ui/TimeAgo";
 import { useSessionUser } from "@/components/auth/SessionProvider";
 import { formatBDT } from "@/lib/format";
-import { isActiveLoan } from "@/lib/loans";
+import { FREQUENCY_LABEL, LOAN_REQUEST_STATUS, isAcceptingOffers, tenureLabel } from "@/lib/loans";
 import type { LoanRequestView } from "@/data/types";
 import { cn } from "@/lib/cn";
-
-const statusBadge = {
-  open: { tone: "primary", label: "Open" },
-  offers_received: { tone: "warning", label: "Offers received" },
-  agreed: { tone: "success", label: "Agreed" },
-  closed: { tone: "neutral", label: "Closed" },
-} as const;
 
 export function LoanCard({ loan, featured = false, className }: { loan: LoanRequestView; featured?: boolean; className?: string }) {
   const viewer = useSessionUser();
   const { business, owner } = loan;
   const isOwner = viewer?.id === owner.id;
-  const canOffer = viewer?.role === "investor" && !isOwner && isActiveLoan(loan);
-  const badge = statusBadge[loan.status];
+  const canOffer = viewer?.role === "investor" && !isOwner && isAcceptingOffers(loan.status);
+  const badge = LOAN_REQUEST_STATUS[loan.status];
 
   return (
     <article className={cn("group overflow-hidden rounded-2xl bg-surface-container-lowest card-shadow card-interactive", className)}>
-      {featured && (
-        <Photo src={loan.image} alt="" className="h-52 sm:h-60" sizes="(min-width: 1024px) 640px, 100vw" zoomOnHover>
+      {featured && business.image && (
+        <Photo src={business.image} alt="" className="h-52 sm:h-60" sizes="(min-width: 1024px) 640px, 100vw" zoomOnHover>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-inverse-surface/70 to-transparent p-space-md">
-            <Badge tone="secondary" className="bg-white/90 text-secondary">{isActiveLoan(loan) ? "Open request" : badge.label}</Badge>
+            <Badge tone="secondary" className="bg-white/90 text-secondary">Open request</Badge>
           </div>
         </Photo>
       )}
@@ -71,29 +63,25 @@ export function LoanCard({ loan, featured = false, className }: { loan: LoanRequ
           </div>
           <div>
             <p className="text-label-sm text-outline">Tenure</p>
-            <p className="mt-0.5 text-label-md font-bold text-on-surface">{loan.tenureMonths} mo</p>
+            <p className="mt-0.5 text-label-md font-bold text-on-surface">{tenureLabel(loan.tenureDays)}</p>
           </div>
           <div>
             <p className="text-label-sm text-outline">Rate</p>
-            <p className="mt-0.5 text-label-md font-bold text-success">{loan.rate}% p.a.</p>
+            <p className="mt-0.5 text-label-md font-bold text-success">{loan.rate === null ? "Open" : `${loan.rate}% p.a.`}</p>
           </div>
-        </div>
-
-        <div className="mt-space-md">
-          <ProgressBar value={loan.progress} label="Request progress" />
         </div>
 
         <div className="mt-space-md flex flex-wrap items-center justify-between gap-space-sm border-t border-surface-container-high pt-space-md">
           <div className="flex items-center gap-space-md text-body-sm text-on-surface-variant">
-            <span className="flex items-center gap-1 whitespace-nowrap"><Handshake className="h-4 w-4 text-primary" aria-hidden /> {loan.offersCount} {loan.offersCount === 1 ? "offer" : "offers"}</span>
-            <span className="flex items-center gap-1 whitespace-nowrap"><Building2 className="h-4 w-4 text-primary" aria-hidden /> {loan.connectionsCount} connections</span>
+            <span className="flex items-center gap-1 whitespace-nowrap"><TrendingUp className="h-4 w-4 text-primary" aria-hidden /> {FREQUENCY_LABEL[loan.frequency]}</span>
+            <span className="flex items-center gap-1 whitespace-nowrap"><ShieldCheck className="h-4 w-4 text-success" aria-hidden /> Trust {business.trustScore}</span>
           </div>
           <div className="flex items-center gap-space-sm">
             <Link href={`/businesses/${business.id}`} className="flex items-center gap-1 whitespace-nowrap text-label-md font-semibold text-primary hover:underline">
               View profile <ArrowUpRight className="h-4 w-4" aria-hidden />
             </Link>
             {canOffer && (
-              <LinkButton href={`/loans/offers/new?request=${loan.id}`} size="sm">
+              <LinkButton href={`/loan-requests/${loan.id}/offer`} size="sm">
                 Make an offer
               </LinkButton>
             )}
@@ -112,7 +100,7 @@ export function LoanCard({ loan, featured = false, className }: { loan: LoanRequ
 export function LoanCardCompact({ loan }: { loan: LoanRequestView }) {
   return (
     <Link
-      href={`/loans/offers/new?request=${loan.id}`}
+      href={`/loan-requests/${loan.id}/offer`}
       className="flex items-center gap-space-md rounded-xl p-space-sm transition-colors hover:bg-surface-container-low"
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary-fixed text-secondary">
@@ -120,7 +108,7 @@ export function LoanCardCompact({ loan }: { loan: LoanRequestView }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-label-md font-semibold text-on-surface">{loan.business.name}</span>
-        <span className="block truncate text-body-sm text-outline">{loan.purpose}</span>
+        <span className="block truncate text-body-sm text-outline">{loan.title}</span>
       </span>
       <span className="shrink-0 text-label-md font-bold text-primary">{formatBDT(loan.amount)}</span>
     </Link>

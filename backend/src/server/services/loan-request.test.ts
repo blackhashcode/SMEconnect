@@ -628,11 +628,13 @@ describe("pagination and public visibility", () => {
       "secret-proof",
       "secret@example.com",
       "+8801712345678",
-      owner.id,
       "usr_other",
     ]) {
       expect(serialized).not.toContain(forbidden);
     }
+    // The owner's public user id (already listed by /businesses) is exposed so
+    // clients can link to the profile; nothing private comes with it.
+    expect(detail.owner.id).toBe(owner.id);
   });
 
   it("returns 404 for non-OPEN public requests and unverified owners get verified:false", async () => {

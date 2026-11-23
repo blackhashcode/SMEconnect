@@ -71,7 +71,10 @@ const messageSelect = {
   updatedAt: true,
 } as const;
 
-/** Conversations are unique per unordered pair, so ids are stored lexicographically. */
+/**
+ * Conversations are unique per unordered pair, so ids are stored in code-unit
+ * order. The database check uses COLLATE "C" to agree with this comparison.
+ */
 function canonicalPair(a: string, b: string): [string, string] {
   return a < b ? [a, b] : [b, a];
 }

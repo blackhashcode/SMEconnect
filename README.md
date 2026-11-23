@@ -8,28 +8,57 @@ negotiate terms and track repayments. It is a lending network, not crowdfunding.
 
 ```
 SMEconnect/
-├── frontend/      Next.js web app (UI, design references, image scripts)
-│   └── mock-api/  Stand-in Express + SQLite API the UI runs against for now
-├── backend/       Production backend (Next.js API routes + Prisma); see backend/AGENTS.md
-└── docs/
-    └── API.md     API contract between the front end and the backend
+├── frontend/          Next.js web app (UI only; talks to the backend through /api/v1)
+├── backend/           Next.js API (/api/v1), Better Auth, Prisma + PostgreSQL
+│   └── docs/          API.md, DATABASE.md, USER_FLOWS.md
+├── docs/
+│   ├── QA_REPORT.md   Review findings, fixes and test results
+│   └── DEPLOYMENT.md  Free-tier hosting walkthrough (Vercel + Neon)
+└── .github/workflows/ CI and the scheduled repayment jobs
 ```
 
-## Quick start (front end)
+## How it fits together
 
-Requires Node.js 20.9 or later.
+```
+Browser ──► frontend (:3000) ──/api/v1/* rewrite──► backend (:4000) ──► PostgreSQL
+                │
+                └─ Server Components call the backend directly, forwarding the session cookie
+```
+
+The browser only ever talks to the frontend. Next.js forwards `/api/v1/*` to
+`BACKEND_URL`, so the auth cookie is first-party and no CORS setup is needed.
+
+## Quick start
+
+Requires Node.js 22.12+, pnpm 10+ (`npm i -g pnpm`) and Docker.
 
 ```bash
+# 1. Backend: database, migrations, demo data, API on http://localhost:4000
+cd backend
+cp .env.example .env            # set BETTER_AUTH_SECRET; adjust ports if 5432 is taken
+docker compose up -d            # Postgres + Mailpit (emails at http://localhost:8025)
+pnpm install
+pnpm db:migrate
+pnpm db:seed
+pnpm dev
+
+# 2. Frontend, in a second terminal: http://localhost:3000
 cd frontend
-npm ci        # installs the web app and the mock API
-npm run dev   # web on http://localhost:3000, mock API on http://localhost:4000
+npm ci
+npm run dev
 ```
 
-See [frontend/README.md](frontend/README.md) for demo accounts, scripts and structure, and
-[backend/](backend/) for the backend setup.
+Sign in at http://localhost:3000/login with **Try a demo account**, or use any seeded
+account (for example `investor01@smeconnect.local`, password `Password123!`). Sign-up
+codes arrive in Mailpit.
 
-## Front end and backend
+## Checks
 
-The front end talks only to `/api/*`, which Next.js forwards to `API_URL`
-(default `http://localhost:4000`, the mock API). Once the backend implements the contract
-in [docs/API.md](docs/API.md), point `API_URL` at it and retire `frontend/mock-api/`.
+| Where | Command | What it runs |
+| --- | --- | --- |
+| backend | `pnpm typecheck && pnpm lint && pnpm test` | Types, ESLint, 578 unit/service tests |
+| backend | `pnpm smoke` | End-to-end journey against a running API + Mailpit (67 checks) |
+| frontend | `npm run typecheck && npm run build` | Types and production build |
+
+CI runs the same checks on every push. See [docs/QA_REPORT.md](docs/QA_REPORT.md) for the
+latest results and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) to put it online.

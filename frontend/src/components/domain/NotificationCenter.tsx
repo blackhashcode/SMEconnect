@@ -1,81 +1,64 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, CheckCheck, Handshake, MessageCircle, Settings2, UserPlus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Bell, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs } from "@/components/ui/Tabs";
-import { NotificationItem } from "./NotificationItem";
-import { notifications as allNotifications } from "@/data/notifications";
-import type { AppNotification, NotificationKind } from "@/data/types";
+import { NotificationItem, notificationGroup, type NotificationGroup } from "./NotificationItem";
+import { api } from "@/lib/client-api";
+import type { AppNotification } from "@/data/types";
 
-const tabs = [
-  { id: "all", label: "All activity", count: allNotifications.length },
-  { id: "offer", label: "Loan offers" },
-  { id: "message", label: "Messages" },
-  { id: "connection", label: "Connections" },
-  { id: "system", label: "System" },
-] as const;
+type TabId = "all" | NotificationGroup;
 
-type TabId = (typeof tabs)[number]["id"];
-
-export function NotificationCenter() {
+export function NotificationCenter({ notifications: initial }: { notifications: AppNotification[] }) {
+  const router = useRouter();
   const [active, setActive] = useState<TabId>("all");
-  const [notifications, setNotifications] = useState<AppNotification[]>(allNotifications);
+  const [notifications, setNotifications] = useState(initial);
 
-  const filtered = active === "all" ? notifications : notifications.filter((item) => item.kind === active);
-  const unread = notifications.filter((item) => item.unread).length;
+  const unread = notifications.filter((item) => item.readAt === null).length;
+  const filtered = active === "all" ? notifications : notifications.filter((item) => notificationGroup(item.type) === active);
+  const tabs: { id: TabId; label: string; count?: number }[] = [
+    { id: "all", label: "All activity", count: unread || undefined },
+    { id: "offer", label: "Offers" },
+    { id: "repayment", label: "Repayments" },
+    { id: "message", label: "Messages" },
+    { id: "account", label: "Account" },
+  ];
+
+  const stamp = new Date().toISOString();
+  async function markAllRead() {
+    setNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? stamp })));
+    await api.patch("/notifications/read-all", {});
+    router.refresh();
+  }
+
+  async function markRead(id: string) {
+    setNotifications((items) => items.map((item) => (item.id === id ? { ...item, readAt: item.readAt ?? stamp } : item)));
+    await api.patch(`/notifications/${id}/read`, {});
+  }
 
   return (
-    <div className="grid gap-space-lg lg:grid-cols-[minmax(0,1fr)_300px]">
-      <div>
-        <div className="flex flex-wrap items-center justify-between gap-space-sm">
-          <Tabs items={[...tabs]} active={active} onChange={setActive} className="max-w-full flex-1" />
-          <Button variant="soft" size="sm" onClick={() => setNotifications((items) => items.map((item) => ({ ...item, unread: false })))}>
-            <CheckCheck className="h-4 w-4" aria-hidden /> Mark all read
-          </Button>
-        </div>
-
-        <div className="mt-space-md space-y-space-sm">
-          {filtered.length ? (
-            filtered.map((notification) => <NotificationItem key={notification.id} notification={notification} />)
-          ) : (
-            <div className="rounded-2xl bg-surface-container-lowest p-space-xl text-center text-body-md text-on-surface-variant card-shadow">
-              Nothing here yet.
-            </div>
-          )}
-        </div>
+    <div>
+      <div className="mb-space-md">
+        <p className="text-label-sm font-bold uppercase tracking-wider text-primary">Notifications</p>
+        <h1 className="mt-1 text-headline-lg text-on-surface">Your activity</h1>
+        <p className="mt-1 text-body-md text-on-surface-variant">{unread ? `${unread} unread updates on offers, repayments and messages.` : "You're all caught up."}</p>
       </div>
-
-      <aside className="space-y-space-md">
-        <div className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
-          <p className="text-label-sm font-bold uppercase tracking-wider text-outline">Your activity</p>
-          <p className="mt-space-sm text-numeric-stat text-on-surface">{unread} unread</p>
-          <div className="mt-space-md space-y-space-sm">
-            {[
-              { icon: Handshake, label: "Loan offers", value: notifications.filter((n) => n.kind === "offer").length, tone: "bg-primary-fixed text-primary" },
-              { icon: MessageCircle, label: "Messages", value: notifications.filter((n) => n.kind === "message").length, tone: "bg-success-container text-success" },
-              { icon: UserPlus, label: "Connections", value: notifications.filter((n) => n.kind === "connection").length, tone: "bg-secondary-fixed text-secondary" },
-              { icon: Bell, label: "System", value: notifications.filter((n) => n.kind === "system").length, tone: "bg-tertiary-fixed text-tertiary" },
-            ].map((row) => (
-              <div key={row.label} className="flex items-center gap-space-sm">
-                <span className={`flex h-9 w-9 items-center justify-center rounded-full ${row.tone}`}><row.icon className="h-4 w-4" aria-hidden /></span>
-                <span className="flex-1 text-body-sm text-on-surface-variant">{row.label}</span>
-                <span className="text-label-md font-bold text-on-surface">{row.value}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl bg-primary-fixed p-space-lg text-on-primary-fixed">
-          <Settings2 className="h-6 w-6" aria-hidden />
-          <p className="mt-space-sm text-label-md font-bold">Notification settings</p>
-          <p className="mt-1 text-body-sm text-on-primary-fixed/80">Choose which updates reach you by email, SMS or in-app.</p>
-          <Button variant="outline" size="sm" className="mt-space-md w-full border-primary/20 bg-white/60">Manage channels</Button>
-        </div>
-      </aside>
+      <div className="flex flex-wrap items-center justify-between gap-space-sm">
+        <Tabs items={tabs} active={active} onChange={setActive} className="max-w-full flex-1" />
+        <Button variant="soft" size="sm" onClick={markAllRead} disabled={unread === 0}>
+          <CheckCheck className="h-4 w-4" aria-hidden /> Mark all read
+        </Button>
+      </div>
+      <div className="stagger mt-space-md space-y-space-sm">
+        {filtered.length ? (
+          filtered.map((notification) => <NotificationItem key={notification.id} notification={notification} onOpen={markRead} />)
+        ) : (
+          <EmptyState icon={Bell} title="Nothing here yet" description="Updates about your offers, repayments and messages will show up here." />
+        )}
+      </div>
     </div>
   );
-}
-
-export function notificationKindLabel(kind: NotificationKind) {
-  return kind.charAt(0).toUpperCase() + kind.slice(1);
 }

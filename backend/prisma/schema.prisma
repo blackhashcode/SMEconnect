@@ -180,6 +180,8 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
+  // Session lists/revocation look sessions up by user.
+  @@index([userId])
   @@map("session")
 }
 
@@ -200,6 +202,7 @@ model Account {
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([providerId, accountId])
+  @@index([userId])
   @@map("account")
 }
 
@@ -654,4 +657,38 @@ model Block {
   @@unique([blockerId, blockedId])
   @@index([blockedId])
   @@map("block")
+}
+
+/// Better Auth rate-limit counters when RATE_LIMIT_STORE=database, so limits
+/// hold across every serverless instance instead of per process.
+model RateLimit {
+  id          String @id @default(cuid())
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
+}
+
+/// Fixed-window counters for app-level limits (message sends, uploads).
+model ApiRateLimit {
+  key         String   @id
+  windowStart DateTime
+  count       Int
+
+  @@map("api_rate_limit")
+}
+
+/// Uploaded file bytes when STORAGE_PROVIDER=database. Keeps uploads durable on
+/// serverless hosts (no writable disk) without a separate storage service.
+/// Swap for an object store (S3/R2) via the StorageProvider interface at scale.
+model StoredFile {
+  id          String   @id
+  visibility  String
+  contentType String
+  size        Int
+  data        Bytes
+  createdAt   DateTime @default(now())
+
+  @@map("stored_file")
 }

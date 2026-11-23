@@ -1,4 +1,4 @@
-import { handleRequest, ok } from "@/server/http/response";
+import { handleRequest, okPublic } from "@/server/http/response";
 import { getPublicProfile } from "@/server/services/profile";
 import { idSchema } from "@/server/validators/common";
 
@@ -11,6 +11,6 @@ export async function GET(_request: Request, { params }: RouteContext) {
   return handleRequest(async () => {
     const { userId: rawUserId } = await params;
     const userId = idSchema.parse(rawUserId);
-    return ok(await getPublicProfile(userId));
+    return okPublic(await getPublicProfile(userId));
   });
 }

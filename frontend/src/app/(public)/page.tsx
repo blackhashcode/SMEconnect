@@ -17,11 +17,14 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Photo } from "@/components/ui/Photo";
 import { Reveal } from "@/components/ui/Reveal";
 import { Badge, VerifiedBadge } from "@/components/ui/Badge";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { images } from "@/data/images";
-import { loanRequests, formatBDT } from "@/data/loans";
-import { businessById } from "@/data/businesses";
-import { personById } from "@/data/users";
+import { featuredLoanRequests } from "@/lib/api";
+import { formatBDT } from "@/lib/format";
+import { tenureLabel } from "@/lib/loans";
+
+// Static marketing page, refreshed in the background every minute so the
+// featured request stays current without hitting the API per visit.
+export const revalidate = 60;
 
 const steps = [
   { icon: Search, title: "Discover verified businesses", text: "Browse NID and trade-licence checked shops with real track records." },
@@ -29,10 +32,8 @@ const steps = [
   { icon: LineChart, title: "Track agreed repayments", text: "See every agreed instalment in one transparent, shared timeline." },
 ];
 
-export default function LandingPage() {
-  const featured = loanRequests[0];
-  const business = businessById(featured.businessId);
-  const owner = business ? personById(business.ownerId) : undefined;
+export default async function LandingPage() {
+  const [featured] = await featuredLoanRequests(1);
 
   return (
     <>
@@ -75,33 +76,35 @@ export default function LandingPage() {
             </div>
           </div>
 
+          {featured && (
           <div className="relative animate-scale-in [animation-delay:120ms]">
             <div className="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-primary-fixed to-secondary-fixed opacity-60 blur-xl" />
             <div className="relative mx-auto w-full max-w-[440px] rounded-3xl bg-surface-container-lowest p-space-lg card-shadow-lg motion-safe:lg:animate-float">
               <div className="flex items-center gap-space-md">
-                {owner && <Avatar src={owner.avatar} alt={owner.name} size="md" priority className="ring-secondary-fixed" />}
+                <Avatar src={featured.owner.avatar} alt={featured.owner.name} size="md" priority className="ring-secondary-fixed" />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <p className="whitespace-nowrap text-label-md font-bold text-on-surface">{owner?.name}</p>
-                    <VerifiedBadge compact />
+                    <p className="whitespace-nowrap text-label-md font-bold text-on-surface">{featured.owner.name}</p>
+                    {featured.business.verified && <VerifiedBadge compact />}
                   </div>
-                  <p className="text-body-sm text-outline">{business?.name} · Dhaka</p>
+                  <p className="text-body-sm text-outline">{featured.business.name} · {featured.business.location}</p>
                 </div>
                 <Badge tone="secondary" className="shrink-0">Open request</Badge>
               </div>
-              <Photo src={featured.image} alt="Commercial bakery oven" className="mt-space-md h-40 rounded-xl" sizes="440px" priority />
+              <Photo src={featured.business.image} alt="" className="mt-space-md h-40 rounded-xl" sizes="440px" priority />
               <h3 className="mt-space-md text-headline-sm text-on-surface">{featured.title}</h3>
               <div className="mt-space-sm grid grid-cols-3 gap-space-sm rounded-xl bg-surface-container-low p-space-sm text-center">
                 <div><p className="text-label-sm text-outline">Requested</p><p className="text-label-md font-bold text-on-surface">{formatBDT(featured.amount)}</p></div>
-                <div><p className="text-label-sm text-outline">Rate</p><p className="text-label-md font-bold text-success">{featured.rate}% p.a.</p></div>
-                <div><p className="text-label-sm text-outline">Offers</p><p className="text-label-md font-bold text-on-surface">{featured.offersCount}</p></div>
+                <div><p className="text-label-sm text-outline">Rate</p><p className="text-label-md font-bold text-success">{featured.rate === null ? "Open" : `${featured.rate}% p.a.`}</p></div>
+                <div><p className="text-label-sm text-outline">Tenure</p><p className="text-label-md font-bold text-on-surface">{tenureLabel(featured.tenureDays)}</p></div>
               </div>
-              <div className="mt-space-md"><ProgressBar value={featured.progress} label="Request progress" /></div>
-              <LinkButton href={`/businesses/${business?.id}`} variant="soft" size="sm" className="mt-space-md w-full">
+              <p className="mt-space-sm line-clamp-2 text-body-sm text-on-surface-variant">{featured.description}</p>
+              <LinkButton href={`/businesses/${featured.business.id}`} variant="soft" size="sm" className="mt-space-md w-full">
                 View this business <ArrowRight className="h-4 w-4" aria-hidden />
               </LinkButton>
             </div>
           </div>
+          )}
         </div>
       </section>
 
@@ -174,7 +177,7 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
-            <LinkButton href="/businesses/crave-co" variant="soft" className="mt-space-lg">See a business profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
+            <LinkButton href={featured ? `/businesses/${featured.business.id}` : "/explore"} variant="soft" className="mt-space-lg">See a business profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
           </Reveal>
         </div>
       </section>
@@ -192,7 +195,7 @@ export default function LandingPage() {
               <div className="rounded-xl bg-surface-container-low p-space-md"><Building2 className="h-5 w-5 text-primary" aria-hidden /><p className="mt-space-sm text-label-md font-bold text-on-surface">Verified identities</p><p className="text-body-sm text-on-surface-variant">NID and trade licence checks on every profile.</p></div>
               <div className="rounded-xl bg-surface-container-low p-space-md"><MessageCircle className="h-5 w-5 text-primary" aria-hidden /><p className="mt-space-sm text-label-md font-bold text-on-surface">Direct conversations</p><p className="text-body-sm text-on-surface-variant">Negotiate terms in one place, with a full history.</p></div>
             </div>
-            <LinkButton href="/investors/rafiq" variant="soft" className="mt-space-lg">See an investor profile <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
+            <LinkButton href="/explore" variant="soft" className="mt-space-lg">Browse investors <ArrowRight className="h-4 w-4" aria-hidden /></LinkButton>
           </Reveal>
           <Reveal delay={120} className="rounded-3xl bg-surface-container-lowest p-space-lg card-shadow">
             <p className="text-label-sm font-bold uppercase tracking-wider text-outline">A typical conversation</p>

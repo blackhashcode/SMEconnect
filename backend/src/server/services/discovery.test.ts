@@ -143,8 +143,9 @@ describe("discoverBusinesses", () => {
     const call = db.user.findMany.mock.calls[0][0] as Row;
     const where = call.where as Row;
     const profile = where.businessProfile as Row;
-    const and = profile.AND as Row[];
-    expect(profile.isNot).toBeNull();
+    // Field filters must sit under `is`: Prisma rejects them next to `isNot: null`.
+    const and = (profile.is as Row).AND as Row[];
+    expect(profile.isNot).toBeUndefined();
     expect(JSON.stringify(and)).toContain("shopName");
     expect(JSON.stringify(and)).toContain("description");
     expect(JSON.stringify(and)).toContain("category");

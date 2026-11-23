@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { parsePagination } from "@/lib/pagination";
-import { handleRequest, ok } from "@/server/http/response";
+import { handleRequest, okPublic } from "@/server/http/response";
 import { listPublicLoanRequests } from "@/server/services/loan-request";
 import { publicLoanRequestFiltersSchema } from "@/server/validators/loan";
 
@@ -18,6 +18,6 @@ export async function GET(request: NextRequest) {
     );
 
     const result = await listPublicLoanRequests({ ...pagination, ...filters });
-    return ok(result.items, result.meta);
+    return okPublic(result.items, result.meta);
   });
 }

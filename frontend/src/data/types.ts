@@ -1,4 +1,18 @@
+import type { components } from "@/lib/backend/schema";
+
+/**
+ * Types shared across the UI.
+ *
+ * Display types (Person, Business, LoanRequestView) are UI-friendly shapes built
+ * from API responses in src/lib/backend/mappers.ts. Deal-flow types are the API's
+ * own generated types (src/lib/backend/schema.d.ts, regenerate with
+ * `npm run api:types`), so the compiler flags any contract change.
+ */
+
+type Schemas = components["schemas"];
+
 export type Role = "business" | "investor" | "admin";
+export type ApiRole = Schemas["Role"];
 
 export type Person = {
   id: string;
@@ -9,168 +23,81 @@ export type Person = {
   avatar: string;
   cover: string;
   verified: boolean;
-  connections: number;
   about: string;
-  joined: string;
-  rating: number;
-  completedLoans?: number;
-  offersMade?: number;
-  committed?: number;
-  followers?: number;
+  trustScore: number;
 };
 
 export type Business = {
+  /** Owner's user id: business pages and profiles are keyed by the owner. */
   id: string;
   ownerId: string;
   name: string;
+  slug: string;
   category: string;
   tagline: string;
   location: string;
-  founded: string;
-  teamSize: string;
-  monthlyRevenue: number;
+  runningSince: string | null;
+  ordersRange: string | null;
+  salesMin: number | null;
+  salesMax: number | null;
   image: string;
+  logo: string;
   gallery: string[];
   description: string;
+  growthStory: string;
   verified: boolean;
-  specialties: string[];
+  trustScore: number;
+  links: { label: string; href: string }[];
 };
 
-export type LoanStatus = "open" | "offers_received" | "agreed" | "closed";
+export type LoanRequestStatus = Schemas["LoanRequestStatus"];
+export type RepaymentFrequency = Schemas["RepaymentFrequency"];
 
-export type LoanRequest = {
+/** A loan request as shown on cards and detail pages. */
+export type LoanRequestView = {
   id: string;
-  businessId: string;
   title: string;
-  amount: number;
-  purpose: string;
-  tenureMonths: number;
-  rate: number;
-  status: LoanStatus;
-  createdAt: string;
-  offersCount: number;
-  connectionsCount: number;
-  progress: number;
   description: string;
-  repaymentFrequency: string;
-  image: string;
-  highlights: string[];
-};
-
-export type OfferStatus = "pending" | "negotiating" | "accepted" | "declined" | "withdrawn";
-
-export type LoanOffer = {
-  id: string;
-  requestId: string;
-  investorId: string;
   amount: number;
-  rate: number;
-  tenureMonths: number;
-  frequency: string;
-  status: OfferStatus;
-  note: string;
+  tenureDays: number;
+  frequency: RepaymentFrequency;
+  rate: number | null;
+  status: LoanRequestStatus;
   createdAt: string;
-  /** Terms proposed back by the business owner while negotiating. */
-  counter?: { amount: number; rate: number; tenureMonths: number; note: string };
-  /** Who acted last, so each side knows whose turn it is. */
-  lastActionBy?: "investor" | "owner";
+  owner: Person;
+  business: Pick<Business, "id" | "name" | "slug" | "category" | "location" | "image" | "logo" | "verified" | "trustScore">;
 };
 
-export type Connection = {
+export type VerificationStatus = Schemas["VerificationStatus"];
+
+/** The signed-in member, from GET /api/v1/me. */
+export type SessionUser = {
   id: string;
-  personId: string;
-  businessId?: string;
-  note: string;
-  createdAt: string;
-  state: "connected" | "pending";
+  name: string;
+  email: string;
+  role: Role;
+  avatar: string;
+  phone: string | null;
+  /** Owner/investor profile completed (required before publishing or offering). */
+  hasProfile: boolean;
+  /** Identity verification state; null until documents are submitted. */
+  verification: VerificationStatus | null;
+  unread: { notifications: number; messages: number };
 };
 
-export type NotificationKind = "offer" | "connection" | "message" | "system";
-
-export type AppNotification = {
-  id: string;
-  kind: NotificationKind;
-  personId?: string;
-  title: string;
-  body: string;
-  time: string;
-  unread: boolean;
-  actionLabel?: string;
-  href?: string;
-};
-
-export type ChatMessage = {
-  id: string;
-  threadId: string;
-  senderId: string;
-  text: string;
-  time: string;
-  kind?: "text" | "offer";
-  offerId?: string;
-};
-
-export type ChatThread = {
-  id: string;
-  personId: string;
-  businessId?: string;
-  subject: string;
-  lastMessage: string;
-  time: string;
-  unread: number;
-  online: boolean;
-};
-
-export type VerificationCase = {
-  id: string;
-  personId: string;
-  businessName: string;
-  type: "Business" | "Investor";
-  submittedAt: string;
-  nid: string;
-  tradeLicense: string;
-  documents: string[];
-  risk: "low" | "medium" | "high";
-  status: "pending" | "approved" | "rejected";
-};
-
-/** The signed-in member returned by the API: public profile plus private account fields. */
-export type SessionUser = Person & { email: string; phone?: string; businessId?: string };
-
-// ---------- API views ----------
-// Shapes returned by the API (see docs/API.md). Related records are embedded so
-// pages don't need follow-up requests. Timestamps are ISO 8601 strings.
-
-export type LoanRequestView = LoanRequest & { business: Business; owner: Person };
-
-export type LoanOfferView = LoanOffer & {
-  investor: Person;
-  request: Pick<LoanRequest, "id" | "title" | "amount" | "status"> & { business: Pick<Business, "id" | "name" | "category" | "ownerId"> };
-};
-
-export type AgreementView = {
-  status: "draft" | "agreed";
-  loan: LoanRequestView;
-  offer: LoanOfferView;
-};
-
-export type ThreadView = {
-  id: string;
-  subject: string;
-  other: Person;
-  /** The other member's business, when they are a business owner. */
-  business: Pick<Business, "id" | "name"> | null;
-  loanRequestId: string | null;
-  lastMessage: string;
-  lastMessageAt: string;
-  unread: number;
-};
-
-export type MessageView = {
-  id: string;
-  threadId: string;
-  senderId: string;
-  text: string;
-  kind: "text" | "offer" | "system";
-  offerId: string | null;
-  createdAt: string;
-};
+// ---------- API types used directly by deal-flow screens ----------
+export type MeResponse = Schemas["MeResponse"];
+export type OwnLoanRequest = Schemas["LoanRequestRecord"];
+export type Offer = Schemas["OfferRecord"];
+export type OfferStatus = Schemas["OfferStatus"];
+export type LoanDetail = Schemas["LoanDetail"];
+export type Agreement = Schemas["AgreementSummary"];
+export type Repayment = Schemas["RepaymentRecord"];
+export type Conversation = Schemas["ConversationRecord"];
+export type Message = Schemas["MessageRecord"];
+export type AppNotification = Schemas["NotificationRecord"];
+export type OwnerDashboard = Schemas["OwnerDashboard"];
+export type InvestorDashboard = Schemas["InvestorDashboard"];
+export type Verification = Schemas["VerificationRecord"];
+export type AdminVerification = Schemas["AdminVerificationRecord"];
+export type UploadedFile = Schemas["UploadedFile"];

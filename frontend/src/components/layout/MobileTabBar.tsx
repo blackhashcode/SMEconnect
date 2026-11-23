@@ -3,25 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Compass, House, LayoutDashboard, MessageCircle } from "lucide-react";
-import { hubFor, isActivePath, unreadCounts } from "@/data/nav";
+import { hubFor, isActivePath } from "@/data/nav";
 import { useSessionUser } from "@/components/auth/SessionProvider";
 import { cn } from "@/lib/cn";
 
-function tabsFor(unreadMessages: number, role: string) {
+function tabsFor(unreadMessages: number, unreadNotifications: number, role: string) {
   return [
   { label: "Feed", href: "/feed", icon: House },
   { label: "Explore", href: "/explore", icon: Compass },
   { label: "Hub", href: hubFor(role).href, icon: LayoutDashboard },
   { label: "Messages", href: "/messages", icon: MessageCircle, count: unreadMessages },
-  { label: "Alerts", href: "/notifications", icon: Bell, count: unreadCounts.notifications },
+  { label: "Alerts", href: "/notifications", icon: Bell, count: unreadNotifications },
   ];
 }
 
 /** Bottom navigation for phones and tablets, where the header pill is hidden. */
-export function MobileTabBar({ unreadMessages }: { unreadMessages: number }) {
+export function MobileTabBar({ unreadMessages, unreadNotifications }: { unreadMessages: number; unreadNotifications: number }) {
   const pathname = usePathname();
   const role = useSessionUser()?.role ?? "investor";
-  const tabs = tabsFor(unreadMessages, role);
+  const tabs = tabsFor(unreadMessages, unreadNotifications, role);
 
   return (
     <nav

@@ -146,3 +146,20 @@ describe("reputation, moderation and messaging schemas", () => {
     expect(sendMessageSchema.safeParse({ body: "   " }).success).toBe(false);
   });
 });
+
+describe("Bangladeshi phone numbers", () => {
+  it.each([
+    ["01712345678", "+8801712345678"],
+    ["+8801712345678", "+8801712345678"],
+    ["8801912-345-678", "+8801912345678"],
+    [" 017 1234 5678 ", "+8801712345678"],
+  ])("accepts and normalises %s", async (input, expected) => {
+    const { phoneSchema } = await import("@/server/validators/user");
+    expect(phoneSchema.parse(input)).toBe(expected);
+  });
+
+  it.each(["01212345678", "0171234567", "+4407123456789", "017123456789", "phone"])("rejects %s", async (input) => {
+    const { phoneSchema } = await import("@/server/validators/user");
+    expect(phoneSchema.safeParse(input).success).toBe(false);
+  });
+});

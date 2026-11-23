@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { MapPin, Star } from "lucide-react";
+import { MapPin, ShieldCheck } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { VerifiedBadge } from "@/components/ui/Badge";
 import { Photo } from "@/components/ui/Photo";
@@ -31,20 +31,20 @@ export function ProfileHeader({ person, actions }: { person: Person; actions?: R
               </div>
               <p className="mt-1 text-body-md text-on-surface-variant">{person.headline}</p>
               <div className="mt-space-sm flex flex-wrap items-center gap-x-space-md gap-y-1 text-body-sm text-outline">
+                {person.location && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" aria-hidden /> {person.location}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
-                  <MapPin className="h-4 w-4" aria-hidden /> {person.location}
+                  <ShieldCheck className="h-4 w-4 text-success" aria-hidden /> Trust score {person.trustScore}
                 </span>
-                <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-warning text-warning" aria-hidden /> {person.rating || "New"}
-                </span>
-                <span>{person.connections} connections</span>
-                <span>Joined {person.joined}</span>
               </div>
             </div>
           </div>
           {actions && <div className="flex flex-wrap gap-space-sm md:shrink-0 md:justify-end md:pb-1">{actions}</div>}
         </div>
-        <p className="mt-space-md max-w-3xl text-body-md leading-relaxed text-on-surface-variant">{person.about}</p>
+        {person.about && <p className="mt-space-md max-w-3xl text-body-md leading-relaxed text-on-surface-variant">{person.about}</p>}
       </div>
     </section>
   );

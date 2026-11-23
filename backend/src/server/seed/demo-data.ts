@@ -15,7 +15,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export const DEMO_PASSWORD_DEFAULT = "Password123!";
 export const ADMIN_EMAIL_DEFAULT = "admin@smeconnect.local";
-export const PERSONAL_EMAIL_DEFAULT = "fahimbinimam@gmail.com";
+// Placeholder by default: a real address belongs in a local .env, never in the repo.
+export const PERSONAL_EMAIL_DEFAULT = "owner01@smeconnect.local";
 export const ANCHOR_DATE_DEFAULT = "2026-11-23T00:00:00.000Z";
 
 export interface SeedConfig {
@@ -77,8 +78,33 @@ function uuid(tail: string): string {
   return `00000000-0000-4000-8000-${digest}`;
 }
 
-function publicImage(tail: string, extension: "jpg" | "png" | "webp" = "jpg"): string {
-  return `/api/v1/files/public/${uuid(tail)}.${extension}`;
+/**
+ * Demo photos ship with the web app (frontend/public/images) and are served
+ * from its origin, so the seeded demo shows real pictures without any storage
+ * setup locally or in production. User uploads still go through /api/v1/files.
+ */
+const demoImage = (file: string) => `/images/${file}.jpg`;
+const pick = <T,>(list: readonly T[], index: number): T => list[index % list.length];
+
+const DEMO_OWNER_AVATARS = [
+  "home-chef", "nusrat-portrait", "tanvir-portrait", "farzana-portrait", "sabrina-skincare",
+  "tech-entrepreneur", "entrepreneur-indigo", "kamal-honey", "avatar-male-1", "fashion-founder",
+] as const;
+const DEMO_INVESTOR_AVATARS = [
+  "rafiq-portrait", "samira-portrait", "tanzeem-portrait", "investor-senior", "tanvir-investor", "avatar-male-2",
+] as const;
+const DEMO_CATEGORY_IMAGES: Record<string, readonly string[]> = {
+  Food: ["cloud-kitchen", "nusrat-bakery", "brownies", "saffron-cups", "savory-pies", "catering-desserts", "pastry-boxes"],
+  Fashion: ["boutique-shopfront", "boutique-sarees", "jamdani-panjabi", "handloom-panjabis", "weaver-sarees", "silk-spools"],
+  Handicrafts: ["artisan-workshop", "terracotta-glazed", "terracotta-cups", "leather-bag"],
+  Cosmetics: ["organic-skincare", "organic-cosmetics", "bella-organics-products"],
+  Gadgets: ["electronics-distributor", "electric-courier"],
+  "Home Décor": ["terracotta-tableware", "gift-hamper", "honey-jars"],
+};
+/** Category photo `offset` places into the pool, varied per owner so shops don't look identical. */
+function categoryImage(category: string, ownerIndex: number, offset: number): string {
+  const pool = DEMO_CATEGORY_IMAGES[category] ?? DEMO_CATEGORY_IMAGES.Food;
+  return demoImage(pick(pool, ownerIndex + offset));
 }
 
 function privateDocument(tail: string, extension: "jpg" | "png" | "pdf" = "pdf"): string {
@@ -613,12 +639,12 @@ export function buildDemoDataset(config: SeedConfig): DemoDataset {
       status: "ACTIVE",
     },
     ...OWNER_SPECS.map(
-      (spec): UserRow => ({
+      (spec, index): UserRow => ({
         id: spec.id,
         name: spec.name,
         email: "emailKey" in spec ? config.personalEmail : spec.email,
         emailVerified: true,
-        image: publicImage(spec.id.replace("usr_owner_", "avatar"), "png"),
+        image: demoImage(pick(DEMO_OWNER_AVATARS, index)),
         phone: spec.phone,
         phoneVerified: true,
         role: "OWNER",
@@ -626,12 +652,12 @@ export function buildDemoDataset(config: SeedConfig): DemoDataset {
       }),
     ),
     ...INVESTOR_SPECS.map(
-      (spec): UserRow => ({
+      (spec, index): UserRow => ({
         id: spec.id,
         name: spec.name,
         email: spec.email,
         emailVerified: true,
-        image: publicImage(spec.id.replace("usr_investor_", "iav"), "png"),
+        image: demoImage(pick(DEMO_INVESTOR_AVATARS, index)),
         phone: spec.phone,
         phoneVerified: true,
         role: "INVESTOR",
@@ -727,18 +753,18 @@ export function buildDemoDataset(config: SeedConfig): DemoDataset {
         spec.id === "usr_owner_01"
           ? "Fahim started cooking for nearby hostels in 2022, then moved to WhatsApp pre-orders. Md. Fahim Bin Imam Nahid now packs 150 meal boxes a day with two helpers."
           : `${spec.shopName} grew from word-of-mouth orders into a steady online business with repeat customers.`,
-      logoUrl: publicImage(spec.id.replace("usr_owner_", "bizlogo"), "png"),
-      coverUrl: publicImage(spec.id.replace("usr_owner_", "bizcover"), "jpg"),
+      logoUrl: categoryImage(spec.category, OWNER_SPECS.indexOf(spec), 2),
+      coverUrl: categoryImage(spec.category, OWNER_SPECS.indexOf(spec), 0),
       trustScore: 0,
     }),
   );
 
-  const productImages: ProductImageRow[] = OWNER_SPECS.flatMap((spec) =>
+  const productImages: ProductImageRow[] = OWNER_SPECS.flatMap((spec, ownerIndex) =>
     [1, 2].map(
       (position): ProductImageRow => ({
         id: `pimg_${spec.id.replace("usr_owner_", "owner")}_${position}`,
         businessProfileId: `biz_${spec.id.replace("usr_owner_", "owner")}`,
-        url: publicImage(`${spec.id.replace("usr_owner_", "product")}${position}`, "jpg"),
+        url: categoryImage(spec.category, ownerIndex, position),
         caption: `${spec.shopName} product ${position}`,
         position,
       }),
@@ -1185,7 +1211,7 @@ export function buildDemoDataset(config: SeedConfig): DemoDataset {
       authorId: "usr_owner_01",
       type: "LOAN_REQUEST",
       content: "Md. Fahim Bin Imam Nahid is expanding Fahim's Home Kitchen with a ৳50,000 growth loan request.",
-      imageUrls: [publicImage("post_lr_completed", "jpg")],
+      imageUrls: [demoImage("terracotta-glazed")],
       loanRequestId: "lr_completed_01",
       deletedAt: null,
     },
@@ -1249,7 +1275,7 @@ export function buildDemoDataset(config: SeedConfig): DemoDataset {
       type: "UPDATE",
       content:
         "Md. Fahim Bin Imam Nahid here — we crossed 150 meal boxes a day in Dhanmondi this week. Fahim Bin Imam thanks everyone who ordered during Eid.",
-      imageUrls: [publicImage("post_personal_meals", "jpg")],
+      imageUrls: [demoImage("cloud-kitchen")],
       loanRequestId: null,
       deletedAt: null,
     },
@@ -1267,7 +1293,7 @@ export function buildDemoDataset(config: SeedConfig): DemoDataset {
       authorId: "usr_owner_05",
       type: "MILESTONE",
       content: "First two weekly repayments are complete. The Eid campaign went better than expected.",
-      imageUrls: [publicImage("post_milestone_cosmetics", "jpg")],
+      imageUrls: [demoImage("organic-cosmetics")],
       loanRequestId: null,
       deletedAt: null,
     },

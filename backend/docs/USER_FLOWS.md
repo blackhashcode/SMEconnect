@@ -917,7 +917,7 @@ There are no additional API endpoints in this phase. It completes the backend de
   one admin, ten owners and six investors, every loan-request and offer status, a counter-offer
   chain, funded/repaying/completed loans with mixed repayment states, feed content, social
   connections, messages, reviews, notifications and moderation records. It sends **no email**.
-- Exactly one OWNER uses `fahimbinimam@gmail.com`; all other identities are fictional. Every
+- Exactly one OWNER uses the configurable `SEED_PERSONAL_EMAIL` (default `owner01@smeconnect.local`); all other identities are fictional. Every
   demo account uses `Password123!` unless `SEED_DEMO_PASSWORD` is set. The seed prints the
   demo logins and never prints a custom password.
 - `docs/API.md` is the complete endpoint contract, OpenAPI documents exactly the implemented

@@ -10,6 +10,7 @@ import {
 
 const RULES: RateLimitRules = {
   "message:send": { limit: 2, windowMs: 1000 },
+  "upload:create": { limit: 2, windowMs: 1000 },
 };
 
 function env(values: Record<string, string>): NodeJS.ProcessEnv {
@@ -96,9 +97,10 @@ describe("rate limiting", () => {
           MESSAGE_RATE_LIMIT_WINDOW_SECONDS: "45",
         }),
       ),
-    ).toEqual({ "message:send": { limit: 7, windowMs: 45_000 } });
-    expect(rateLimitRulesFromEnv(env({ MESSAGE_RATE_LIMIT_MAX: "-1" }))).toEqual({
+    ).toMatchObject({ "message:send": { limit: 7, windowMs: 45_000 } });
+    expect(rateLimitRulesFromEnv(env({ MESSAGE_RATE_LIMIT_MAX: "-1" }))).toMatchObject({
       "message:send": { limit: 30, windowMs: 60_000 },
+      "upload:create": { limit: 20, windowMs: 600_000 },
     });
   });
 });

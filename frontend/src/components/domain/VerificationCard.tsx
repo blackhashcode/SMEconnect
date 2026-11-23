@@ -1,55 +1,84 @@
 "use client";
 
-import { Check, FileText, ShieldAlert, X } from "lucide-react";
-import { Avatar } from "@/components/ui/Avatar";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Check, ExternalLink, FileText, LoaderCircle, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { personById } from "@/data/users";
-import type { VerificationCase } from "@/data/types";
+import { TimeAgo } from "@/components/ui/TimeAgo";
+import { api } from "@/lib/client-api";
+import type { AdminVerification } from "@/data/types";
 
-const riskTone = { low: "success", medium: "warning", high: "error" } as const;
+/** One submission in the admin queue: documents plus approve/reject with a note. */
+export function VerificationCard({ item, applicant }: { item: AdminVerification; applicant: { name: string; email: string } | null }) {
+  const router = useRouter();
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState<"APPROVED" | "REJECTED" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<"APPROVED" | "REJECTED" | null>(null);
+  const documents = [
+    { label: "ID document", href: item.idDocumentUrl },
+    ...item.salesProofUrls.map((href, i) => ({ label: `Sales proof ${i + 1}`, href })),
+  ];
 
-export function VerificationCard({ item }: { item: VerificationCase }) {
-  const person = personById(item.personId);
-  if (!person) return null;
+  async function review(status: "APPROVED" | "REJECTED") {
+    if (status === "REJECTED" && !note.trim()) {
+      setError("Add a note so the applicant knows what to fix.");
+      return;
+    }
+    setBusy(status);
+    setError(null);
+    const result = await api.post(`/admin/verifications/${item.id}`, { status, reviewNote: note.trim() || undefined });
+    setBusy(null);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setDone(status);
+    router.refresh();
+  }
 
   return (
     <article className="rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
       <div className="flex flex-wrap items-start justify-between gap-space-md">
-        <div className="flex items-start gap-space-md">
-          <Avatar src={person.avatar} alt={person.name} size="lg" />
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-headline-sm text-on-surface">{person.name}</p>
-              <Badge tone={riskTone[item.risk]}>{item.risk} risk</Badge>
-            </div>
-            <p className="mt-0.5 text-body-md text-on-surface-variant">{item.businessName} · {item.type}</p>
-            <p className="mt-1 text-body-sm text-outline">Submitted {item.submittedAt}</p>
-          </div>
+        <div>
+          <p className="text-headline-sm text-on-surface">{applicant?.name ?? "Unknown applicant"}</p>
+          <p className="text-body-sm text-outline">{applicant?.email} · {item.type === "OWNER" ? "Business owner" : "Investor"}</p>
+          <p className="mt-1 text-body-sm text-outline">Submitted <TimeAgo iso={item.submittedAt} /></p>
         </div>
-        <Badge tone={item.status === "approved" ? "success" : item.status === "rejected" ? "error" : "neutral"}>
-          {item.status}
+        <Badge tone={item.status === "APPROVED" || done === "APPROVED" ? "success" : item.status === "REJECTED" || done === "REJECTED" ? "error" : "warning"}>
+          {done ?? item.status}
         </Badge>
       </div>
 
-      <dl className="mt-space-md grid gap-space-sm rounded-xl bg-surface-container-low p-space-sm sm:grid-cols-2">
-        <div><dt className="text-label-sm text-outline">NID</dt><dd className="text-label-md font-semibold text-on-surface">{item.nid}</dd></div>
-        <div><dt className="text-label-sm text-outline">Trade licence</dt><dd className="text-label-md font-semibold text-on-surface">{item.tradeLicense}</dd></div>
-      </dl>
-
       <div className="mt-space-md flex flex-wrap gap-space-sm">
-        {item.documents.map((doc) => (
-          <span key={doc} className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-space-sm py-1 text-body-sm text-on-surface-variant">
-            <FileText className="h-3.5 w-3.5" aria-hidden /> {doc}
-          </span>
+        {documents.map((doc) => (
+          <a key={doc.href} href={doc.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-space-md py-1.5 text-body-sm font-medium text-on-surface-variant transition-colors hover:bg-primary-fixed hover:text-primary">
+            <FileText className="h-3.5 w-3.5" aria-hidden /> {doc.label}
+          </a>
+        ))}
+        {item.shopLinks.map((href) => (
+          <a key={href} href={href} target="_blank" rel="noopener noreferrer nofollow" className="flex items-center gap-1.5 rounded-full bg-surface-container-high px-space-md py-1.5 text-body-sm font-medium text-on-surface-variant transition-colors hover:bg-primary-fixed hover:text-primary">
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden /> {new URL(href).hostname}
+          </a>
         ))}
       </div>
 
-      <div className="mt-space-md flex flex-wrap items-center justify-end gap-space-sm border-t border-surface-container-high pt-space-md">
-        <Button variant="ghost" size="sm"><ShieldAlert className="h-4 w-4" aria-hidden /> Request more info</Button>
-        <Button variant="ghost" size="sm" className="text-error hover:bg-error-container"><X className="h-4 w-4" aria-hidden /> Reject</Button>
-        <Button variant="success" size="sm"><Check className="h-4 w-4" aria-hidden /> Approve</Button>
-      </div>
+      {item.status === "PENDING" && !done && (
+        <div className="mt-space-md space-y-space-sm border-t border-surface-container-high pt-space-md">
+          <textarea rows={2} maxLength={5000} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Review note (required when rejecting)" className="w-full rounded-xl border border-outline-variant px-space-md py-2 text-body-sm text-on-surface focus:border-primary focus:outline-none" />
+          {error && <p role="alert" className="text-body-sm font-medium text-error">{error}</p>}
+          <div className="flex flex-wrap justify-end gap-space-sm">
+            <Button variant="ghost" size="sm" className="text-error hover:bg-error-container" onClick={() => review("REJECTED")} disabled={busy !== null}>
+              {busy === "REJECTED" ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <X className="h-4 w-4" aria-hidden />} Reject
+            </Button>
+            <Button variant="success" size="sm" onClick={() => review("APPROVED")} disabled={busy !== null}>
+              {busy === "APPROVED" ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />} Approve
+            </Button>
+          </div>
+        </div>
+      )}
+      {item.reviewNote && <p className="mt-space-sm text-body-sm text-on-surface-variant">Note: {item.reviewNote}</p>}
     </article>
   );
 }
