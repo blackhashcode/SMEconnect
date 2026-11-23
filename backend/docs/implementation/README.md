@@ -16,12 +16,13 @@ as proof that a report exists.
 | 1 — Data model | [PHASE_01_DATA_MODEL.md](./PHASE_01_DATA_MODEL.md) | Implemented | `74daca5` (db connect) |
 | 2 — Auth, roles & verification | [PHASE_02_AUTH_ROLES_VERIFICATION.md](./PHASE_02_AUTH_ROLES_VERIFICATION.md) | Implemented | `c6aadae`, `460d046`, part of `072f2b5` |
 | 3 — Profiles | [PHASE_03_PROFILES.md](./PHASE_03_PROFILES.md) | Implemented | part of `072f2b5` |
-| 4 — Loan requests | [PHASE_04_LOAN_REQUESTS.md](./PHASE_04_LOAN_REQUESTS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 5 — Feed, networking & discovery | [PHASE_05_FEED_NETWORKING_DISCOVERY.md](./PHASE_05_FEED_NETWORKING_DISCOVERY.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 6 — Messaging | [PHASE_06_MESSAGING.md](./PHASE_06_MESSAGING.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 7 — Offers and agreements | [PHASE_07_OFFERS_AGREEMENTS.md](./PHASE_07_OFFERS_AGREEMENTS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 8 — Repayment tracking | [PHASE_08_REPAYMENT_TRACKING.md](./PHASE_08_REPAYMENT_TRACKING.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
-| 9+ — Reputation, notifications, admin | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
+| 4 — Loan requests | [PHASE_04_LOAN_REQUESTS.md](./PHASE_04_LOAN_REQUESTS.md) | Implemented | `ae24c70` |
+| 5 — Feed, networking & discovery | [PHASE_05_FEED_NETWORKING_DISCOVERY.md](./PHASE_05_FEED_NETWORKING_DISCOVERY.md) | Implemented | `63f6a72` |
+| 6 — Messaging | [PHASE_06_MESSAGING.md](./PHASE_06_MESSAGING.md) | Implemented | `49c2a49` |
+| 7 — Offers and agreements | [PHASE_07_OFFERS_AGREEMENTS.md](./PHASE_07_OFFERS_AGREEMENTS.md) | Implemented | `7398dc0` |
+| 8 — Repayment tracking | [PHASE_08_REPAYMENT_TRACKING.md](./PHASE_08_REPAYMENT_TRACKING.md) | Implemented | `5790c8e` |
+| 9 — Reputation, notifications & dashboards | [PHASE_09_REPUTATION_NOTIFICATIONS_DASHBOARDS.md](./PHASE_09_REPUTATION_NOTIFICATIONS_DASHBOARDS.md) | Implemented in working tree (uncommitted) | uncommitted changes on `nahid_dev` |
+| 10+ — Admin moderation & hardening | — | Not implemented | Planned in `BACKEND_PROMPT.md` |
 
 Related reading:
 

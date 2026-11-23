@@ -20,6 +20,18 @@ import { HEALTH_OPERATION_ID, HEALTH_PATH } from "@/server/openapi/routes/health
 import { LOAN_REQUEST_PATHS } from "@/server/openapi/routes/loan-requests";
 import { MESSAGING_PATHS } from "@/server/openapi/routes/messaging";
 import { AGREEMENT_PATHS, OFFER_PATHS } from "@/server/openapi/routes/offers";
+import {
+  BLOCKS_PATH,
+  INVESTOR_DASHBOARD_PATH,
+  NOTIFICATIONS_PATH,
+  NOTIFICATIONS_READ_ALL_PATH,
+  NOTIFICATIONS_UNREAD_COUNT_PATH,
+  NOTIFICATION_READ_PATH,
+  OWNER_DASHBOARD_PATH,
+  PHASE9_PATHS,
+  REPORTS_PATH,
+  REVIEWS_PATH,
+} from "@/server/openapi/routes/phase9";
 import { SOCIAL_PATHS } from "@/server/openapi/routes/social";
 import { PHONE_OTP_PATHS } from "@/server/openapi/routes/phone-otp";
 import { PROFILE_PATHS } from "@/server/openapi/routes/profiles";
@@ -28,10 +40,23 @@ import { STORAGE_PATHS } from "@/server/openapi/routes/storage";
 import { VERIFICATION_PATHS } from "@/server/openapi/routes/verification";
 import {
   authErrorSchema,
+  blockListSuccessEnvelopeSchema,
+  blockSuccessEnvelopeSchema,
   errorEnvelopeSchema,
   healthSuccessEnvelopeSchema,
+  investorDashboardSuccessEnvelopeSchema,
+  notificationListSuccessEnvelopeSchema,
+  notificationMarkAllReadSuccessEnvelopeSchema,
+  notificationMarkReadSuccessEnvelopeSchema,
+  ownerDashboardSuccessEnvelopeSchema,
   paginationQuerySchema,
+  reportListSuccessEnvelopeSchema,
+  reportSuccessEnvelopeSchema,
+  reviewListSuccessEnvelopeSchema,
+  reviewSuccessEnvelopeSchema,
   successEnvelope,
+  unblockSuccessEnvelopeSchema,
+  unreadNotificationCountSuccessEnvelopeSchema,
 } from "@/server/openapi/schemas";
 import { healthStatusSchema } from "@/server/validators/health";
 
@@ -168,7 +193,7 @@ describe("OpenAPI document generation", () => {
 });
 
 describe("health endpoint documentation", () => {
-  it("documents only the implemented Phase 0–8 routes", () => {
+  it("documents only the implemented Phase 0–9 routes", () => {
     const document = generate();
 
     expect(Object.keys(document.paths ?? {})).toEqual([
@@ -186,6 +211,7 @@ describe("health endpoint documentation", () => {
       ...AGREEMENT_PATHS,
       ...REPAYMENT_PATHS,
       ...LOAN_PATHS,
+      ...PHASE9_PATHS,
     ]);
     expect(document.paths?.[HEALTH_PATH]?.get).toBeDefined();
   });
@@ -232,6 +258,67 @@ describe("health endpoint documentation", () => {
 
     expect(source).toContain("export async function GET");
     expect(generate().paths?.[HEALTH_PATH]?.get).toBeDefined();
+  });
+});
+
+describe("Phase 9 endpoint documentation", () => {
+  it("documents every review/report/notification/block/dashboard operation", () => {
+    const document = generate();
+    const expected: Record<string, string[]> = {
+      [REVIEWS_PATH]: ["get", "post"],
+      [`${REVIEWS_PATH}/{reviewId}`]: ["get"],
+      [REPORTS_PATH]: ["get", "post"],
+      [NOTIFICATIONS_PATH]: ["get"],
+      [NOTIFICATIONS_UNREAD_COUNT_PATH]: ["get"],
+      [NOTIFICATIONS_READ_ALL_PATH]: ["patch"],
+      [NOTIFICATION_READ_PATH]: ["patch"],
+      [BLOCKS_PATH]: ["get", "post"],
+      [`${BLOCKS_PATH}/{userId}`]: ["delete"],
+      [OWNER_DASHBOARD_PATH]: ["get"],
+      [INVESTOR_DASHBOARD_PATH]: ["get"],
+    };
+
+    for (const [path, methods] of Object.entries(expected)) {
+      expect(Object.keys(document.paths?.[path] ?? {}), path).toEqual(methods);
+    }
+
+    expect(document.paths?.[REVIEWS_PATH]?.get?.security).toEqual([]);
+    expect(document.paths?.[REVIEWS_PATH]?.post?.security).toEqual([
+      { [SECURITY_SCHEME_NAME]: [] },
+    ]);
+    expect(document.paths?.[OWNER_DASHBOARD_PATH]?.get?.tags).toEqual(["Dashboards"]);
+    expect(document.paths?.[NOTIFICATION_READ_PATH]?.patch?.operationId).toBe(
+      "markNotificationRead",
+    );
+  });
+
+  it("uses success examples that match their Phase 9 response schemas", () => {
+    const document = generate();
+    const exampleFor = (path: string, method: string) =>
+      document.paths?.[path]?.[method]?.responses?.[
+        method === "post" ? "201" : "200"
+      ]?.content?.["application/json"]?.example;
+
+    const cases = [
+      [REVIEWS_PATH, "get", reviewListSuccessEnvelopeSchema],
+      [REVIEWS_PATH, "post", reviewSuccessEnvelopeSchema],
+      [`${REVIEWS_PATH}/{reviewId}`, "get", reviewSuccessEnvelopeSchema],
+      [REPORTS_PATH, "get", reportListSuccessEnvelopeSchema],
+      [REPORTS_PATH, "post", reportSuccessEnvelopeSchema],
+      [NOTIFICATIONS_PATH, "get", notificationListSuccessEnvelopeSchema],
+      [NOTIFICATIONS_UNREAD_COUNT_PATH, "get", unreadNotificationCountSuccessEnvelopeSchema],
+      [NOTIFICATION_READ_PATH, "patch", notificationMarkReadSuccessEnvelopeSchema],
+      [NOTIFICATIONS_READ_ALL_PATH, "patch", notificationMarkAllReadSuccessEnvelopeSchema],
+      [BLOCKS_PATH, "get", blockListSuccessEnvelopeSchema],
+      [BLOCKS_PATH, "post", blockSuccessEnvelopeSchema],
+      [`${BLOCKS_PATH}/{userId}`, "delete", unblockSuccessEnvelopeSchema],
+      [OWNER_DASHBOARD_PATH, "get", ownerDashboardSuccessEnvelopeSchema],
+      [INVESTOR_DASHBOARD_PATH, "get", investorDashboardSuccessEnvelopeSchema],
+    ] as const;
+
+    for (const [path, method, schema] of cases) {
+      expect(schema.safeParse(exampleFor(path, method)).success, `${method} ${path}`).toBe(true);
+    }
   });
 });
 

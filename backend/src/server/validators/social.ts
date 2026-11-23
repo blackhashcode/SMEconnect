@@ -13,6 +13,7 @@ import {
 import {
   connectionStatusSchema,
   postTypeSchema,
+  reportStatusSchema,
   reportTargetTypeSchema,
 } from "@/server/validators/enums";
 
@@ -180,3 +181,55 @@ export const postRecordListSchema = z.array(postRecordSchema);
 export const commentRecordListSchema = z.array(commentRecordSchema);
 export const connectionRecordListSchema = z.array(connectionRecordSchema);
 export const followRecordListSchema = z.array(followRecordSchema);
+
+// ---------------------------------------------------------------------------
+// Phase 9 — reviews and reports
+// ---------------------------------------------------------------------------
+
+/** Public review card: safe participant profiles, no account email/phone/documents. */
+export const reviewRecordSchema = z
+  .object({
+    id: z.string(),
+    loanId: z.string(),
+    rating: ratingSchema,
+    comment: z.string().nullable(),
+    reviewer: postAuthorSchema,
+    reviewee: postAuthorSchema,
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const reviewRecordListSchema = z.array(reviewRecordSchema);
+
+export const reviewSummarySchema = z
+  .object({
+    count: z.number().int().nonnegative(),
+    averageRating: z.number().min(0).max(5).nullable(),
+  })
+  .strict();
+
+export const reviewListQuerySchema = z
+  .object({ userId: idSchema })
+  .strict();
+
+export const reportListQuerySchema = z
+  .object({ status: reportStatusSchema.optional() })
+  .strict();
+
+export const reportRecordSchema = z
+  .object({
+    id: z.string(),
+    reporterId: z.string(),
+    targetType: reportTargetTypeSchema,
+    targetId: z.string(),
+    reason: z.string(),
+    status: reportStatusSchema,
+    resolutionNote: z.string().nullable(),
+    handledById: z.string().nullable(),
+    createdAt: isoDateTimeSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const reportRecordListSchema = z.array(reportRecordSchema);

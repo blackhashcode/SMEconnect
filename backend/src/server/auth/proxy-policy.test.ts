@@ -38,6 +38,15 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/repayments/rep_1/mark-paid",
     "/api/v1/repayments/rep_1/confirm",
     "/api/v1/loans/loan_1",
+    "/api/v1/reports",
+    "/api/v1/notifications",
+    "/api/v1/notifications/unread-count",
+    "/api/v1/notifications/read-all",
+    "/api/v1/notifications/ntf_1/read",
+    "/api/v1/blocks",
+    "/api/v1/blocks/usr_123",
+    "/api/v1/dashboard/owner",
+    "/api/v1/dashboard/investor",
   ])("pre-filters %s", (path) => {
     expect(isProtectedApiPath(path)).toBe(true);
   });
@@ -58,6 +67,8 @@ describe("optimistic proxy prefixes", () => {
     "/api/v1/businesses",
     "/api/v1/investors",
     "/api/v1/verifications-public",
+    "/api/v1/reviews",
+    "/api/v1/reviews/rev_1",
   ])("leaves %s untouched", (path) => {
     expect(isProtectedApiPath(path)).toBe(false);
   });

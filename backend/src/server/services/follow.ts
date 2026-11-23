@@ -1,9 +1,10 @@
 import type { PaginationParams } from "@/lib/pagination";
 import { assertRole, type Actor } from "@/server/auth/policy";
 import { prisma } from "@/server/db";
-import { ConflictError, NotFoundError } from "@/server/errors";
+import { ConflictError, ForbiddenError, NotFoundError } from "@/server/errors";
 import { followUserSchema } from "@/server/validators/social";
 import type { z } from "zod";
+import { isBlockedBetween } from "@/server/services/blocks";
 import {
   PUBLIC_USER_SELECT,
   requirePublicTarget,
@@ -60,6 +61,10 @@ export async function followUser(
     select: PUBLIC_USER_SELECT,
   });
   const validTarget = requirePublicTarget(target as PublicUserRow | null, actor);
+
+  if (await isBlockedBetween(actor.id, validTarget.id, db)) {
+    throw new ForbiddenError("You cannot follow a user you have blocked or who blocked you");
+  }
 
   const existing = await db.follow.findUnique({
     where: { followerId_followeeId: { followerId: actor.id, followeeId: validTarget.id } },

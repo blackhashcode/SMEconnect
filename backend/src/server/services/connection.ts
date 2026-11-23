@@ -11,6 +11,7 @@ import {
   sendConnectionRequestSchema,
 } from "@/server/validators/social";
 import type { z } from "zod";
+import { isBlockedBetween } from "@/server/services/blocks";
 import {
   PUBLIC_USER_SELECT,
   requirePublicTarget,
@@ -83,6 +84,10 @@ export async function sendConnectionRequest(
     select: PUBLIC_USER_SELECT,
   });
   const validTarget = requirePublicTarget(target as PublicUserRow | null, actor);
+
+  if (await isBlockedBetween(actor.id, validTarget.id, db)) {
+    throw new ForbiddenError("You cannot connect with a blocked user");
+  }
 
   const existing = await db.connection.findFirst({
     where: {

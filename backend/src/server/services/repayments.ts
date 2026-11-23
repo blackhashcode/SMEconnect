@@ -7,6 +7,7 @@ import {
   loadOfferParties,
   toIso,
 } from "@/server/services/lending-shared";
+import { recomputeTrustScore } from "@/server/services/trust-score";
 import { renderRepaymentEmail } from "@/server/notifications/templates/repayment";
 import type {
   EmailMessage,
@@ -528,6 +529,9 @@ export async function confirmRepayment(
         throw new ConflictError("Loan request is no longer in repayment");
       }
     }
+
+    await recomputeTrustScore(repayment.loan.ownerId, "OWNER", tx, now);
+    await recomputeTrustScore(repayment.loan.investorId, "INVESTOR", tx, now);
   });
 
   await sendRepaymentEmailSafely(
@@ -622,10 +626,31 @@ export async function markOverdueRepayments(
 ): Promise<{ markedOverdue: number }> {
   const db = deps.db ?? prisma;
   const now = (deps.now ?? (() => new Date()))();
+
+  const affected = await db.repayment.findMany({
+    where: { status: "UPCOMING", dueDate: { lt: now } },
+    select: { loan: { select: { ownerId: true, investorId: true } } },
+  });
   const result = await db.repayment.updateMany({
     where: { status: "UPCOMING", dueDate: { lt: now } },
     data: { status: "OVERDUE" },
   });
+
+  if (result.count > 0) {
+    const participants = new Map<string, "OWNER" | "INVESTOR">();
+    for (const row of affected) {
+      const loan = (row as unknown as { loan?: { ownerId: string; investorId: string } }).loan;
+      if (!loan) continue;
+      participants.set(loan.ownerId, "OWNER");
+      participants.set(loan.investorId, "INVESTOR");
+    }
+    await db.$transaction(async (tx) => {
+      for (const [userId, role] of participants) {
+        await recomputeTrustScore(userId, role, tx, now);
+      }
+    });
+  }
+
   return { markedOverdue: result.count };
 }
 

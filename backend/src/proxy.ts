@@ -46,5 +46,12 @@ export const config = {
     "/api/v1/conversations",
     "/api/v1/conversations/:path*",
     "/api/v1/messages/:path*",
+    "/api/v1/reports",
+    "/api/v1/reports/:path*",
+    "/api/v1/notifications",
+    "/api/v1/notifications/:path*",
+    "/api/v1/blocks",
+    "/api/v1/blocks/:path*",
+    "/api/v1/dashboard/:path*",
   ],
 };

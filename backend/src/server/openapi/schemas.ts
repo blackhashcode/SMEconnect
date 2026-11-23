@@ -140,6 +140,42 @@ export const offerListSuccessEnvelopeSchema = successEnvelope(validators.offerRe
 export const acceptOfferSuccessEnvelopeSchema = successEnvelope(validators.acceptOfferResultSchema);
 export const agreementSuccessEnvelopeSchema = successEnvelope(validators.agreementSummarySchema);
 
+// Phase 9 — reviews, reports, notifications, blocks and dashboards
+export const reviewSuccessEnvelopeSchema = successEnvelope(validators.reviewRecordSchema);
+export const reviewListSuccessEnvelopeSchema = successEnvelope(
+  validators.reviewRecordListSchema,
+);
+export const reportSuccessEnvelopeSchema = successEnvelope(validators.reportRecordSchema);
+export const reportListSuccessEnvelopeSchema = successEnvelope(
+  validators.reportRecordListSchema,
+);
+export const notificationSuccessEnvelopeSchema = successEnvelope(
+  validators.notificationRecordSchema,
+);
+export const notificationListSuccessEnvelopeSchema = successEnvelope(
+  validators.notificationRecordListSchema,
+);
+export const unreadNotificationCountSuccessEnvelopeSchema = successEnvelope(
+  validators.unreadNotificationCountSchema,
+);
+export const notificationMarkReadSuccessEnvelopeSchema = successEnvelope(
+  validators.notificationMarkReadResultSchema,
+);
+export const notificationMarkAllReadSuccessEnvelopeSchema = successEnvelope(
+  validators.notificationMarkAllReadResultSchema,
+);
+export const blockSuccessEnvelopeSchema = successEnvelope(validators.blockedUserSchema);
+export const blockListSuccessEnvelopeSchema = successEnvelope(
+  validators.blockedUserListSchema,
+);
+export const unblockSuccessEnvelopeSchema = successEnvelope(validators.unblockResultSchema);
+export const ownerDashboardSuccessEnvelopeSchema = successEnvelope(
+  validators.ownerDashboardSchema,
+);
+export const investorDashboardSuccessEnvelopeSchema = successEnvelope(
+  validators.investorDashboardSchema,
+);
+
 // Phase 8 — repayments and loan history
 export const repaymentSuccessEnvelopeSchema = successEnvelope(
   validators.repaymentRecordSchema,
@@ -372,6 +408,39 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["MessageRecord", validators.messageRecordSchema],
   ["ConversationRecord", validators.conversationRecordSchema],
   ["MarkReadResult", validators.markReadResultSchema],
+
+  // Phase 9 — reputation, notifications and dashboards
+  ["ReviewListQuery", validators.reviewListQuerySchema],
+  ["ReviewRecord", validators.reviewRecordSchema],
+  ["ReviewRecordList", validators.reviewRecordListSchema],
+  ["ReviewSummary", validators.reviewSummarySchema],
+  ["ReportListQuery", validators.reportListQuerySchema],
+  ["ReportRecord", validators.reportRecordSchema],
+  ["ReportRecordList", validators.reportRecordListSchema],
+  ["NotificationListQuery", validators.notificationListQuerySchema],
+  ["NotificationRecord", validators.notificationRecordSchema],
+  ["NotificationRecordList", validators.notificationRecordListSchema],
+  ["UnreadNotificationCount", validators.unreadNotificationCountSchema],
+  ["NotificationMarkReadResult", validators.notificationMarkReadResultSchema],
+  ["NotificationMarkAllReadResult", validators.notificationMarkAllReadResultSchema],
+  ["BlockUserRequest", validators.blockUserSchema],
+  ["BlockedUser", validators.blockedUserSchema],
+  ["BlockedUserList", validators.blockedUserListSchema],
+  ["BlockResult", validators.blockResultSchema],
+  ["UnblockResult", validators.unblockResultSchema],
+  ["DashboardVerification", validators.dashboardVerificationSchema],
+  ["DashboardProfile", validators.dashboardProfileSchema],
+  ["RecentNotification", validators.recentNotificationSchema],
+  ["NextDue", validators.nextDueSchema],
+  ["DashboardLoanRequest", validators.dashboardLoanRequestSchema],
+  ["DashboardOffer", validators.dashboardOfferSchema],
+  ["DashboardProgress", validators.dashboardProgressSchema],
+  ["DashboardLoan", validators.dashboardLoanSchema],
+  ["PortfolioHealth", validators.portfolioHealthSchema],
+  ["PortfolioItem", validators.portfolioItemSchema],
+  ["DashboardActivity", validators.dashboardActivitySchema],
+  ["OwnerDashboard", validators.ownerDashboardSchema],
+  ["InvestorDashboard", validators.investorDashboardSchema],
 
   // Phase 7 — offers and agreements
   ["OfferListFilters", validators.offerListQuerySchema],
