@@ -5,20 +5,23 @@ Everything below runs on free plans, with no credit card needed for the defaults
 | Piece | Service | Free tier limits worth knowing |
 | --- | --- | --- |
 | Database | **Neon** Postgres | 0.5 GB storage; sleeps after 5 min idle (about 1 s wake-up) |
-| Backend API | **Vercel** (project 1, root `backend/`) | Hobby plan: serverless functions, 100 GB bandwidth/month |
-| Frontend | **Vercel** (project 2, root `frontend/`) | Same Hobby plan |
+| Frontend + backend | **Vercel**: one project, two services (`vercel.json`) | Hobby plan: serverless functions, 100 GB bandwidth/month |
 | Email (sign-up codes, reminders) | **Brevo** SMTP | 300 emails/day |
 | Scheduled jobs | **GitHub Actions** | Overdue check every 6 h, reminders daily |
 | Uploaded files | Stored in Neon (`STORAGE_PROVIDER=database`) | Counts toward the 0.5 GB; fine for a showcase |
 
 ```
-Browser ──► frontend.vercel.app ──/api/v1/*──► backend.vercel.app ──► Neon (pooled)
-                                                       ▲
-                          GitHub Actions (cron) ───────┘ jobs connect to Neon directly
+                       ┌─ /api/*  ──► backend service ──► Neon (pooled)
+Browser ──► smeconnect.vercel.app                  ▲
+                       └─ /*      ──► frontend service ─┘ (server pages call the backend
+                                                           through the BACKEND_URL binding)
+GitHub Actions (cron) ──► Neon directly
 ```
 
-The browser only talks to the frontend; the frontend forwards `/api/v1/*` to the backend.
-So the session cookie belongs to the frontend's domain, and no CORS setup is needed.
+One Vercel project serves both apps on one domain. `vercel.json` routes `/api/*` to the backend
+service and everything else to the frontend service. The frontend's server-side pages reach the
+backend through a service binding that injects `BACKEND_URL`. The session cookie, Google sign-in
+and the backend's trusted origin are all on that one domain, and no CORS setup is needed.
 
 Vercel Hobby is for non-commercial projects, which suits a showcase. If this becomes a
 real business, move to Vercel Pro or another host. The code doesn't depend on Vercel.
@@ -60,30 +63,33 @@ migrations from your machine: load `.env.local` into the shell, then run
 3. **SMTP & API → SMTP**: generate an SMTP key. Note the login shown there.
    You'll use host `smtp-relay.brevo.com`, port `587`.
 
-## 3. Backend on Vercel
+## 3. Vercel: one project, two services
 
-1. Sign in to [vercel.com](https://vercel.com) with GitHub → **Add New → Project** →
-   import the repository.
-2. Configure:
-   - **Project name:** e.g. `smeconnect-api`
-   - **Root Directory:** `backend`
-   - **Framework preset:** Next.js (auto-detected)
-   - **Build Command:** override with `pnpm vercel-build`
-     (generates the Prisma client, runs `prisma migrate deploy`, then builds)
-   - **Settings → General → Node.js Version:** 22.x
-3. Environment variables (Production). Use your real URLs once you know them; you can
-   redeploy after editing.
+The repo's `vercel.json` defines the project:
+
+| Service | Folder | Public path | Notes |
+| --- | --- | --- | --- |
+| `backend` | `backend/` | `/api/*` | Build: `pnpm vercel-build` (Prisma client, `migrate deploy`, build) |
+| `frontend` | `frontend/` | everything else | Binding `BACKEND_URL` → the backend's internal URL |
+
+1. Sign in to [vercel.com](https://vercel.com) with GitHub → **Add New → Project** → import
+   the repository. Leave **Root Directory** as the repository root; Vercel reads `vercel.json`
+   and sets up both services. Name the project e.g. `smeconnect`.
+2. **Settings → General → Node.js Version:** 22.x.
+3. Environment variables (shared by both services). Use the project's real domain, e.g.
+   `https://smeconnect.vercel.app`, for the three URL settings. **Don't set `BACKEND_URL`**:
+   the binding injects it.
 
    | Variable | Value |
    | --- | --- |
    | `DATABASE_URL` | Neon **pooled** string |
-   | `DIRECT_URL` | Neon **direct** string |
+   | `DIRECT_URL` (or `DATABASE_URL_UNPOOLED`) | Neon **direct** string |
    | `DATABASE_POOL_MAX` | `10` (see docs/PERFORMANCE_TEST.md) |
    | `UV_THREADPOOL_SIZE` | `16` (faster sign-ups under load) |
    | `BETTER_AUTH_SECRET` | the secret from step 0 |
-   | `BETTER_AUTH_URL` | `https://smeconnect-api.vercel.app` (this project's URL) |
-   | `BETTER_AUTH_TRUSTED_ORIGINS` | `https://smeconnect.vercel.app` (the frontend's URL) |
-   | `APP_URL` | `https://smeconnect.vercel.app` (the frontend's URL) |
+   | `BETTER_AUTH_URL` | `https://smeconnect.vercel.app` (the project's domain) |
+   | `APP_URL` | `https://smeconnect.vercel.app` (same domain) |
+   | `BETTER_AUTH_TRUSTED_ORIGINS` | `https://smeconnect.vercel.app` (same domain) |
    | `STORAGE_PROVIDER` | `database` |
    | `RATE_LIMIT_STORE` | `database` |
    | `SMTP_HOST` | `smtp-relay.brevo.com` |
@@ -92,31 +98,19 @@ migrations from your machine: load `.env.local` into the shell, then run
    | `SMTP_PASSWORD` | Brevo SMTP key |
    | `EMAIL_FROM` | `SME Connect <your-verified-sender@example.com>` |
    | `OTP_DELIVERY_PROVIDER` | `email` |
-   | `API_DOCS_ENABLED` | `false` (or `true` if you want `/docs` public for the showcase) |
+   | `API_DOCS_ENABLED` | `false` |
    | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | optional: turns on "Continue with Google" (see [GOOGLE_AUTH.md](GOOGLE_AUTH.md)) |
 
-4. **Deploy.** When it finishes, open `https://<backend>/api/v1/loan-requests`; you should
-   get JSON (an empty list on a fresh database).
+4. **Deploy.** Then check:
+   - `https://<domain>/api/v1/health` reports the database as connected (backend service).
+   - `https://<domain>/` shows the landing page (frontend service).
+5. If Vercel gave you a different domain than you entered, update `BETTER_AUTH_URL`,
+   `APP_URL` and `BETTER_AUTH_TRUSTED_ORIGINS` and redeploy (Deployments → ⋯ → Redeploy).
 
-## 4. Frontend on Vercel
+Locally nothing changes: run the backend on :4000 and the frontend on :3000, and the frontend's
+own rewrite forwards `/api/v1/*` (or run `vercel dev` to emulate the services setup).
 
-1. **Add New → Project** → the same repository again.
-2. Configure:
-   - **Project name:** e.g. `smeconnect`
-   - **Root Directory:** `frontend`
-   - **Framework preset:** Next.js; default build command
-   - **Node.js Version:** 22.x
-3. Environment variables:
-
-   | Variable | Value |
-   | --- | --- |
-   | `BACKEND_URL` | `https://smeconnect-api.vercel.app` (no trailing slash) |
-
-4. **Deploy.** If the final URLs differ from what you put in the backend's
-   `BETTER_AUTH_URL`, `BETTER_AUTH_TRUSTED_ORIGINS` or `APP_URL`, fix them there and
-   redeploy the backend (Deployments → ⋯ → Redeploy).
-
-## 5. Scheduled jobs: GitHub Actions
+## 4. Scheduled jobs: GitHub Actions
 
 Vercel doesn't run background jobs, so
 [`.github/workflows/repayment-jobs.yml`](../.github/workflows/repayment-jobs.yml) does.
@@ -127,7 +121,7 @@ secrets: `DATABASE_URL` (use the Neon **direct** string), `SMTP_HOST`, `SMTP_POR
 Test it from **Actions → Repayment jobs → Run workflow**. Scheduled workflows run only from
 the default branch (`main`).
 
-## 6. Create the admin account
+## 5. Create the admin account
 
 The database starts empty: no demo members, loans or posts. Real people sign up through the
 site. The only account you create by hand is the first administrator. Run this once from
@@ -146,7 +140,7 @@ Sign in at `/login` with that email and password; you'll see **Admin** in the to
 command is safe to re-run: it does nothing if the admin already exists. Keep the password
 in a password manager.
 
-## 7. Check the live site
+## 6. Check the live site
 
 - [ ] Landing page loads with the real photos and no made-up numbers
 - [ ] Sign up with a real email → the code arrives (check spam) → verification works

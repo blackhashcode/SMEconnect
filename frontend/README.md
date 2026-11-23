@@ -33,6 +33,9 @@ Configuration is optional; see [`.env.example`](.env.example) (`BACKEND_URL`).
 - **Browser → backend:** `next.config.mjs` rewrites `/api/v1/*` to `BACKEND_URL`, so the
   Better Auth session cookie is first-party. Client components use
   [`src/lib/client-api.ts`](src/lib/client-api.ts).
+- **On Vercel:** one project, two services ([`../vercel.json`](../vercel.json)). `/api/*` is routed
+  to the backend service at the edge, and the `backend` binding injects `BACKEND_URL` for
+  server-side calls, so don't set `BACKEND_URL` yourself there.
 - **Server Components → backend:** [`src/lib/backend/server.ts`](src/lib/backend/server.ts)
   calls the backend directly and forwards the visitor's cookie.
 - **Types:** responses are typed from the generated OpenAPI schema, and

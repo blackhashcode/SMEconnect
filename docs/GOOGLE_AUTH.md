@@ -62,15 +62,15 @@ Browser ── "Continue with Google" ──► frontend /api/v1/auth/sign-in/so
 2. Application type: **Web application**. Name: `SME Connect web`.
 3. **Authorised JavaScript origins:**
    - `http://localhost:3000` (local development)
-   - `https://smeconnect.vercel.app` (your live frontend URL)
+   - `https://smeconnect.vercel.app` (your site's domain)
 4. **Authorised redirect URIs** (must match exactly, including `https` and no trailing slash):
    - `http://localhost:3000/api/v1/auth/callback/google`
    - `https://smeconnect.vercel.app/api/v1/auth/callback/google`
 5. **Create**, then copy the **Client ID** and **Client secret**.
 
-> The redirect goes to the **frontend** URL, not the backend's. Browsers only ever talk to the
-> frontend, which forwards `/api/v1/*` to the backend, so the sign-in cookies stay on one site.
-> The backend builds the redirect URL from `APP_URL`, so `APP_URL` must be the frontend URL.
+> Use the site's public domain. On Vercel the frontend and backend share it (`vercel.json` sends
+> `/api/*` to the backend), so the callback reaches the backend directly. The backend builds the
+> redirect URL from `APP_URL`, so `APP_URL` must be that domain.
 
 ## Step 4: Add the settings
 
@@ -86,7 +86,7 @@ Restart the backend. The button starts working within five minutes (the frontend
 setting briefly), or straight away after restarting the frontend.
 
 **Production** (Vercel → backend project → Settings → Environment Variables): add the same
-two variables, check that `APP_URL` is the live frontend URL, then redeploy the backend.
+two variables to the Vercel project, check that `APP_URL` is the site's domain, then redeploy.
 
 ## Step 5: Test it
 
