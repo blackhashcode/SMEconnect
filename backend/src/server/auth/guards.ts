@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { auth } from "@/server/auth";
 import type { Role } from "@/server/auth/roles";
 import { ForbiddenError, UnauthorizedError } from "@/server/errors";
+import type { Actor } from "@/server/services/actor";
 
 export async function getSession() {
   return auth.api.getSession({ headers: await headers() });
@@ -11,6 +12,20 @@ export async function requireSession() {
   const session = await getSession();
   if (!session) throw new UnauthorizedError();
   return session;
+}
+
+export async function requireActor(...allowedRoles: Role[]): Promise<Actor> {
+  const session = await requireSession();
+  const role = (session.user as { role?: Role }).role;
+
+  if (!role) {
+    throw new ForbiddenError("Account role is missing");
+  }
+  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    throw new ForbiddenError(`Requires one of: ${allowedRoles.join(", ")}`);
+  }
+
+  return { id: session.user.id, role };
 }
 
 export async function requireRole(...roles: Role[]) {

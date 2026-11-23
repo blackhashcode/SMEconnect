@@ -11,7 +11,7 @@ export function useLogout() {
   async function logout() {
     setPending(true);
     try {
-      await fetch("/api/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      await fetch("/api/v1/auth/logout", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
     } finally {
       // Even if the request failed, leave the member area; the guard re-checks.
       router.replace("/login?loggedOut=1");

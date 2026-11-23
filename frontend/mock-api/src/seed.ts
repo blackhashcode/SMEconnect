@@ -4,10 +4,12 @@ import { businesses } from "../../src/data/businesses.ts";
 import { loanRequests } from "../../src/data/loans.ts";
 import { loanOffers } from "../../src/data/offers.ts";
 import { chatMessages, chatThreads } from "../../src/data/messages.ts";
+import { notifications as mockNotifications } from "../../src/data/notifications.ts";
+import { verificationCases } from "../../src/data/verification.ts";
 import { config } from "./config.ts";
 import { get, openDatabase, run, saveNow, transaction } from "./db.ts";
+import { buildRepaymentSchedule } from "./http.ts";
 
-/** Turns mock labels like "2 days ago" or "18 hours ago" into ISO timestamps. */
 function isoAgo(label: string, now = Date.now()) {
   const match = label.match(/(\d+)\s*(minute|hour|day|week)s?\s+ago/i);
   const units: Record<string, number> = { minute: 60_000, hour: 3_600_000, day: 86_400_000, week: 604_800_000 };
@@ -15,18 +17,11 @@ function isoAgo(label: string, now = Date.now()) {
   return new Date(now - ms).toISOString();
 }
 
-/** The mock inbox is written from Rafiq's side; these offsets place each thread in time. */
 const THREAD_AGE_HOURS: Record<string, number> = { "th-1": 1, "th-2": 26, "th-3": 100, "th-4": 150 };
 const INBOX_OWNER = "rafiq";
 
-/** Demo accounts sign in as `<id>@demo.smeconnect.bd`, e.g. rafiq@demo.smeconnect.bd. */
 export const demoEmail = (id: string) => `${id}@demo.smeconnect.bd`;
 
-/**
- * Loads the front end's mock people and businesses into the database, keeping
- * the same ids so loans, offers and messages in src/data still line up.
- * Safe to run repeatedly: existing rows are left alone.
- */
 export async function seed() {
   const passwordHash = await bcrypt.hash(config.seedPassword, config.bcryptRounds);
   let added = 0;
@@ -91,8 +86,8 @@ export async function seed() {
     for (const loan of loanRequests) {
       if (get("SELECT 1 FROM loan_requests WHERE id = ?", [loan.id])) continue;
       run(
-        `INSERT INTO loan_requests (id, business_id, title, amount, purpose, tenure_months, rate, status, description,
-           repayment_frequency, image, highlights, progress, connections_count, created_at)
+        `INSERT INTO loan_requests (id, business_id, title, amount, purpose, tenure_months, rate, status,
+           description, repayment_frequency, image, highlights, progress, connections_count, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           loan.id,
@@ -117,63 +112,135 @@ export async function seed() {
 
     for (const offer of loanOffers) {
       if (get("SELECT 1 FROM loan_offers WHERE id = ?", [offer.id])) continue;
-      const created = isoAgo(offer.createdAt);
+      const createdAt = isoAgo(offer.createdAt);
       run(
-        `INSERT INTO loan_offers (id, request_id, investor_id, amount, rate, tenure_months, frequency, status, note, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [offer.id, offer.requestId, offer.investorId, offer.amount, offer.rate, offer.tenureMonths, offer.frequency, offer.status, offer.note, created, created],
+        `INSERT INTO loan_offers (id, request_id, investor_id, amount, rate, tenure_months, frequency, status,
+           note, counter_amount, counter_rate, counter_tenure, counter_note, last_action_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          offer.id,
+          offer.requestId,
+          offer.investorId,
+          offer.amount,
+          offer.rate,
+          offer.tenureMonths,
+          offer.frequency,
+          offer.status,
+          offer.note,
+          offer.counter?.amount ?? null,
+          offer.counter?.rate ?? null,
+          offer.counter?.tenureMonths ?? null,
+          offer.counter?.note ?? null,
+          offer.lastActionBy ?? (offer.counter ? "owner" : "investor"),
+          createdAt,
+          createdAt,
+        ],
       );
       added++;
-    }
 
-    // The mock data marks some requests "open" even though they already have live offers.
-    run(`UPDATE loan_requests SET status = 'offers_received'
-         WHERE status = 'open' AND id IN (SELECT request_id FROM loan_offers WHERE status IN ('pending', 'negotiating'))`);
-
-    // A demo admin for the verification panel. Admins don't appear in the member directory.
-    if (!get("SELECT 1 FROM users WHERE id = 'admin'")) {
-      run(
-        `INSERT INTO users (id, email, password_hash, name, role, headline, location, avatar, cover, about, verified, joined)
-         VALUES ('admin', ?, ?, 'SME Connect Admin', 'admin', 'Verification team', 'Dhaka', '', '', 'Reviews identity and trade licence documents.', 1, 'January 2024')`,
-        [demoEmail("admin"), passwordHash],
-      );
-      added++;
+      // Generate exact repayment schedule for already-accepted demo loans.
+      if (offer.status === "accepted") {
+        const hasRepayments = get("SELECT 1 FROM repayments WHERE loan_request_id = ?", [offer.requestId]);
+        if (!hasRepayments) {
+          const schedule = buildRepaymentSchedule(offer.amount, offer.rate, offer.tenureMonths, offer.frequency);
+          for (const inst of schedule.installments) {
+            run(
+              `INSERT INTO repayments (id, loan_request_id, installment_no, due_date, amount_bdt, status)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              [
+                `rep-${offer.requestId}-${inst.installmentNo}`,
+                offer.requestId,
+                inst.installmentNo,
+                inst.dueDate,
+                inst.amountBdt,
+                inst.installmentNo === 1 ? "CONFIRMED" : "UPCOMING",
+              ],
+            );
+          }
+        }
+      }
     }
 
     const now = Date.now();
     for (const thread of chatThreads) {
       if (get("SELECT 1 FROM threads WHERE id = ?", [thread.id])) continue;
-      const msgs = chatMessages.filter((message) => message.threadId === thread.id);
-      const end = now - (THREAD_AGE_HOURS[thread.id] ?? 24) * 3_600_000;
-      // Space messages seven minutes apart, ending at the thread's last activity.
-      const stamps = msgs.map((_, i) => new Date(end - (msgs.length - 1 - i) * 7 * 60_000).toISOString());
-      const first = stamps[0] ?? new Date(end).toISOString();
-      const last = stamps[stamps.length - 1] ?? first;
-      const loan = thread.businessId ? loanRequests.find((item) => item.businessId === thread.businessId) : undefined;
-
-      run("INSERT INTO threads (id, subject, business_id, loan_request_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", [
+      const updatedAt = new Date(now - (THREAD_AGE_HOURS[thread.id] ?? 12) * 3_600_000).toISOString();
+      const firstLoan = thread.businessId
+        ? get<{ id: string }>("SELECT id FROM loan_requests WHERE business_id = ? LIMIT 1", [thread.businessId])?.id ?? null
+        : null;
+      run(
+        `INSERT INTO threads (id, subject, business_id, loan_request_id, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [thread.id, thread.subject, thread.businessId ?? null, firstLoan, updatedAt, updatedAt],
+      );
+      run("INSERT INTO thread_participants (thread_id, user_id, last_read_at) VALUES (?, ?, ?)", [
         thread.id,
-        thread.subject,
-        thread.businessId ?? null,
-        loan?.id ?? null,
-        first,
-        last,
+        INBOX_OWNER,
+        thread.unread > 0 ? "1970-01-01T00:00:00.000Z" : updatedAt,
       ]);
-      // Rafiq has read everything except the thread's unread count; the other side has read it all.
-      const readUpTo = thread.unread > 0 ? stamps[stamps.length - 1 - thread.unread] ?? "1970-01-01T00:00:00.000Z" : last;
-      run("INSERT INTO thread_participants (thread_id, user_id, last_read_at) VALUES (?, ?, ?)", [thread.id, INBOX_OWNER, readUpTo]);
-      run("INSERT INTO thread_participants (thread_id, user_id, last_read_at) VALUES (?, ?, ?)", [thread.id, thread.personId, last]);
-      msgs.forEach((message, i) => {
-        run("INSERT INTO messages (id, thread_id, sender_id, text, kind, offer_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)", [
-          message.id,
-          thread.id,
-          message.senderId,
-          message.text,
-          message.kind ?? "text",
-          message.offerId ?? null,
-          stamps[i],
-        ]);
+      run("INSERT INTO thread_participants (thread_id, user_id, last_read_at) VALUES (?, ?, ?)", [
+        thread.id,
+        thread.personId,
+        updatedAt,
+      ]);
+
+      const msgs = chatMessages.filter((m) => m.threadId === thread.id);
+      msgs.forEach((msg, index) => {
+        const msgAt = new Date(new Date(updatedAt).getTime() - (msgs.length - 1 - index) * 180_000).toISOString();
+        run(
+          `INSERT INTO messages (id, thread_id, sender_id, text, kind, offer_id, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [msg.id, msg.threadId, msg.senderId, msg.text, msg.kind ?? "text", msg.offerId ?? null, msgAt],
+        );
       });
+      added++;
+    }
+
+    // Seed real notifications for demo users (Rafiq + Nusrat)
+    for (const targetUserId of ["rafiq", "nusrat"]) {
+      for (const n of mockNotifications) {
+        const nid = `${targetUserId}-${n.id}`;
+        if (get("SELECT 1 FROM notifications WHERE id = ?", [nid])) continue;
+        run(
+          `INSERT INTO notifications (id, user_id, kind, person_id, title, body, action_label, href, read_at, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            nid,
+            targetUserId,
+            n.kind,
+            n.personId ?? null,
+            n.title,
+            n.body,
+            n.actionLabel ?? null,
+            n.href ?? null,
+            n.unread ? null : isoAgo(n.time),
+            isoAgo(n.time),
+          ],
+        );
+        added++;
+      }
+    }
+
+    // Seed real verification queue for admin panel
+    for (const item of verificationCases) {
+      if (get("SELECT 1 FROM verifications WHERE id = ?", [item.id])) continue;
+      if (!get("SELECT 1 FROM users WHERE id = ?", [item.personId])) continue;
+      run(
+        `INSERT INTO verifications (id, person_id, business_name, type, nid, trade_license, documents, risk, status, submitted_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          item.id,
+          item.personId,
+          item.businessName,
+          item.type,
+          item.nid,
+          item.tradeLicense,
+          JSON.stringify(item.documents),
+          item.risk,
+          item.status,
+          isoAgo(item.submittedAt),
+        ],
+      );
       added++;
     }
   });
@@ -181,10 +248,9 @@ export async function seed() {
   return added;
 }
 
-// `npm run seed` runs this file directly.
-if (process.argv[1]?.replace(/\\/g, "/").endsWith("src/seed.ts")) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   await openDatabase();
   const added = await seed();
   saveNow();
-  console.log(added ? `Seeded ${added} rows.` : "Database already seeded; nothing to add.");
+  console.log(added ? `Added ${added} demo rows.` : "Database already has all demo rows.");
 }

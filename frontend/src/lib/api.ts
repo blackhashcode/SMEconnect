@@ -1,11 +1,18 @@
 import { cookies } from "next/headers";
-import type { AgreementView, Business, LoanOfferView, LoanRequestView, Person, ThreadView } from "@/data/types";
+import type {
+  AdminVerificationCase,
+  AgreementView,
+  AppNotification,
+  Business,
+  LoanOfferView,
+  LoanRequestView,
+  Person,
+  ThreadView,
+} from "@/data/types";
 
 /**
- * Server-side client for the API (the stand-in lives in mock-api/). Use only from Server
- * Components, layouts and route handlers: it forwards the visitor's cookies so
- * the API sees their session. The browser talks to the same API through the
- * `/api/*` rewrite in next.config.mjs.
+ * Server-side API client (canonical `/api/v1/*` contract).
+ * Unwraps the standard `{ data, meta? }` envelope defined in `docs/API.md`.
  */
 export const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
@@ -19,7 +26,7 @@ export async function apiGet<T>(path: string): Promise<{ status: number; data: T
   const cookieHeader = (await cookies()).toString();
   let res: Response;
   try {
-    res = await fetch(`${API_URL}/api${path}`, {
+    res = await fetch(`${API_URL}/api/v1${path}`, {
       headers: cookieHeader ? { cookie: cookieHeader } : {},
       cache: "no-store",
     });
@@ -27,7 +34,9 @@ export async function apiGet<T>(path: string): Promise<{ status: number; data: T
     throw new ApiUnavailableError(error);
   }
   if (!res.ok) return { status: res.status, data: null };
-  return { status: res.status, data: (await res.json()) as T };
+  const payload = (await res.json()) as { data?: T } & T;
+  const unwrapped = payload && typeof payload === "object" && "data" in payload ? (payload.data as T) : (payload as T);
+  return { status: res.status, data: unwrapped };
 }
 
 export async function listBusinesses() {
@@ -52,7 +61,9 @@ export async function getPerson(id: string) {
 
 // ---------- Loans, offers, agreements ----------
 
-export async function listLoans(params: { businessId?: string; status?: "active" | "open" | "offers_received" | "agreed" | "closed"; mine?: boolean } = {}) {
+export async function listLoans(
+  params: { businessId?: string; status?: "active" | "open" | "offers_received" | "agreed" | "closed"; mine?: boolean } = {},
+) {
   const search = new URLSearchParams();
   if (params.businessId) search.set("businessId", params.businessId);
   if (params.status) search.set("status", params.status);
@@ -78,7 +89,9 @@ export async function listMyOffers(role?: "sent" | "received") {
 }
 
 export async function getOffer(id: string) {
-  const { data } = await apiGet<{ offer: LoanOfferView; loan: LoanRequestView; viewerSide: "owner" | "investor" }>(`/offers/${encodeURIComponent(id)}`);
+  const { data } = await apiGet<{ offer: LoanOfferView; loan: LoanRequestView; viewerSide: "owner" | "investor" }>(
+    `/offers/${encodeURIComponent(id)}`,
+  );
   return data;
 }
 
@@ -97,4 +110,21 @@ export async function listThreads() {
 export async function unreadMessageCount() {
   const { data } = await apiGet<{ unread: number }>("/threads/unread-count");
   return data?.unread ?? 0;
+}
+
+// ---------- Connections, Notifications & Admin Verifications ----------
+
+export async function listConnectedIds(): Promise<string[]> {
+  const { data } = await apiGet<{ connectedIds: string[] }>("/connections");
+  return data?.connectedIds ?? [];
+}
+
+export async function listNotifications(): Promise<{ notifications: AppNotification[]; unread: number }> {
+  const { data } = await apiGet<{ notifications: AppNotification[]; unread: number }>("/notifications");
+  return data ?? { notifications: [], unread: 0 };
+}
+
+export async function listVerificationCases(): Promise<AdminVerificationCase[]> {
+  const { data } = await apiGet<{ cases: AdminVerificationCase[] }>("/admin/verifications");
+  return data?.cases ?? [];
 }

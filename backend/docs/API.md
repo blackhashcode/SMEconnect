@@ -1,46 +1,13 @@
-# SME Connect API contract
+# SME Connect Backend API (`/api/v1`)
 
-Base path: `/api/v1`
+> The canonical API contract shared between `frontend/` and `backend/` lives in **[`../../docs/API.md`](../../docs/API.md)**.
 
-## Conventions
+All backend route handlers live under `src/app/api/v1/**/route.ts` (plus Better Auth at `src/app/api/auth/[...all]/route.ts`) and strictly follow the thin-handler architecture defined in `backend/AGENTS.md`:
 
-- Success: `{ "data": ..., "meta": ... }` (`meta` is optional).
-- Error: `{ "error": { "code": "...", "message": "...", "details": ... } }`.
-- Cursor pagination: `?cursor=&limit=`, default limit 20, max 50.
-- Dates are ISO 8601 UTC. Money is an integer number of BDT (whole taka) in fields ending in `Bdt`.
-- Status codes: 200/201 success, 400 validation, 401 unauthenticated, 403 forbidden,
-  404 not found, 409 conflict/invalid state, 422 business rule violation, 503 dependency unavailable.
-
-## System
-
-### `GET /api/v1/health`
-
-Reports API and PostgreSQL connectivity. No authentication required.
-
-**Success — 200**
-
-```json
-{
-  "data": {
-    "status": "ok",
-    "database": "connected",
-    "timestamp": "2026-11-22T18:00:00.000Z"
-  }
-}
+```text
+Route Handler (parse + Zod validate + auth guard)
+  └──► Service Layer (business rules + prisma.$transaction + audit log + notifications)
+         └──► Prisma ORM (PostgreSQL 16)
 ```
 
-**Database unavailable — 503**
-
-```json
-{
-  "error": {
-    "code": "DATABASE_UNAVAILABLE",
-    "message": "Database connection failed"
-  }
-}
-```
-
-## Modules (added in later phases)
-
-Auth & verification, profiles, loan requests, feed/networking, discovery, messaging,
-offers & agreement, repayments, reputation/notifications/dashboards, admin.
+See [../../docs/API.md](../../docs/API.md) for full request/response envelopes, error codes, domain state machines, and the complete endpoint table.

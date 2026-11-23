@@ -6,3 +6,470 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  OWNER
+  INVESTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LoanRequestStatus {
+  DRAFT
+  OPEN
+  IN_DISCUSSION
+  FUNDED
+  REPAYING
+  COMPLETED
+  PAUSED
+  CANCELLED
+}
+
+enum RepaymentFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum OfferActor {
+  OWNER
+  INVESTOR
+}
+
+enum LoanStatus {
+  PENDING_AGREEMENT
+  ACTIVE
+  COMPLETED
+  DEFAULTED
+}
+
+enum RepaymentStatus {
+  UPCOMING
+  MARKED_PAID
+  CONFIRMED
+  OVERDUE
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum MessageKind {
+  TEXT
+  OFFER
+  SYSTEM
+}
+
+enum NotificationType {
+  OFFER
+  CONNECTION
+  MESSAGE
+  VERIFICATION
+  REPAYMENT
+  AGREEMENT
+  SYSTEM
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String
+  email         String     @unique
+  emailVerified Boolean    @default(false)
+  phone         String?    @unique
+  phoneVerified Boolean    @default(false)
+  image         String?
+  role          Role       @default(OWNER)
+  status        UserStatus @default(ACTIVE)
+  headline      String     @default("")
+  location      String     @default("")
+  about         String     @default("")
+  trustScore    Int        @default(50)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  sessions              Session[]
+  accounts              Account[]
+  businessProfile       BusinessProfile?
+  investorProfile       InvestorProfile?
+  kycVerifications      KycVerification[]         @relation("UserKyc")
+  reviewedVerifications KycVerification[]         @relation("ReviewerKyc")
+  loanRequests          LoanRequest[]
+  offers                Offer[]
+  loansAsOwner          Loan[]                    @relation("OwnerLoans")
+  loansAsInvestor       Loan[]                    @relation("InvestorLoans")
+  sentConnections       Connection[]              @relation("ConnectionRequester")
+  receivedConnections   Connection[]              @relation("ConnectionAddressee")
+  conversations         ConversationParticipant[]
+  sentMessages          Message[]
+  notifications         Notification[]
+  reviewsGiven          Review[]                  @relation("ReviewAuthor")
+  reviewsReceived       Review[]                  @relation("ReviewSubject")
+  auditLogs             AuditLog[]
+
+  @@index([role, status])
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+model KycVerification {
+  id            String             @id @default(cuid())
+  userId        String
+  user          User               @relation("UserKyc", fields: [userId], references: [id], onDelete: Cascade)
+  type          Role
+  status        VerificationStatus @default(PENDING)
+  nidMasked     String
+  tradeLicense  String?
+  idDocumentUrl String
+  salesProofUrls String[]          @default([])
+  shopLinks     String[]           @default([])
+  reviewerId    String?
+  reviewer      User?              @relation("ReviewerKyc", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewNote    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+model BusinessProfile {
+  id                 String         @id @default(cuid())
+  ownerId            String         @unique
+  owner              User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  shopName           String
+  slug               String         @unique
+  category           String
+  tagline            String         @default("")
+  description        String         @default("")
+  location           String         @default("")
+  founded            String         @default("")
+  teamSize           String         @default("")
+  monthlyRevenueBdt  Int            @default(0)
+  platformLinks      Json           @default("{}")
+  logoUrl            String         @default("")
+  coverUrl           String         @default("")
+  specialties        String[]       @default([])
+  verified           Boolean        @default(false)
+  trustScore         Int            @default(50)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  productImages ProductImage[]
+  loanRequests  LoanRequest[]
+
+  @@index([category, verified])
+  @@index([location])
+}
+
+model ProductImage {
+  id                String          @id @default(cuid())
+  businessProfileId String
+  businessProfile   BusinessProfile @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+  url               String
+  caption           String          @default("")
+  order             Int             @default(0)
+  createdAt         DateTime        @default(now())
+
+  @@index([businessProfileId, order])
+}
+
+model InvestorProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                 String   @default("")
+  minLendBdt          Int      @default(10000)
+  maxLendBdt          Int      @default(500000)
+  preferredCategories String[] @default([])
+  preferredTenureDays Int      @default(180)
+  preferredRateMinPct Decimal  @default(8.00) @db.Decimal(5, 2)
+  preferredRateMaxPct Decimal  @default(18.00) @db.Decimal(5, 2)
+  location            String   @default("")
+  verified            Boolean  @default(false)
+  trustScore          Int      @default(50)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([verified, location])
+}
+
+model LoanRequest {
+  id                 String             @id @default(cuid())
+  ownerId            String
+  owner              User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  businessProfileId  String
+  businessProfile    BusinessProfile    @relation(fields: [businessProfileId], references: [id], onDelete: Cascade)
+  title              String
+  amountBdt          Int
+  purpose            String
+  description        String
+  tenureDays         Int
+  proposedRatePct    Decimal            @db.Decimal(5, 2)
+  repaymentFrequency RepaymentFrequency @default(MONTHLY)
+  highlights         String[]           @default([])
+  proofUrls          String[]           @default([])
+  status             LoanRequestStatus  @default(DRAFT)
+  publishedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  offers        Offer[]
+  loan          Loan?
+  conversations Conversation[]
+
+  @@index([ownerId, status])
+  @@index([businessProfileId, status])
+  @@index([status, createdAt])
+}
+
+model Offer {
+  id                 String             @id @default(cuid())
+  loanRequestId      String
+  loanRequest        LoanRequest        @relation(fields: [loanRequestId], references: [id], onDelete: Cascade)
+  investorId         String
+  investor           User               @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  amountBdt          Int
+  interestRatePct    Decimal            @db.Decimal(5, 2)
+  tenureDays         Int
+  repaymentFrequency RepaymentFrequency @default(MONTHLY)
+  message            String             @default("")
+  status             OfferStatus        @default(PENDING)
+  proposedBy         OfferActor         @default(INVESTOR)
+  parentOfferId      String?
+  parentOffer        Offer?             @relation("OfferChain", fields: [parentOfferId], references: [id], onDelete: SetNull)
+  childOffers        Offer[]            @relation("OfferChain")
+  expiresAt          DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  loan     Loan?
+  messages Message[]
+
+  @@index([loanRequestId, status])
+  @@index([investorId, status])
+  @@index([parentOfferId])
+}
+
+model Loan {
+  id                 String             @id @default(cuid())
+  loanRequestId      String             @unique
+  loanRequest        LoanRequest        @relation(fields: [loanRequestId], references: [id], onDelete: Restrict)
+  offerId            String             @unique
+  offer              Offer              @relation(fields: [offerId], references: [id], onDelete: Restrict)
+  ownerId            String
+  owner              User               @relation("OwnerLoans", fields: [ownerId], references: [id], onDelete: Restrict)
+  investorId         String
+  investor           User               @relation("InvestorLoans", fields: [investorId], references: [id], onDelete: Restrict)
+  principalBdt       Int
+  interestRatePct    Decimal            @db.Decimal(5, 2)
+  tenureDays         Int
+  repaymentFrequency RepaymentFrequency
+  totalRepayableBdt  Int
+  status             LoanStatus         @default(PENDING_AGREEMENT)
+  startDate          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  agreement  Agreement?
+  repayments Repayment[]
+  reviews    Review[]
+
+  @@index([ownerId, status])
+  @@index([investorId, status])
+}
+
+model Agreement {
+  id                  String    @id @default(cuid())
+  loanId              String    @unique
+  loan                Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  termsSnapshot       Json
+  ownerConfirmedAt    DateTime?
+  investorConfirmedAt DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model Repayment {
+  id            String          @id @default(cuid())
+  loanId        String
+  loan          Loan            @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installmentNo Int
+  dueDate       DateTime
+  amountBdt     Int
+  status        RepaymentStatus @default(UPCOMING)
+  markedPaidAt  DateTime?
+  confirmedAt   DateTime?
+  note          String?
+  proofUrl      String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([loanId, installmentNo])
+  @@index([status, dueDate])
+}
+
+model Connection {
+  id          String           @id @default(cuid())
+  requesterId String
+  requester   User             @relation("ConnectionRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addresseeId String
+  addressee   User             @relation("ConnectionAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      ConnectionStatus @default(PENDING)
+  message     String           @default("")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+}
+
+model Conversation {
+  id            String       @id @default(cuid())
+  subject       String       @default("")
+  loanRequestId String?
+  loanRequest   LoanRequest? @relation(fields: [loanRequestId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@index([updatedAt])
+}
+
+model ConversationParticipant {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime     @default(dbgenerated("'1970-01-01T00:00:00Z'::timestamptz"))
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  kind           MessageKind  @default(TEXT)
+  offerId        String?
+  offer          Offer?       @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  deletedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  link      String?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  loanId     String
+  loan       Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  reviewerId String
+  reviewer   User     @relation("ReviewAuthor", fields: [reviewerId], references: [id], onDelete: Cascade)
+  revieweeId String
+  reviewee   User     @relation("ReviewSubject", fields: [revieweeId], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@unique([loanId, reviewerId])
+  @@index([revieweeId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+}

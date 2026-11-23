@@ -1,12 +1,13 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import initSqlJs, { type Database, type SqlValue } from "sql.js";
 import { config } from "./config.ts";
 
 /**
- * SQLite via sql.js (WebAssembly, no native build step). The database lives in
- * memory and is written to `config.dbPath` shortly after every change, using a
- * write-then-rename so a crash never leaves a half-written file.
+ * Local SQLite stand-in via sql.js (WebAssembly, zero native build step).
+ * Writes atomically via write-then-rename. Production deployments use
+ * PostgreSQL + Prisma in `backend/`.
  */
 
 const SCHEMA = `
@@ -101,6 +102,62 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS loan_offers_request ON loan_offers(request_id);
   CREATE INDEX IF NOT EXISTS loan_offers_investor ON loan_offers(investor_id);
 
+  CREATE TABLE IF NOT EXISTS repayments (
+    id              TEXT PRIMARY KEY,
+    loan_request_id TEXT NOT NULL REFERENCES loan_requests(id) ON DELETE CASCADE,
+    installment_no  INTEGER NOT NULL,
+    due_date        TEXT NOT NULL,
+    amount_bdt      INTEGER NOT NULL CHECK (amount_bdt > 0),
+    status          TEXT NOT NULL DEFAULT 'UPCOMING' CHECK (status IN ('UPCOMING', 'MARKED_PAID', 'CONFIRMED', 'OVERDUE')),
+    marked_paid_at  TEXT,
+    confirmed_at    TEXT,
+    note            TEXT,
+    UNIQUE (loan_request_id, installment_no)
+  );
+  CREATE INDEX IF NOT EXISTS repayments_loan ON repayments(loan_request_id, installment_no);
+
+  CREATE TABLE IF NOT EXISTS connections (
+    id            TEXT PRIMARY KEY,
+    requester_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    addressee_id  TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status        TEXT NOT NULL DEFAULT 'ACCEPTED' CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED')),
+    created_at    TEXT NOT NULL,
+    UNIQUE (requester_id, addressee_id)
+  );
+  CREATE INDEX IF NOT EXISTS connections_requester ON connections(requester_id);
+  CREATE INDEX IF NOT EXISTS connections_addressee ON connections(addressee_id);
+
+  CREATE TABLE IF NOT EXISTS notifications (
+    id           TEXT PRIMARY KEY,
+    user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    kind         TEXT NOT NULL CHECK (kind IN ('offer', 'connection', 'message', 'system')),
+    person_id    TEXT,
+    title        TEXT NOT NULL,
+    body         TEXT NOT NULL,
+    action_label TEXT,
+    href         TEXT,
+    read_at      TEXT,
+    created_at   TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS notifications_user ON notifications(user_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS verifications (
+    id            TEXT PRIMARY KEY,
+    person_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    business_name TEXT NOT NULL,
+    type          TEXT NOT NULL CHECK (type IN ('Business', 'Investor')),
+    nid           TEXT NOT NULL,
+    trade_license TEXT NOT NULL DEFAULT 'N/A',
+    documents     TEXT NOT NULL DEFAULT '[]',
+    risk          TEXT NOT NULL DEFAULT 'low' CHECK (risk IN ('low', 'medium', 'high')),
+    status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    review_note   TEXT,
+    reviewed_by   TEXT,
+    submitted_at  TEXT NOT NULL,
+    reviewed_at   TEXT
+  );
+  CREATE INDEX IF NOT EXISTS verifications_status ON verifications(status, submitted_at);
+
   CREATE TABLE IF NOT EXISTS threads (
     id               TEXT PRIMARY KEY,
     subject          TEXT NOT NULL,
@@ -128,6 +185,17 @@ const SCHEMA = `
     created_at  TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS messages_thread ON messages(thread_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS audit_logs (
+    id          TEXT PRIMARY KEY,
+    actor_id    TEXT,
+    action      TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id   TEXT NOT NULL,
+    metadata    TEXT,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS audit_logs_entity ON audit_logs(entity_type, entity_id);
 `;
 
 let db: Database | null = null;
@@ -148,7 +216,6 @@ function handle() {
 
 type Params = Record<string, SqlValue> | SqlValue[];
 
-/** All rows as plain objects. */
 export function all<T>(sql: string, params: Params = []): T[] {
   const stmt = handle().prepare(sql);
   try {
@@ -161,18 +228,15 @@ export function all<T>(sql: string, params: Params = []): T[] {
   }
 }
 
-/** First row, or undefined. */
 export function get<T>(sql: string, params: Params = []): T | undefined {
   return all<T>(sql, params)[0];
 }
 
-/** Run a write statement and schedule a save to disk. */
 export function run(sql: string, params: Params = []) {
   handle().run(sql, params);
   scheduleSave();
 }
 
-/** Run several writes atomically. */
 export function transaction(work: () => void) {
   const database = handle();
   database.exec("BEGIN");
@@ -186,12 +250,59 @@ export function transaction(work: () => void) {
   scheduleSave();
 }
 
+export function recordAudit(
+  actorId: string | null,
+  action: string,
+  entityType: string,
+  entityId: string,
+  metadata?: Record<string, unknown>,
+) {
+  run(
+    "INSERT INTO audit_logs (id, actor_id, action, entity_type, entity_id, metadata, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    [
+      `aud-${crypto.randomUUID().slice(0, 12)}`,
+      actorId,
+      action,
+      entityType,
+      entityId,
+      metadata ? JSON.stringify(metadata) : null,
+      new Date().toISOString(),
+    ],
+  );
+}
+
+export function pushNotification(input: {
+  userId: string;
+  kind: "offer" | "connection" | "message" | "system";
+  personId?: string;
+  title: string;
+  body: string;
+  actionLabel?: string;
+  href?: string;
+}) {
+  run(
+    `INSERT INTO notifications (id, user_id, kind, person_id, title, body, action_label, href, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      `ntf-${crypto.randomUUID().slice(0, 12)}`,
+      input.userId,
+      input.kind,
+      input.personId ?? null,
+      input.title,
+      input.body,
+      input.actionLabel ?? null,
+      input.href ?? null,
+      new Date().toISOString(),
+    ],
+  );
+}
+
 function scheduleSave() {
   if (saveTimer) return;
   saveTimer = setTimeout(() => {
     saveTimer = null;
     saveNow();
-  }, 150);
+  }, 100);
 }
 
 export function saveNow() {

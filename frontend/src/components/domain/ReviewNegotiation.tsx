@@ -44,7 +44,7 @@ export function ReviewNegotiation({ offer: initialOffer, loan, viewerSide }: { o
     setError(null);
     setFields({});
     const body = action === "counter" ? { action, amount: Number(amount), rate: Number(rate), tenureMonths: Number(tenure), note: reason } : { action };
-    const result = await postJson<{ offer: LoanOfferView; threadId: string }>(`/api/offers/${offer.id}/respond`, body);
+    const result = await postJson<{ offer: LoanOfferView; threadId: string }>(`/api/v1/offers/${offer.id}/respond`, body);
     setPending(null);
     if (!result.ok) {
       setError(result.error);

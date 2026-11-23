@@ -62,7 +62,7 @@ export function RoleSelector() {
       location: form.location,
       ...(selected === "business" ? { businessName: form.businessName, category: form.category } : {}),
     };
-    const result = await postJson("/api/auth/signup", body);
+    const result = await postJson("/api/v1/auth/signup", body);
     if (!result.ok) {
       setError(result.error);
       setFields(result.fields);

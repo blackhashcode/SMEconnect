@@ -32,7 +32,7 @@ export function OfferBuilder({ loan }: { loan: LoanRequestView }) {
     setPending(true);
     setError(null);
     setFields({});
-    const result = await postJson<{ offer: LoanOfferView; threadId: string }>(`/api/loans/${loan.id}/offers`, {
+    const result = await postJson<{ offer: LoanOfferView; threadId: string }>(`/api/v1/loans/${loan.id}/offers`, {
       amount: Number(amount),
       rate: Number(rate),
       tenureMonths: Number(tenure),

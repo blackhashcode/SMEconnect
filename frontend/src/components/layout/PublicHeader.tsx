@@ -18,7 +18,7 @@ export function PublicHeader() {
   const [signedIn, setSignedIn] = useState(false);
   useEffect(() => {
     let active = true;
-    fetch("/api/auth/me", { cache: "no-store" })
+    fetch("/api/v1/auth/me", { cache: "no-store" })
       .then((res) => active && setSignedIn(res.ok))
       .catch(() => {});
     return () => {

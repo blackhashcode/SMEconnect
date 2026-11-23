@@ -1,9 +1,8 @@
 import type { Business, Person, Role, SessionUser } from "../../src/data/types.ts";
+import { all, get } from "./db.ts";
 
 export type { SessionUser };
-import { get } from "./db.ts";
 
-/** Row shapes as stored in SQLite (snake_case, 0/1 booleans, JSON text columns). */
 export type UserRow = {
   id: string;
   email: string;
@@ -45,8 +44,28 @@ export type BusinessRow = {
 
 const optional = (value: number | null) => (value === null ? undefined : value);
 
-/** An investor's activity, computed from their offers so profile numbers always match. */
-function investorStats(userId: string) {
+type InvestorStat = { offersMade: number; committed: number };
+
+/** Batched investor stats lookup to eliminate N+1 queries on directory & offer lists. */
+export function batchInvestorStats(userIds: string[]): Map<string, InvestorStat> {
+  const unique = [...new Set(userIds)];
+  const map = new Map<string, InvestorStat>();
+  if (unique.length === 0) return map;
+  const placeholders = unique.map(() => "?").join(", ");
+  const rows = all<{ investor_id: string; made: number; committed: number | null }>(
+    `SELECT investor_id, COUNT(*) AS made, SUM(CASE WHEN status = 'accepted' THEN amount END) AS committed
+     FROM loan_offers
+     WHERE investor_id IN (${placeholders}) AND status != 'withdrawn'
+     GROUP BY investor_id`,
+    unique,
+  );
+  for (const row of rows) {
+    map.set(row.investor_id, { offersMade: row.made ?? 0, committed: row.committed ?? 0 });
+  }
+  return map;
+}
+
+function investorStatsSingle(userId: string): InvestorStat {
   const row = get<{ made: number; committed: number | null }>(
     `SELECT COUNT(*) AS made, SUM(CASE WHEN status = 'accepted' THEN amount END) AS committed
      FROM loan_offers WHERE investor_id = ? AND status != 'withdrawn'`,
@@ -55,9 +74,15 @@ function investorStats(userId: string) {
   return { offersMade: row?.made ?? 0, committed: row?.committed ?? 0 };
 }
 
-/** Public profile: never includes email, phone or password hash. */
-export function toPerson(row: UserRow): Person {
-  const stats = row.role === "investor" ? investorStats(row.id) : null;
+/** Public profile: never includes email, phone, or password hash. */
+export function toPerson(row: UserRow, preloadedStats?: Map<string, InvestorStat>): Person {
+  const stats =
+    row.role === "investor"
+      ? preloadedStats
+        ? (preloadedStats.get(row.id) ?? { offersMade: 0, committed: 0 })
+        : investorStatsSingle(row.id)
+      : null;
+
   return {
     id: row.id,
     name: row.name,
@@ -76,6 +101,12 @@ export function toPerson(row: UserRow): Person {
     committed: stats ? stats.committed : optional(row.committed),
     followers: optional(row.followers),
   };
+}
+
+export function toPeople(rows: UserRow[]): Person[] {
+  const investorIds = rows.filter((r) => r.role === "investor").map((r) => r.id);
+  const stats = batchInvestorStats(investorIds);
+  return rows.map((row) => toPerson(row, stats));
 }
 
 export function toSessionUser(row: UserRow, businessId?: string): SessionUser {

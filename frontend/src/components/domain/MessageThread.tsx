@@ -14,7 +14,13 @@ import { cn } from "@/lib/cn";
 
 const POLL_MS = 4000;
 
-export function MessageThread({ thread, onChange }: { thread: ThreadView; onChange?: (update: Partial<ThreadView> & { id: string }) => void }) {
+export function MessageThread({
+  thread,
+  onChange,
+}: {
+  thread: ThreadView;
+  onChange?: (update: Partial<ThreadView> & { id: string }) => void;
+}) {
   const router = useRouter();
   const viewer = useSessionUser();
   const [messages, setMessages] = useState<MessageView[] | null>(null);
@@ -23,34 +29,38 @@ export function MessageThread({ thread, onChange }: { thread: ThreadView; onChan
   const [error, setError] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const latest = useRef<string | null>(null);
+  const loaded = useRef(false);
   const hadUnread = useRef(thread.unread > 0);
 
   const scrollToEnd = (smooth: boolean) =>
-    requestAnimationFrame(() => scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: smooth ? "smooth" : "auto" }));
+    requestAnimationFrame(() =>
+      scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: smooth ? "smooth" : "auto" }),
+    );
 
   const markRead = useCallback(async () => {
-    await postJson(`/api/threads/${thread.id}/read`);
+    await postJson(`/api/v1/threads/${thread.id}/read`);
     onChange?.({ id: thread.id, unread: 0 });
-    // Refresh server components so the header's unread badge updates.
     if (hadUnread.current) {
       hadUnread.current = false;
       router.refresh();
     }
   }, [thread.id, onChange, router]);
 
-  // Initial load.
   useEffect(() => {
     let cancelled = false;
+    loaded.current = false;
     (async () => {
-      const result = await getJson<{ messages: MessageView[] }>(`/api/threads/${thread.id}/messages`);
+      const result = await getJson<{ messages: MessageView[] }>(`/api/v1/threads/${thread.id}/messages`);
       if (cancelled) return;
       if (!result.ok) {
         setError(result.error);
         setMessages([]);
+        loaded.current = true;
         return;
       }
       setMessages(result.data.messages);
       latest.current = result.data.messages.at(-1)?.createdAt ?? null;
+      loaded.current = true;
       scrollToEnd(false);
       markRead();
     })();
@@ -60,12 +70,12 @@ export function MessageThread({ thread, onChange }: { thread: ThreadView; onChan
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thread.id]);
 
-  // Poll for new messages while the tab is visible.
+  // Stable polling interval — does not tear down on every incoming message.
   useEffect(() => {
     const id = setInterval(async () => {
-      if (document.visibilityState !== "visible" || messages === null) return;
+      if (document.visibilityState !== "visible" || !loaded.current) return;
       const after = latest.current ? `?after=${encodeURIComponent(latest.current)}` : "";
-      const result = await getJson<{ messages: MessageView[] }>(`/api/threads/${thread.id}/messages${after}`);
+      const result = await getJson<{ messages: MessageView[] }>(`/api/v1/threads/${thread.id}/messages${after}`);
       if (!result.ok || result.data.messages.length === 0) return;
       const fresh = result.data.messages;
       setMessages((current) => {
@@ -79,7 +89,7 @@ export function MessageThread({ thread, onChange }: { thread: ThreadView; onChan
       markRead();
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [thread.id, messages, onChange, markRead]);
+  }, [thread.id, onChange, markRead]);
 
   async function send(event: FormEvent) {
     event.preventDefault();
@@ -87,7 +97,7 @@ export function MessageThread({ thread, onChange }: { thread: ThreadView; onChan
     if (!text || sending) return;
     setSending(true);
     setError(null);
-    const result = await postJson<{ message: MessageView }>(`/api/threads/${thread.id}/messages`, { text });
+    const result = await postJson<{ message: MessageView }>(`/api/v1/threads/${thread.id}/messages`, { text });
     setSending(false);
     if (!result.ok) {
       setError(result.error);
@@ -113,23 +123,37 @@ export function MessageThread({ thread, onChange }: { thread: ThreadView; onChan
             <p className="truncate text-body-sm text-outline">{thread.subject}</p>
           </div>
         </div>
-        {other.verified && <Badge tone="success" className="shrink-0"><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified</Badge>}
+        {other.verified && (
+          <Badge tone="success" className="shrink-0">
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified
+          </Badge>
+        )}
       </header>
 
-      <div ref={scroller} className="no-scrollbar flex-1 space-y-space-md overflow-y-auto bg-surface-container-low/40 px-space-md py-space-lg sm:px-space-lg" aria-live="polite">
+      <div
+        ref={scroller}
+        className="no-scrollbar flex-1 space-y-space-md overflow-y-auto bg-surface-container-low/40 px-space-md py-space-lg sm:px-space-lg"
+        aria-live="polite"
+      >
         {messages === null && (
           <div className="flex h-full items-center justify-center text-outline">
             <LoaderCircle className="h-5 w-5 animate-spin" aria-label="Loading messages" />
           </div>
         )}
-        {messages?.length === 0 && !error && <p className="py-space-xl text-center text-body-sm text-outline">Say hello to {other.name.split(" ")[0]} to start the conversation.</p>}
+        {messages?.length === 0 && !error && (
+          <p className="py-space-xl text-center text-body-sm text-outline">
+            Say hello to {other.name.split(" ")[0]} to start the conversation.
+          </p>
+        )}
         {messages?.map((message) => {
           if (message.kind === "system") {
             return (
               <div key={message.id} className="flex animate-fade-in justify-center">
                 <p className="flex max-w-[90%] items-center gap-1.5 rounded-full bg-surface-container-high px-space-md py-1.5 text-center text-body-sm text-on-surface-variant">
                   <Info className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  <span>{message.senderId === viewer?.id ? "You" : other.name.split(" ")[0]}: {message.text}</span>
+                  <span>
+                    {message.senderId === viewer?.id ? "You" : other.name.split(" ")[0]}: {message.text}
+                  </span>
                 </p>
               </div>
             );
@@ -137,19 +161,38 @@ export function MessageThread({ thread, onChange }: { thread: ThreadView; onChan
           const mine = message.senderId === viewer?.id;
           return (
             <div key={message.id} className={cn("flex animate-fade-in", mine ? "justify-end" : "justify-start")}>
-              <div className={cn("max-w-[85%] rounded-2xl px-space-md py-space-sm text-body-md sm:max-w-[78%]", mine ? "rounded-br-sm bg-primary text-on-primary" : "rounded-bl-sm bg-surface-container-lowest text-on-surface card-shadow")}>
+              <div
+                className={cn(
+                  "max-w-[85%] rounded-2xl px-space-md py-space-sm text-body-md sm:max-w-[78%]",
+                  mine
+                    ? "rounded-br-sm bg-primary text-on-primary"
+                    : "rounded-bl-sm bg-surface-container-lowest text-on-surface card-shadow",
+                )}
+              >
                 {message.kind === "offer" && (
-                  <div className={cn("mb-space-sm flex items-center gap-1.5 text-label-sm font-bold", mine ? "text-white/80" : "text-primary")}>
+                  <div
+                    className={cn(
+                      "mb-space-sm flex items-center gap-1.5 text-label-sm font-bold",
+                      mine ? "text-white/80" : "text-primary",
+                    )}
+                  >
                     <Landmark className="h-4 w-4" aria-hidden /> Loan offer
                     {message.offerId && (
-                      <Link href={`/loans/offers/${message.offerId}/review`} className={cn("underline underline-offset-2", mine ? "text-white" : "text-primary")}>
+                      <Link
+                        href={`/loans/offers/${message.offerId}/review`}
+                        className={cn("underline underline-offset-2", mine ? "text-white" : "text-primary")}
+                      >
                         Open
                       </Link>
                     )}
                   </div>
                 )}
                 <p className="whitespace-pre-line break-words">{message.text}</p>
-                <TimeAgo iso={message.createdAt} mode="clock" className={cn("mt-1 block text-[10px]", mine ? "text-white/70" : "text-outline")} />
+                <TimeAgo
+                  iso={message.createdAt}
+                  mode="clock"
+                  className={cn("mt-1 block text-[10px]", mine ? "text-white/70" : "text-outline")}
+                />
               </div>
             </div>
           );
@@ -158,7 +201,9 @@ export function MessageThread({ thread, onChange }: { thread: ThreadView; onChan
 
       <div className="border-t border-surface-container-high bg-surface-container-lowest p-space-md">
         {error ? (
-          <p role="alert" className="mb-space-sm rounded-full bg-error-container px-space-md py-2 text-body-sm text-on-error-container">{error}</p>
+          <p role="alert" className="mb-space-sm rounded-full bg-error-container px-space-md py-2 text-body-sm text-on-error-container">
+            {error}
+          </p>
         ) : (
           <div className="mb-space-sm hidden items-center gap-2 rounded-full bg-success-container px-space-md py-2 text-body-sm text-success sm:flex">
             <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />

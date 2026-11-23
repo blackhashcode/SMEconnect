@@ -11,7 +11,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { formatBDT } from "@/lib/format";
 import { MessageButton } from "@/components/domain/MessageButton";
 import { isActiveLoan } from "@/lib/loans";
-import { getBusiness, listBusinesses, listLoans } from "@/lib/api";
+import { getBusiness, listBusinesses, listConnectedIds, listLoans } from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
 import { Photo } from "@/components/ui/Photo";
 
@@ -19,7 +19,13 @@ export const metadata = { title: "Business profile" };
 
 export default async function BusinessProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [result, all, viewer, loans] = await Promise.all([getBusiness(id), listBusinesses(), getCurrentUser(), listLoans({ businessId: id })]);
+  const [result, all, viewer, loans, connectedIds] = await Promise.all([
+    getBusiness(id),
+    listBusinesses(),
+    getCurrentUser(),
+    listLoans({ businessId: id }),
+    listConnectedIds(),
+  ]);
   if (!result?.owner) notFound();
   const { business, owner } = result;
   const isOwnProfile = viewer?.id === owner.id;
@@ -41,7 +47,7 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
               </>
             ) : (
               <>
-                <ConnectButton name={owner.name} />
+                <ConnectButton participantId={owner.id} name={owner.name} initialConnected={connectedIds.includes(owner.id)} />
                 <MessageButton participantId={owner.id} subject={business.name}><MessageCircle className="h-4 w-4" aria-hidden /> Message</MessageButton>
                 {activeLoan && viewer?.role === "investor" && <LinkButton href={`/loans/offers/new?request=${activeLoan.id}`} variant="secondary"><Handshake className="h-4 w-4" aria-hidden /> Make an offer</LinkButton>}
               </>

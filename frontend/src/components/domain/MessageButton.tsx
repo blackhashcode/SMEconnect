@@ -30,7 +30,7 @@ export function MessageButton({
   async function open() {
     setPending(true);
     setError(null);
-    const result = await postJson<{ thread: ThreadView }>("/api/threads", { participantId, subject });
+    const result = await postJson<{ thread: ThreadView }>("/api/v1/threads", { participantId, subject });
     if (!result.ok) {
       setError(result.error);
       setPending(false);

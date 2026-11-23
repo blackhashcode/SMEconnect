@@ -2,8 +2,8 @@ import { ArrowLeft, BadgeCheck, CalendarDays, Check, CircleDollarSign, FileSigna
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
-import { ProgressBar } from "@/components/ui/ProgressBar";
 import { AgreementActions } from "@/components/domain/AgreementActions";
+import { RepaymentScheduleCard } from "@/components/domain/RepaymentScheduleCard";
 import { formatBDT, repaymentPlan } from "@/lib/format";
 import { getAgreement } from "@/lib/api";
 import { requireUser } from "@/lib/session";
@@ -15,19 +15,16 @@ export const metadata = { title: "Loan agreement" };
 export default async function LoanAgreementPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [viewer, agreement] = await Promise.all([requireUser(), getAgreement(id)]);
-  // Only the business owner and the investor on the deal can see it.
   if (!agreement) notFound();
 
-  const { loan, offer: deal } = agreement;
+  const { loan, offer: deal, repayments = [] } = agreement;
   const { business, owner } = loan;
   const investor = deal.investor;
   const agreed = agreement.status === "agreed";
   const viewerSide = viewer.id === owner.id ? "owner" : "investor";
-  // While negotiating, the owner's counter (if it's the latest move) is what's on the table.
   const ownerCountered = !agreed && deal.lastActionBy === "owner" && deal.counter;
   const offer = ownerCountered && deal.counter ? { ...deal, ...deal.counter } : deal;
-  const { installment, cycles } = repaymentPlan(offer.amount, offer.rate, offer.tenureMonths, offer.frequency);
-  // Whoever didn't make the latest move confirms: the owner accepts the investor's terms, the investor accepts a counter.
+  const { installment, finalInstallment, cycles } = repaymentPlan(offer.amount, offer.rate, offer.tenureMonths, offer.frequency);
   const canConfirm = !agreed && (viewerSide === "owner" ? !ownerCountered : Boolean(ownerCountered));
   const backHref = viewerSide === "owner" ? "/business-dashboard" : "/investor-dashboard";
 
@@ -61,16 +58,29 @@ export default async function LoanAgreementPage({ params }: { params: Promise<{ 
             <section className="grid gap-space-md sm:grid-cols-2">
               <div className="flex gap-space-md rounded-2xl bg-surface-container-low p-space-md">
                 <Avatar src={owner.avatar} alt={owner.name} size="lg" />
-                <div><p className="text-label-sm text-outline">Borrower</p><p className="text-headline-sm text-on-surface">{owner.name}</p><p className="text-body-sm text-outline">{business.name}</p>{owner.verified && <Badge tone="success" className="mt-1">Verified</Badge>}</div>
+                <div>
+                  <p className="text-label-sm text-outline">Borrower</p>
+                  <p className="text-headline-sm text-on-surface">{owner.name}</p>
+                  <p className="text-body-sm text-outline">{business.name}</p>
+                  {owner.verified && <Badge tone="success" className="mt-1">Verified</Badge>}
+                </div>
               </div>
               <div className="flex gap-space-md rounded-2xl bg-surface-container-low p-space-md">
                 <Avatar src={investor.avatar} alt={investor.name} size="lg" />
-                <div><p className="text-label-sm text-outline">Investor</p><p className="text-headline-sm text-on-surface">{investor.name}</p><p className="text-body-sm text-outline">{investor.headline}</p>{investor.verified && <Badge tone="success" className="mt-1">Verified</Badge>}</div>
+                <div>
+                  <p className="text-label-sm text-outline">Investor</p>
+                  <p className="text-headline-sm text-on-surface">{investor.name}</p>
+                  <p className="text-body-sm text-outline">{investor.headline}</p>
+                  {investor.verified && <Badge tone="success" className="mt-1">Verified</Badge>}
+                </div>
               </div>
             </section>
 
             <section className="rounded-2xl border border-surface-container-high p-space-lg">
-              <div className="flex items-center gap-space-sm"><FileSignature className="h-5 w-5 text-primary" aria-hidden /><h2 className="text-headline-sm text-on-surface">Agreed terms</h2></div>
+              <div className="flex items-center gap-space-sm">
+                <FileSignature className="h-5 w-5 text-primary" aria-hidden />
+                <h2 className="text-headline-sm text-on-surface">Agreed terms</h2>
+              </div>
               <div className="mt-space-md grid gap-space-md sm:grid-cols-2 xl:grid-cols-3">
                 {[
                   { icon: CircleDollarSign, label: "Principal", value: formatBDT(offer.amount), hint: "Paid directly to the business" },
@@ -90,20 +100,15 @@ export default async function LoanAgreementPage({ params }: { params: Promise<{ 
               </div>
             </section>
 
-            <section className="rounded-2xl border border-surface-container-high p-space-lg">
-              <h2 className="text-headline-sm text-on-surface">Repayment roadmap</h2>
-              <p className="mt-1 text-body-sm text-outline">First instalment due 14 days after the agreed start date.</p>
-              <div className="mt-space-md grid gap-space-sm sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: Math.min(cycles, 6) }).map((_, index) => (
-                  <div key={index} className="flex items-center justify-between rounded-xl bg-surface-container-low px-space-md py-space-sm">
-                    <div className="flex items-center gap-space-sm"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-fixed text-label-sm font-bold text-primary">{index + 1}</span><span className="text-body-sm text-on-surface-variant">Cycle {index + 1}</span></div>
-                    <span className="text-label-md font-bold text-on-surface">{formatBDT(installment)}</span>
-                  </div>
-                ))}
-              </div>
-              {cycles > 6 && <p className="mt-space-sm text-body-sm text-outline">+ {cycles - 6} more instalments through month {offer.tenureMonths}</p>}
-              <ProgressBar value={12} className="mt-space-md" showValue={false} />
-            </section>
+            <RepaymentScheduleCard
+              initialRepayments={repayments}
+              fallbackCycles={cycles}
+              fallbackInstallment={installment}
+              fallbackFinalInstallment={finalInstallment}
+              tenureMonths={offer.tenureMonths}
+              viewerSide={viewerSide}
+              agreed={agreed}
+            />
           </div>
 
           <aside className="space-y-space-md">
@@ -113,12 +118,18 @@ export default async function LoanAgreementPage({ params }: { params: Promise<{ 
                 <p className="text-label-sm font-bold uppercase tracking-wider text-outline">Digital signatures</p>
                 <div className="mt-space-md flex items-start gap-space-sm">
                   <Fingerprint className="mt-0.5 h-5 w-5 text-primary" aria-hidden />
-                  <div><p className="text-label-md font-bold text-on-surface">Borrower</p><p className="text-body-sm text-outline">{agreed ? "Confirmed" : ownerCountered ? "Proposed these terms" : "Awaiting confirmation"}</p></div>
+                  <div>
+                    <p className="text-label-md font-bold text-on-surface">Borrower</p>
+                    <p className="text-body-sm text-outline">{agreed ? "Confirmed" : ownerCountered ? "Proposed these terms" : "Awaiting confirmation"}</p>
+                  </div>
                   <Check className={`ml-auto h-4 w-4 ${agreed || ownerCountered ? "text-success" : "text-outline"}`} aria-hidden />
                 </div>
                 <div className="mt-space-md flex items-start gap-space-sm">
                   <Fingerprint className="mt-0.5 h-5 w-5 text-primary" aria-hidden />
-                  <div><p className="text-label-md font-bold text-on-surface">Investor</p><p className="text-body-sm text-outline">{agreed ? "Confirmed" : ownerCountered ? "Awaiting confirmation" : "Offered these terms"}</p></div>
+                  <div>
+                    <p className="text-label-md font-bold text-on-surface">Investor</p>
+                    <p className="text-body-sm text-outline">{agreed ? "Confirmed" : ownerCountered ? "Awaiting confirmation" : "Offered these terms"}</p>
+                  </div>
                   <Check className={`ml-auto h-4 w-4 ${agreed || !ownerCountered ? "text-success" : "text-outline"}`} aria-hidden />
                 </div>
               </div>
@@ -127,7 +138,9 @@ export default async function LoanAgreementPage({ params }: { params: Promise<{ 
             <div className="rounded-2xl bg-primary-fixed p-space-md text-on-primary-fixed">
               <ShieldCheck className="h-6 w-6" aria-hidden />
               <p className="mt-space-sm text-label-md font-bold">Direct agreement</p>
-              <p className="mt-1 text-body-sm text-on-primary-fixed/80">Funds, terms and repayment records stay between the verified borrower and investor.</p>
+              <p className="mt-1 text-body-sm text-on-primary-fixed/80">
+                Funds, terms and repayment records stay between the verified borrower and investor.
+              </p>
             </div>
 
             <div className="rounded-2xl bg-surface-container-lowest p-space-md card-shadow">
@@ -138,7 +151,14 @@ export default async function LoanAgreementPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="border-t border-surface-container-high bg-surface-container-low px-space-lg py-space-md">
-          <AgreementActions offerId={deal.id} agreed={agreed} canConfirm={canConfirm} counterpartId={viewerSide === "owner" ? investor.id : owner.id} counterpartLabel={viewerSide === "owner" ? "investor" : "owner"} waitingOn={viewerSide === "owner" ? investor.name : owner.name} />
+          <AgreementActions
+            offerId={deal.id}
+            agreed={agreed}
+            canConfirm={canConfirm}
+            counterpartId={viewerSide === "owner" ? investor.id : owner.id}
+            counterpartLabel={viewerSide === "owner" ? "investor" : "owner"}
+            waitingOn={viewerSide === "owner" ? investor.name : owner.name}
+          />
         </div>
       </div>
     </>

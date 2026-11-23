@@ -70,9 +70,7 @@ export type LoanOffer = {
   status: OfferStatus;
   note: string;
   createdAt: string;
-  /** Terms proposed back by the business owner while negotiating. */
   counter?: { amount: number; rate: number; tenureMonths: number; note: string };
-  /** Who acted last, so each side knows whose turn it is. */
   lastActionBy?: "investor" | "owner";
 };
 
@@ -133,31 +131,47 @@ export type VerificationCase = {
   status: "pending" | "approved" | "rejected";
 };
 
-/** The signed-in member returned by the API: public profile plus private account fields. */
-export type SessionUser = Person & { email: string; phone?: string; businessId?: string };
+export type AdminVerificationCase = VerificationCase & {
+  personName: string;
+  personAvatar: string;
+  personLocation: string;
+  reviewNote?: string;
+};
 
-// ---------- API views ----------
-// Shapes returned by the API (see docs/API.md). Related records are embedded so
-// pages don't need follow-up requests. Timestamps are ISO 8601 strings.
+export type RepaymentItem = {
+  id: string;
+  loanRequestId: string;
+  installmentNo: number;
+  dueDate: string;
+  amountBdt: number;
+  status: "UPCOMING" | "MARKED_PAID" | "CONFIRMED" | "OVERDUE";
+  markedPaidAt: string | null;
+  confirmedAt: string | null;
+  note: string | null;
+};
+
+export type SessionUser = Person & { email: string; phone?: string; businessId?: string };
 
 export type LoanRequestView = LoanRequest & { business: Business; owner: Person };
 
 export type LoanOfferView = LoanOffer & {
   investor: Person;
-  request: Pick<LoanRequest, "id" | "title" | "amount" | "status"> & { business: Pick<Business, "id" | "name" | "category" | "ownerId"> };
+  request: Pick<LoanRequest, "id" | "title" | "amount" | "status"> & {
+    business: Pick<Business, "id" | "name" | "category" | "ownerId">;
+  };
 };
 
 export type AgreementView = {
   status: "draft" | "agreed";
   loan: LoanRequestView;
   offer: LoanOfferView;
+  repayments?: RepaymentItem[];
 };
 
 export type ThreadView = {
   id: string;
   subject: string;
   other: Person;
-  /** The other member's business, when they are a business owner. */
   business: Pick<Business, "id" | "name"> | null;
   loanRequestId: string | null;
   lastMessage: string;

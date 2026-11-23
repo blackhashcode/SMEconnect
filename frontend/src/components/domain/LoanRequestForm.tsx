@@ -42,7 +42,7 @@ export function LoanRequestForm({ owner, business }: { owner: SessionUser; busin
     setPending(true);
     setError(null);
     setFields({});
-    const result = await postJson<{ loan: LoanRequestView }>("/api/loans", {
+    const result = await postJson<{ loan: LoanRequestView }>("/api/v1/loans", {
       title,
       purpose,
       description: story,

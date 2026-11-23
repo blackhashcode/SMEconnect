@@ -5,7 +5,7 @@ export function formatBDT(value: number) {
 /** "Just now", "5 min ago", "3 h ago", "Yesterday", "Mon", "12 Oct". */
 export function timeAgo(iso: string, now = Date.now()) {
   const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return iso; // tolerate older free-text values
+  if (Number.isNaN(then)) return iso;
   const diff = Math.max(0, now - then);
   const min = Math.floor(diff / 60_000);
   if (min < 1) return "Just now";
@@ -24,10 +24,21 @@ export function clockTime(iso: string) {
   return Number.isNaN(date.getTime()) ? iso : date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-/** Flat-rate repayment estimate used across offer and agreement screens. */
+/**
+ * Exact flat-rate repayment calculation aligned with `backend/AGENTS.md` §6:
+ * total = principal + round(principal * rate% * (tenureDays / 365))
+ * Final installment absorbs rounding remainder so sum(installments) === total.
+ */
 export function repaymentPlan(amount: number, rate: number, tenureMonths: number, frequency: string) {
-  const total = Math.round(amount * (1 + (rate / 100) * (tenureMonths / 12)));
-  const perMonth = frequency === "Weekly" ? 52 / 12 : frequency === "Bi-weekly" ? 26 / 12 : 1;
-  const cycles = Math.max(1, Math.round(tenureMonths * perMonth));
-  return { total, cycles, installment: Math.round(total / cycles) };
+  if (amount <= 0 || tenureMonths <= 0) {
+    return { total: 0, cycles: 0, installment: 0, finalInstallment: 0 };
+  }
+  const tenureDays = Math.round(tenureMonths * 30);
+  const interest = Math.round(amount * (rate / 100) * (tenureDays / 365));
+  const total = amount + interest;
+  const intervalDays = frequency === "Weekly" ? 7 : frequency === "Bi-weekly" ? 14 : 30;
+  const cycles = Math.max(1, Math.round(tenureDays / intervalDays));
+  const installment = Math.floor(total / cycles);
+  const remainder = total - installment * cycles;
+  return { total, cycles, installment, finalInstallment: installment + remainder };
 }

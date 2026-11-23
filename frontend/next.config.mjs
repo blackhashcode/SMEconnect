@@ -3,6 +3,19 @@ import { fileURLToPath } from "node:url";
 
 const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 const apiUrl = process.env.API_URL ?? "http://localhost:4000";
+const isProd = process.env.NODE_ENV === "production";
+
+const cspDirectives = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "connect-src 'self'",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join("; ");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -17,26 +30,25 @@ const nextConfig = {
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Content-Security-Policy", value: cspDirectives },
+          ...(isProd
+            ? [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" }]
+            : []),
         ],
       },
     ];
   },
   images: {
-    // Serve modern formats; Next resizes each image to the size it's displayed at.
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   experimental: {
-    // Tree-shake icon imports so only the icons actually used are bundled.
     optimizePackageImports: ["lucide-react"],
   },
-  // The browser calls /api/* on this origin; Next forwards it to the Express API
-  // in mock-api/. Same origin means the session cookie just works, no CORS needed.
+  // Browser calls /api/v1/* (and /api/auth/* for Better Auth); Next proxies to API_URL.
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${apiUrl}/api/:path*` }];
   },
-  // Pin the workspace root so a stray lockfile in the user home cannot confuse
-  // Turbopack's workspace-root detection.
   turbopack: {
     root: projectRoot,
   },

@@ -31,7 +31,7 @@ export function AgreementActions({
     if (!window.confirm("Confirm these terms? This accepts the offer and closes the request to other offers.")) return;
     setPending(true);
     setError(null);
-    const result = await postJson(`/api/offers/${offerId}/respond`, { action: "accept" });
+    const result = await postJson(`/api/v1/offers/${offerId}/respond`, { action: "accept" });
     setPending(false);
     if (!result.ok) {
       setError(result.error);

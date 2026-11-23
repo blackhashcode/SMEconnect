@@ -10,7 +10,7 @@ import { Card, SectionHeading } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
 import { formatBDT } from "@/lib/format";
 import { MessageButton } from "@/components/domain/MessageButton";
-import { getPerson, listMyOffers, listPeople } from "@/lib/api";
+import { getPerson, listConnectedIds, listMyOffers, listPeople } from "@/lib/api";
 import { getCurrentUser } from "@/lib/session";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -18,7 +18,12 @@ export const metadata = { title: "Investor profile" };
 
 export default async function InvestorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [result, investors, viewer] = await Promise.all([getPerson(id), listPeople("investor"), getCurrentUser()]);
+  const [result, investors, viewer, connectedIds] = await Promise.all([
+    getPerson(id),
+    listPeople("investor"),
+    getCurrentUser(),
+    listConnectedIds(),
+  ]);
   if (!result) notFound();
   // Business owners' public page is their business profile.
   if (result.user.role === "business" && result.business) redirect(`/businesses/${result.business.id}`);
@@ -44,7 +49,7 @@ export default async function InvestorProfilePage({ params }: { params: Promise<
               <LinkButton href="/investor-dashboard" variant="outline">Investor Hub</LinkButton>
             ) : (
               <>
-                <ConnectButton name={investor.name} />
+                <ConnectButton participantId={investor.id} name={investor.name} initialConnected={connectedIds.includes(investor.id)} />
                 <MessageButton participantId={investor.id}><MessageCircle className="h-4 w-4" aria-hidden /> Message</MessageButton>
               </>
             )}

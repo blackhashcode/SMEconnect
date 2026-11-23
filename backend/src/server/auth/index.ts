@@ -2,40 +2,51 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/server/db";
+import { getEnv } from "@/server/env";
 
-const secret = process.env.BETTER_AUTH_SECRET;
-const baseURL = process.env.BETTER_AUTH_URL;
+type AuthInstance = ReturnType<typeof createAuth>;
 
-if (!secret) {
-  throw new Error("BETTER_AUTH_SECRET is not set");
-}
-
-if (!baseURL) {
-  throw new Error("BETTER_AUTH_URL is not set");
-}
-
-/**
- * Minimal Phase 0 configuration. Sign-up, OTP, verification emails and the
- * Better Auth route handler are added in Phase 2.
- */
-export const auth = betterAuth({
-  appName: "SME Connect",
-  baseURL,
-  secret,
-  database: prismaAdapter(prisma, { provider: "postgresql" }),
-  emailAndPassword: {
-    enabled: true,
-  },
-  user: {
-    additionalFields: {
-      // Server-owned: clients must never choose their own role.
-      role: {
-        type: "string",
-        required: true,
-        defaultValue: "OWNER",
-        input: false,
+function createAuth() {
+  const env = getEnv();
+  return betterAuth({
+    appName: "SME Connect",
+    baseURL: env.BETTER_AUTH_URL,
+    secret: env.BETTER_AUTH_SECRET,
+    trustedOrigins: [env.APP_URL, env.BETTER_AUTH_URL],
+    database: prismaAdapter(prisma, { provider: "postgresql" }),
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: 8,
+      maxPasswordLength: 128,
+    },
+    user: {
+      additionalFields: {
+        // Server-owned: clients cannot escalate to ADMIN during sign-up.
+        role: {
+          type: "string",
+          required: true,
+          defaultValue: "OWNER",
+          input: false,
+        },
       },
     },
+    plugins: [nextCookies()],
+  });
+}
+
+let cachedAuth: AuthInstance | null = null;
+
+export function getAuth(): AuthInstance {
+  if (!cachedAuth) {
+    cachedAuth = createAuth();
+  }
+  return cachedAuth;
+}
+
+export const auth = new Proxy({} as AuthInstance, {
+  get(_target, prop, receiver) {
+    const instance = getAuth();
+    const value = Reflect.get(instance, prop, receiver);
+    return typeof value === "function" ? value.bind(instance) : value;
   },
-  plugins: [nextCookies()],
 });

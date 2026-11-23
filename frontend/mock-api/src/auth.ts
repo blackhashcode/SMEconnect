@@ -3,14 +3,13 @@ import bcrypt from "bcryptjs";
 import type { NextFunction, Request, Response } from "express";
 import { config } from "./config.ts";
 import { get, run } from "./db.ts";
+import { fail } from "./http.ts";
 import { toSessionUser, type SessionUser, type UserRow } from "./models.ts";
 
 // ---------- Passwords ----------
 
 export const hashPassword = (password: string) => bcrypt.hash(password, config.bcryptRounds);
 
-// Compared against when the email is unknown, so a miss takes as long as a hit
-// and response timing doesn't reveal which emails are registered.
 const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", config.bcryptRounds);
 
 export async function verifyPassword(password: string, hash: string | undefined) {
@@ -19,8 +18,6 @@ export async function verifyPassword(password: string, hash: string | undefined)
 }
 
 // ---------- Sessions ----------
-// The browser holds a random token; the database only stores its SHA-256, so a
-// leaked database can't be used to hijack sessions.
 
 const sha256 = (value: string) => crypto.createHash("sha256").update(value).digest("hex");
 
@@ -65,7 +62,6 @@ declare module "express-serve-static-core" {
   }
 }
 
-/** Attaches req.user when the request carries a valid, unexpired session. */
 export function readSession(req: Request, _res: Response, next: NextFunction) {
   const token = req.cookies?.[config.sessionCookie];
   if (typeof token === "string" && token) {
@@ -80,17 +76,25 @@ export function readSession(req: Request, _res: Response, next: NextFunction) {
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.user) {
-    res.status(401).json({ error: "Please log in to continue." });
+    fail(res, 401, "UNAUTHORIZED", "Please log in to continue.");
     return;
   }
   next();
 }
 
-// ---------- Rate limiting ----------
-// Small in-memory fixed-window limiter for login and signup. Fine for a single
-// process; swap for a shared store (e.g. Redis) if the API is scaled out.
+// ---------- Bounded Rate Limiting ----------
 
-export function rateLimit({ windowMs, max, key }: { windowMs: number; max: number; key: (req: Request) => string }) {
+export function rateLimit({
+  windowMs,
+  max,
+  maxEntries = 10_000,
+  key,
+}: {
+  windowMs: number;
+  max: number;
+  maxEntries?: number;
+  key: (req: Request) => string;
+}) {
   const hits = new Map<string, { count: number; resetAt: number }>();
   setInterval(() => {
     const now = Date.now();
@@ -102,13 +106,20 @@ export function rateLimit({ windowMs, max, key }: { windowMs: number; max: numbe
     const k = key(req);
     const entry = hits.get(k);
     if (!entry || entry.resetAt <= now) {
+      if (hits.size >= maxEntries) {
+        const oldest = hits.keys().next().value;
+        if (oldest !== undefined) hits.delete(oldest);
+      }
       hits.set(k, { count: 1, resetAt: now + windowMs });
       return next();
     }
     entry.count++;
     if (entry.count > max) {
-      res.setHeader("Retry-After", Math.ceil((entry.resetAt - now) / 1000));
-      res.status(429).json({ error: "Too many attempts. Please wait a few minutes and try again." });
+      const retryAfter = Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+      res.setHeader("Retry-After", retryAfter);
+      fail(res, 429, "RATE_LIMITED", "Too many attempts. Please wait a few minutes and try again.", {
+        retryAfterSec: retryAfter,
+      });
       return;
     }
     next();

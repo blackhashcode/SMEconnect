@@ -30,7 +30,7 @@ export function LoginForm({
     setPending(true);
     setError(null);
     setFields({});
-    const result = await postJson("/api/auth/login", { email, password });
+    const result = await postJson("/api/v1/auth/login", { email, password });
     if (!result.ok) {
       setError(result.error);
       setFields(result.fields);
