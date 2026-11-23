@@ -185,6 +185,7 @@ interface FakeDb {
   loan: {
     findUnique: (args: { where: Row }) => Promise<Row | null>;
     updateMany: (args: { where: Row; data: Row }) => Promise<{ count: number }>;
+    count: (args: { where: Row }) => Promise<number>;
   };
   loanRequest: {
     updateMany: (args: { where: Row; data: Row }) => Promise<{ count: number }>;
@@ -215,6 +216,13 @@ interface FakeDb {
     findFirst: (args: { where: Row }) => Promise<Row | null>;
     findMany: (args: { where: Row }) => Promise<Row[]>;
   };
+  review: { findMany: (args: { where: Row; select?: Row }) => Promise<Row[]> };
+  businessProfile: {
+    updateMany: (args: { where: Row; data: Row }) => Promise<{ count: number }>;
+  };
+  investorProfile: {
+    updateMany: (args: { where: Row; data: Row }) => Promise<{ count: number }>;
+  };
   $transaction: (callback: (tx: FakeDb) => Promise<unknown>) => Promise<unknown>;
 }
 
@@ -223,6 +231,8 @@ export function createFakeDb() {
   const requests: Row[] = [];
   const repayments: Row[] = [];
   const notifications: Row[] = [];
+  const reviews: Row[] = [];
+  const trustUpdates: Row[] = [];
   const users = USERS.map((user) => ({ ...user }));
   const verifications: Row[] = [
     { userId: owner.id, type: "OWNER", status: "APPROVED" },
@@ -245,6 +255,8 @@ export function createFakeDb() {
         }
         return { count };
       },
+      count: async ({ where }: { where: Row }) =>
+        loans.filter((row) => matches(row, where, state)).length,
     },
     loanRequest: {
       updateMany: async ({ where, data }: { where: Row; data: Row }) => {
@@ -326,6 +338,22 @@ export function createFakeDb() {
       findMany: async ({ where }: { where: Row }) =>
         verifications.filter((row) => matches(row, where, state)),
     },
+    review: {
+      findMany: async ({ where }: { where: Row }) =>
+        reviews.filter((row) => matches(row, where, state)),
+    },
+    businessProfile: {
+      updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+        trustUpdates.push({ role: "OWNER", userId: where.ownerId, score: data.trustScore });
+        return { count: 1 };
+      },
+    },
+    investorProfile: {
+      updateMany: async ({ where, data }: { where: Row; data: Row }) => {
+        trustUpdates.push({ role: "INVESTOR", userId: where.userId, score: data.trustScore });
+        return { count: 1 };
+      },
+    },
     $transaction: async (callback: (tx: typeof db) => Promise<unknown>) => callback(db),
   };
 
@@ -335,6 +363,8 @@ export function createFakeDb() {
     requests,
     repayments,
     notifications,
+    reviews,
+    trustUpdates,
     users,
     verifications,
   };

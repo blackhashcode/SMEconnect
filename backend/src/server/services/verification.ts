@@ -13,6 +13,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/server/errors";
+import { recomputeTrustScore } from "@/server/services/trust-score";
 import type {
   reviewVerificationSchema,
   submitVerificationSchema,
@@ -236,6 +237,8 @@ export async function reviewVerification(
         },
       },
     });
+
+    await recomputeTrustScore(record.userId, record.type, tx, now);
 
     return record;
   });

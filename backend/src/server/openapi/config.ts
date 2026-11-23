@@ -22,6 +22,10 @@ export const API_TAGS = [
   { name: "Discovery", description: "Approved public business and investor search plus suggestions" },
   { name: "Messaging", description: "Conversations and direct messages" },
   { name: "Notifications", description: "In-app notifications and unread counts" },
+  { name: "Reviews", description: "Post-loan reviews and participant reputation" },
+  { name: "Blocks", description: "Blocking and social separation between users" },
+  { name: "Reports", description: "User-submitted moderation reports" },
+  { name: "Dashboards", description: "Role-specific owner and investor dashboards" },
   { name: "Administration", description: "Verification queue, moderation, reports and analytics" },
 ] as const;
 

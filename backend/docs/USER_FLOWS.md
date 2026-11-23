@@ -745,7 +745,92 @@ the commands above are the manual sequence for QA.
 
 ---
 
-## J. Planned workflows — placeholders only 🧭
+## J. Reputation, notifications and dashboards ✅ (Phase 9)
+
+All flows below assume an active Better Auth session with the stated role. Client-supplied actor
+ids, trust scores, notification owners and dashboard filters are never trusted.
+
+### 1. Reviewing a completed loan
+
+```bash
+# One review per side, only after the loan is COMPLETED.
+curl -X POST http://localhost:3000/api/v1/reviews \
+  -H 'content-type: application/json' \
+  -d '{"loanId":"loan_123","revieweeId":"usr_456","rating":5,"comment":"On-time and clear"}'
+# 201 { "data": { "id": "rev_123", "rating": 5, "reviewer": {...}, "reviewee": {...}, ... } }
+
+# Public profile review list and detail.
+curl 'http://localhost:3000/api/v1/reviews?userId=usr_456&limit=20'
+curl http://localhost:3000/api/v1/reviews/rev_123
+```
+
+The reviewee is derived from the loan. A mismatched id returns 403, a non-participant gets 404,
+an unfinished loan returns 422 and a duplicate returns 409. Creating a review recomputes the
+reviewee's trust score in the same transaction.
+
+### 2. Trust score updates
+
+The score is server-owned (0–100): verified +25; on-time confirmed repayments +5 each (max +30);
+completed loans +10 each (max +25); average received rating × 20/5; overdue installments −5 each
+(max −25), clamped to 0–100. It is recomputed on verification decisions, repayment confirmation,
+overdue detection and review creation, and is persisted to the role profile.
+
+### 3. Notification inbox
+
+```bash
+curl 'http://localhost:3000/api/v1/notifications?unread=true&limit=20'
+curl http://localhost:3000/api/v1/notifications/unread-count
+curl -X PATCH http://localhost:3000/api/v1/notifications/ntf_123/read
+curl -X PATCH http://localhost:3000/api/v1/notifications/read-all
+```
+
+Notifications are scoped to the session user. Marking one is idempotent; other users' ids return
+404. Important lending and verification events also send email through the existing abstraction.
+
+### 4. Reporting and blocking
+
+```bash
+# Report a post (admin resolution remains Phase 10).
+curl -X POST http://localhost:3000/api/v1/reports \
+  -H 'content-type: application/json' \
+  -d '{"targetType":"POST","targetId":"post_123","reason":"Misleading proof"}'
+curl 'http://localhost:3000/api/v1/reports?status=OPEN'
+
+# Blocking removes follows/connections in one transaction.
+curl -X POST http://localhost:3000/api/v1/blocks \
+  -H 'content-type: application/json' \
+  -d '{"userId":"usr_789"}'
+curl http://localhost:3000/api/v1/blocks
+curl -X DELETE http://localhost:3000/api/v1/blocks/usr_789
+```
+
+Blocked users are hidden from authenticated suggestions and cannot follow/connect in either
+direction; existing messaging restrictions still keep conversations unreadable.
+
+### 5. Role dashboards
+
+```bash
+curl http://localhost:3000/api/v1/dashboard/owner
+curl http://localhost:3000/api/v1/dashboard/investor
+```
+
+Owner: active request, received-offer counts, current loan with next due and repayment progress,
+trust score, recent notifications and activity. Investor: submitted-offer counts, portfolio
+totals, overall progress, earliest due and per-loan `health`. Every metric is derived from the
+database for the session user.
+
+### Automated tests vs. manual end-to-end workflow testing
+
+Phase 9 is covered by **automated** Vitest service tests for review eligibility and participant
+restrictions, duplicate reviews, report permissions and target validation, trust-score boundaries
+and recomputation, notification ownership/read operations, block consistency, dashboard
+aggregates/pagination, proxy policy and OpenAPI examples. A **real end-to-end business workflow**
+against running Postgres/Mailpit was **not performed** in this phase; the commands above are the
+manual QA sequence.
+
+---
+
+## K. Planned workflows — placeholders only 🧭
 
 These are **not implemented**. Endpoint names below are taken from `BACKEND_PROMPT.md` as
 planning hints and may change when the phase is built.
@@ -754,13 +839,13 @@ planning hints and may change when the phase is built.
 |---|---|---|
 | 7 | Offers, counters, accept/reject/withdraw, agreement confirmation, `OPEN → IN_DISCUSSION → FUNDED → REPAYING` | ✅ Implemented in section H |
 | 8 | Repayment schedule, mark paid / investor confirm, overdue detection, completion | ✅ Implemented in section I |
-| 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`), block/unblock | 🧭 Not implemented |
-| 10 | Admin moderation, reports, `GET /api/v1/admin/stats` | 🧭 Not implemented |
+| 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`), block/unblock | ✅ Implemented in section J |
+| 10 | Admin report resolution, profile/post moderation, `GET /api/v1/admin/stats` | 🧭 Not implemented |
 | 11 | Seed dataset, full API docs, hardening, "Going live" guide | 🧭 Not implemented |
 
 ---
 
-## K. Cross-cutting conventions
+## L. Cross-cutting conventions
 
 - Base path `/api/v1`. Success responses: `{ "data": ..., "meta": ... }`; errors:
   `{ "error": { "code", "message", "details?" } }`. **Exception:** `/api/v1/auth/*` keeps

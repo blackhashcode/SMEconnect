@@ -13,3 +13,6 @@ export * from "@/server/validators/message";
 export * from "@/server/validators/health";
 export * from "@/server/validators/phone-otp";
 export * from "@/server/validators/storage";
+export * from "@/server/validators/notification";
+export * from "@/server/validators/block";
+export * from "@/server/validators/dashboard";

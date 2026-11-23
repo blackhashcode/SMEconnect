@@ -19,6 +19,11 @@ export const PROTECTED_API_PREFIXES = [
   "/api/v1/agreements",
   "/api/v1/repayments",
   "/api/v1/loans",
+  // Review reads are public like profiles; its write route has its own guard.
+  "/api/v1/reports",
+  "/api/v1/notifications",
+  "/api/v1/blocks",
+  "/api/v1/dashboard",
 ] as const;
 
 export function isProtectedApiPath(pathname: string): boolean {

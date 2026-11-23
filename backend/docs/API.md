@@ -146,9 +146,12 @@ OTP values are never logged.
   submission itself is deliberately available to unverified users.
 - Public endpoints remain `/api/v1/health`, `/api/v1/auth/*`, `/api/docs`, `/docs`, public
   files, public profiles (`/api/v1/profiles/{userId}`), public loan requests
-  (`/api/v1/loan-requests*`), and the root page. Owner-scoped loan request paths under
-  `/api/v1/me/loan-requests*` and the Phase 8 prefixes `/api/v1/repayments*` and
-  `/api/v1/loans/*` are protected by the same prefilter as the rest of the private API.
+  (`/api/v1/loan-requests*`), public review reads (`/api/v1/reviews*`) and the root page.
+  Owner-scoped loan request paths under `/api/v1/me/loan-requests*`, the Phase 8 prefixes
+  `/api/v1/repayments*` and `/api/v1/loans/*`, and the Phase 9 prefixes
+  `/api/v1/reports*`, `/api/v1/notifications*`, `/api/v1/blocks*` and `/api/v1/dashboard/*`
+  are protected by the same prefilter as the rest of the private API. Review writes have their
+  own `requireRole` guard even though review reads are public.
 
 ## Phone OTP
 
@@ -755,6 +758,121 @@ curl -X POST http://localhost:3000/api/v1/repayments/rep_1/confirm
 curl http://localhost:3000/api/v1/loans/loan_123
 ```
 
+## Reputation, notifications and dashboards (Phase 9)
+
+### Reviews and trust score
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/reviews?userId=&cursor=&limit=` | public | List reviews received by one user |
+| GET | `/api/v1/reviews/{reviewId}` | public | One review detail |
+| POST | `/api/v1/reviews` | `OWNER`/`INVESTOR` | Review the other participant of a completed loan |
+
+`POST` accepts exactly:
+
+```json
+{
+  "loanId": "loan_123",
+  "revieweeId": "usr_456",
+  "rating": 5,
+  "comment": "Clear communication and on-time repayment."
+}
+```
+
+`rating` is an integer 1–5 and `comment` is optional plain text (max 5000). The reviewer is
+always the session user. The reviewee is **derived from the loan participants**; a mismatched
+`revieweeId` returns 403, a non-participant gets 404 so loan existence is not leaked, and a loan
+that is not `COMPLETED` returns 422. Each participant may review the other side once per loan;
+duplicates (including concurrent ones) return 409. Review cards contain only safe public author
+fields — no email, phone, NID or verification documents.
+
+Trust score is a single server-side function (`src/server/services/trust-score.ts`) that writes
+`BusinessProfile.trustScore` or `InvestorProfile.trustScore`:
+
+- +25 when the user has an `APPROVED` verification for their role
+- +5 per confirmed repayment whose `confirmedAt` is on or before `dueDate`, capped at +30
+- +10 per `COMPLETED` loan, capped at +25
+- +20 × average received rating / 5 (rounded), max +20
+- −5 per overdue installment, capped at −25
+- final value clamped to the integer range 0–100
+
+It is recomputed in the same transaction as the triggering event: verification decisions,
+repayment confirmation, overdue detection (`pnpm job:overdue`) and review creation. Clients can
+never submit a trust score or counts.
+
+### Reports and blocks
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/v1/reports` | `OWNER`/`INVESTOR` | Report a user/post/comment/message |
+| GET | `/api/v1/reports?status=&cursor=&limit=` | session | Own reports; `ADMIN` sees the queue |
+| POST | `/api/v1/blocks` | `OWNER`/`INVESTOR` | Block a user |
+| GET | `/api/v1/blocks?cursor=&limit=` | `OWNER`/`INVESTOR` | List users blocked by the actor |
+| DELETE | `/api/v1/blocks/{userId}` | `OWNER`/`INVESTOR` | Remove the actor's own block |
+
+Report body: `{ "targetType": "POST", "targetId": "post_123", "reason": "Misleading proof" }`.
+`targetType` is one of `USER`, `POST`, `COMMENT`, `MESSAGE`; missing or soft-deleted targets return
+404. One open report per reporter/target is allowed; a second returns 409. `status` is `OPEN`,
+`RESOLVED` or `DISMISSED`. Resolution endpoints remain an admin Phase 10 responsibility; this
+phase only creates and lists reports.
+
+Blocks are mutual for social features. In one transaction, blocking deletes follows and
+connections in either direction. Conversations are retained but stay unreadable through the
+existing messaging block guard. Blocked users are excluded from authenticated suggestions
+(`/api/v1/suggestions/*`); public discovery has no session actor and is unchanged. Self-blocks and
+duplicates return 409; a missing/inactive/admin target returns 404.
+
+### Notifications
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/notifications?unread=&cursor=&limit=` | session | Own notification page |
+| GET | `/api/v1/notifications/unread-count` | session | Badge count |
+| PATCH | `/api/v1/notifications/{notificationId}/read` | session | Mark one read (idempotent) |
+| PATCH | `/api/v1/notifications/read-all` | session | Mark all own unread read |
+
+All reads and writes are scoped to `actor.id`; a notification belonging to another user is
+indistinguishable from a missing one (404). `?unread=true` filters to `readAt = null`; any other
+value than `true`/`false` is rejected. Cursor pagination defaults to 20 and caps at 50.
+
+Notifications are already created for new/countered/accepted offers, agreement confirmations,
+messages, connection requests/acceptance, verification results, repayment due/overdue/marked/
+confirmed events, comments and likes. Important events (offers, agreements, repayments,
+verification) also send email through the existing single `sendEmail` abstraction. There is no
+review-specific `NotificationType`, so creating a review updates the reviewee's trust score but
+does not emit a notification; notification deletion is also intentionally outside this phase's
+contract.
+
+### Dashboards
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/dashboard/owner` | `OWNER` | Active request, offers, current loan, next due, progress, trust |
+| GET | `/api/v1/dashboard/investor` | `INVESTOR` | Offers, portfolio totals, progress, next due, per-loan health |
+
+Both responses are `{ data }` and contain only server-derived metrics for the session user:
+verification state, profile, trust score, recent notifications and activity counts
+(connections/followers/following/posts/unread). The owner dashboard exposes the single active
+`OPEN`/`IN_DISCUSSION`/`FUNDED`/`REPAYING` request, counts of received offers by status, and the
+most recent non-completed loan with `nextDue` and `progressPct`. The investor dashboard exposes
+submitted offer counts, active/completed loan counts, total lent/repaid/expected BDT, the overall
+repayment progress, the earliest due installment and per-loan `health`
+(`ON_TRACK`, `DUE_SOON`, `OVERDUE`, `COMPLETED`). No query parameters can change the target user
+or any metric.
+
+```bash
+curl 'http://localhost:3000/api/v1/reviews?userId=usr_456&limit=20'
+curl -X POST http://localhost:3000/api/v1/reviews \
+  -H 'content-type: application/json' \
+  -d '{"loanId":"loan_123","revieweeId":"usr_456","rating":5,"comment":"Great partner"}'
+curl 'http://localhost:3000/api/v1/notifications?unread=true'
+curl -X PATCH http://localhost:3000/api/v1/notifications/ntf_123/read
+curl -X POST http://localhost:3000/api/v1/blocks \
+  -H 'content-type: application/json' \
+  -d '{"userId":"usr_789"}'
+curl http://localhost:3000/api/v1/dashboard/owner
+```
+
 ## System
 
 ### `GET /api/v1/health`
@@ -787,22 +905,23 @@ Reports API and PostgreSQL connectivity. No authentication required.
 ## Data model
 
 The Phase 1 relational model, ER diagram and schema decisions are documented in
-[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–8 endpoints reuse that schema without Prisma
+[`docs/DATABASE.md`](./DATABASE.md). All Phase 2–9 endpoints reuse that schema without Prisma
 changes: `UserVerification` stores KYC state, `Verification` stores phone OTP challenges,
 `Notification` stores verification and lending events, `BusinessProfile`, `InvestorProfile` and
 `ProductImage` store profile data, `LoanRequest` stores requests, `Post` stores both
 auto-generated and user-created feed entries, `Comment`, `Like`, `Follow` and `Connection`
 store Phase 5 interactions, `Conversation`, `Message` and `MessageDeletion` store Phase 6
-threads and per-user soft deletions, and `Offer`, `Loan`, `Agreement` and `Repayment` store the
-Phase 7 lending flow and Phase 8 repayment tracking. The one-active-request rule is enforced by the existing partial unique
+threads and per-user soft deletions, `Offer`, `Loan`, `Agreement` and `Repayment` store the
+Phase 7 lending flow and Phase 8 repayment tracking, and `Review`, `Report` and `Block` store the
+Phase 9 reputation and safety features. The one-active-request rule is enforced by the existing partial unique
 index `loan_request_one_active_per_owner`; the one-pending-offer rule uses
 `offer_one_pending_per_investor_per_request`.
 
 ## Modules (added in later phases)
 
-Messaging (Phase 6), offers & agreement (Phase 7) and repayment tracking (Phase 8) are implemented
-above. Reviews, trust scores, notification list/unread endpoints, dashboards and the remaining
-admin moderation endpoints (Phase 9+) are still planned. Repayment schedule generation remains
-shared by Phase 7's agreement confirmation; Phase 8 adds the tracking endpoints and jobs but does
-not add a payment gateway. Block/unblock endpoints themselves are Phase 9 and are intentionally
-not implemented in Phase 6.
+Messaging (Phase 6), offers & agreement (Phase 7), repayment tracking (Phase 8) and Phase 9
+reviews, reports, blocks, notification inbox endpoints and role dashboards are implemented above.
+Administrative report resolution, profile/post moderation and analytics remain Phase 10 work.
+Repayment schedule generation remains shared by Phase 7's agreement confirmation; Phase 8 adds the
+tracking endpoints and jobs but does not add a payment gateway. Block/unblock endpoints are Phase 9
+and are intentionally not implemented in Phase 6.

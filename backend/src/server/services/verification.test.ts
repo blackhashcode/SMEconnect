@@ -65,6 +65,7 @@ function makeRow(overrides: Partial<Row> = {}): Row {
 function createFakeDb(initial: Row[] = []) {
   const records = [...initial];
   const notifications: Array<Record<string, unknown>> = [];
+  const trustUpdates: Array<Record<string, unknown>> = [];
   let sequence = 0;
 
   const db = {
@@ -105,11 +106,26 @@ function createFakeDb(initial: Row[] = []) {
         return { id: `ntf_${notifications.length}`, ...data };
       },
     },
+    loan: { count: async () => 0 },
+    repayment: { findMany: async () => [] },
+    review: { findMany: async () => [] },
+    businessProfile: {
+      updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+        trustUpdates.push({ role: "OWNER", ...data });
+        return { count: 1 };
+      },
+    },
+    investorProfile: {
+      updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+        trustUpdates.push({ role: "INVESTOR", ...data });
+        return { count: 1 };
+      },
+    },
     $transaction: async (callback: (tx: unknown) => Promise<unknown>) =>
       callback(db),
   };
 
-  return { db, records: () => records, notifications };
+  return { db, records: () => records, notifications, trustUpdates };
 }
 
 function deps(fake: ReturnType<typeof createFakeDb>) {

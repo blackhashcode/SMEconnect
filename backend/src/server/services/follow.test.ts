@@ -55,6 +55,7 @@ interface FakeDb {
     delete: ReturnType<typeof vi.fn>;
   };
   userVerification: { findMany: ReturnType<typeof vi.fn> };
+  block: { findFirst: ReturnType<typeof vi.fn> };
 }
 
 function makeDb(): FakeDb {
@@ -67,6 +68,7 @@ function makeDb(): FakeDb {
       delete: vi.fn().mockResolvedValue({}),
     },
     userVerification: { findMany: vi.fn().mockResolvedValue([{ userId: target.id }]) },
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
   };
 }
 

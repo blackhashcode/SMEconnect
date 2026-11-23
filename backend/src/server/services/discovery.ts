@@ -57,6 +57,18 @@ function ilike(value?: string) {
   return value ? { contains: value, mode: "insensitive" as const } : undefined;
 }
 
+/** Authenticated suggestions never surface a user in either direction of a block. */
+function excludeBlocked(actorId: string) {
+  return {
+    NOT: {
+      OR: [
+        { blocksBlocked: { some: { blockedId: actorId } } },
+        { blocksReceived: { some: { blockerId: actorId } } },
+      ],
+    },
+  };
+}
+
 function requestSummary(row: DiscoveryUserRow) {
   const request = row.loanRequests?.[0];
   if (!request) return null;
@@ -308,6 +320,7 @@ export async function suggestBusinesses(
     },
     verificationsSubmitted: { some: { type: "OWNER", status: "APPROVED" } },
     loanRequests: { some: { AND: loanFilters } },
+    ...excludeBlocked(actor.id),
   };
 
   const records = await db.user.findMany({
@@ -358,6 +371,7 @@ export async function suggestInvestors(
       ...(filters.length > 0 ? { AND: filters } : {}),
     },
     verificationsSubmitted: { some: { type: "INVESTOR", status: "APPROVED" } },
+    ...excludeBlocked(actor.id),
   };
 
   const records = await db.user.findMany({
