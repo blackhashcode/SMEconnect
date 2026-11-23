@@ -87,22 +87,21 @@ describe("loan and offer schemas", () => {
     expect(parsed.proposedRatePct).toBe("14.50");
   });
 
-  it("requires a parent offer when countering", () => {
-    const base = {
-      loanRequestId: "request-1",
+  it("takes counter terms only and rejects server-owned fields", () => {
+    const terms = {
       amountBdt: loanRequestInput.amountBdt,
       interestRatePct: "12.00",
       tenureDays: loanRequestInput.tenureDays,
       repaymentFrequency: loanRequestInput.repaymentFrequency,
     };
-    expect(counterOfferSchema.safeParse(base).success).toBe(false);
+    expect(counterOfferSchema.safeParse(terms).success).toBe(true);
     expect(
       counterOfferSchema.safeParse({
-        ...base,
+        ...terms,
         parentOfferId: "offer-123",
         proposedBy: "OWNER",
       }).success,
-    ).toBe(true);
+    ).toBe(false);
   });
 });
 

@@ -624,14 +624,80 @@ above are the manual sequence the frontend/QA team can execute against `pnpm dev
 
 ---
 
-## H. Planned workflows — placeholders only 🧭
+## H. Offers, acceptance and agreement confirmation ✅ (Phase 7)
+
+An APPROVED INVESTOR can offer on an OPEN or IN_DISCUSSION request they do not own. An APPROVED
+OWNER sees offers on their own requests; only the counterparty of the current offer can reject,
+counter or accept it, and only its proposer can withdraw it.
+
+```bash
+# Investor submits terms; expiry and identity are server-owned.
+curl -X POST http://localhost:3000/api/v1/offers \
+  -H 'content-type: application/json' \
+  -d '{"loanRequestId":"lr_123","amountBdt":50000,"interestRatePct":"14.50","tenureDays":90,"repaymentFrequency":"WEEKLY","message":"I can fund this."}'
+# 201 { "data": { "id": "off_123", "status": "PENDING", "expiresAt": "...", ... } }
+
+# Owner and investor see their own sides.
+curl 'http://localhost:3000/api/v1/offers/received?limit=20'
+curl 'http://localhost:3000/api/v1/offers/submitted?limit=20'
+curl http://localhost:3000/api/v1/offers/off_123
+```
+
+The first offer moves the request `OPEN → IN_DISCUSSION`. A counter marks the old offer
+`COUNTERED`, creates a linked `PENDING` offer with `parentOfferId`, and gives it a fresh seven-day
+expiry. An offer that is still `PENDING` after seven days is reported as `EXPIRED` on read; a
+cleanup function can persist that transition but no cron endpoint is exposed in this phase.
+
+```bash
+# Owner counters; the parent offer becomes COUNTERED.
+curl -X POST http://localhost:3000/api/v1/offers/off_123/counter \
+  -H 'content-type: application/json' \
+  -d '{"amountBdt":48000,"interestRatePct":"13.00","tenureDays":90,"repaymentFrequency":"WEEKLY"}'
+# 201 { "data": { "id": "off_124", "parentOfferId": "off_123", "proposedBy": "OWNER", ... } }
+
+# Investor accepts an OWNER-proposed counter (or the owner accepts an investor offer).
+curl -X POST http://localhost:3000/api/v1/offers/off_124/accept
+# 200 { "data": { "loanId": "loan_123", "offer": { "status": "ACCEPTED", ... } } }
+```
+
+Acceptance is atomic: the accepted offer becomes `ACCEPTED`, sibling pending offers become
+`REJECTED`, `Loan` and `Agreement` are created, and the request becomes `FUNDED`. Both parties are
+notified. A duplicate or concurrent acceptance returns 409 and cannot create a second loan.
+
+```bash
+# Either party reads the same terms snapshot and schedule preview.
+curl http://localhost:3000/api/v1/agreements/agr_123
+# 200 { "data": { "terms": {...}, "parties": {...}, "schedulePreview": [...], ... } }
+
+# Each participant confirms once; the second confirmation activates everything.
+curl -X POST http://localhost:3000/api/v1/agreements/agr_123/confirm
+# Owner: 200 { "data": { "confirmations": { "ownerConfirmedAt": "...", "bothConfirmed": false }, ... } }
+# Investor: 200 { "data": { "status": "ACTIVE", "confirmations": { "bothConfirmed": true }, ... } }
+```
+
+The second confirmation sets the loan `ACTIVE`, writes whole-taka installments using flat
+interest, transitions the request `FUNDED → REPAYING`, creates two `AGREEMENT_CONFIRMED`
+notifications and adds an owner `MILESTONE` feed post. For ৳50,000 at 14.50% for 90 days the
+total is ৳51,788; monthly installments are ৳17,262, ৳17,262 and ৳17,264.
+
+### Automated tests vs. manual end-to-end workflow testing
+
+The Phase 7 behavior above is covered by **automated** Vitest service, validator, route, schedule
+and OpenAPI tests (eligibility, ownership, all offer transitions, counter linking, concurrent
+acceptance, atomic loan/agreement creation, dual confirmation, schedule rounding and error
+envelopes). A **real end-to-end business workflow** against a running Postgres instance and
+Mailpit was **not performed** in this phase; the commands above are the manual sequence for QA.
+
+---
+
+## I. Planned workflows — placeholders only 🧭
 
 These are **not implemented**. Endpoint names below are taken from `BACKEND_PROMPT.md` as
 planning hints and may change when the phase is built.
 
 | Phase | Planned workflow | Status |
 |---|---|---|
-| 7 | Offers, counters, accept/reject/withdraw, agreement confirmation, `OPEN → IN_DISCUSSION → FUNDED → REPAYING` | 🧭 Not implemented |
+| 7 | Offers, counters, accept/reject/withdraw, agreement confirmation, `OPEN → IN_DISCUSSION → FUNDED → REPAYING` | ✅ Implemented in section H |
 | 8 | Repayment schedule, mark paid / investor confirm, overdue detection, completion | 🧭 Not implemented |
 | 9 | Reviews, trust score, notifications, dashboards (`/api/v1/dashboard/owner`, `/investor`), block/unblock | 🧭 Not implemented |
 | 10 | Admin moderation, reports, `GET /api/v1/admin/stats` | 🧭 Not implemented |
@@ -639,7 +705,7 @@ planning hints and may change when the phase is built.
 
 ---
 
-## I. Cross-cutting conventions
+## J. Cross-cutting conventions
 
 - Base path `/api/v1`. Success responses: `{ "data": ..., "meta": ... }`; errors:
   `{ "error": { "code", "message", "details?" } }`. **Exception:** `/api/v1/auth/*` keeps

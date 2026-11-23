@@ -134,6 +134,12 @@ export const markReadResultSuccessEnvelopeSchema = successEnvelope(
   validators.markReadResultSchema,
 );
 
+// Phase 7 — offers and agreements
+export const offerSuccessEnvelopeSchema = successEnvelope(validators.offerRecordSchema);
+export const offerListSuccessEnvelopeSchema = successEnvelope(validators.offerRecordListSchema);
+export const acceptOfferSuccessEnvelopeSchema = successEnvelope(validators.acceptOfferResultSchema);
+export const agreementSuccessEnvelopeSchema = successEnvelope(validators.agreementSummarySchema);
+
 const cursorSchema = z.string().min(1).openapi({
   param: {
     name: "cursor",
@@ -350,6 +356,16 @@ const componentSchemas: ReadonlyArray<readonly [string, z.ZodType]> = [
   ["MessageRecord", validators.messageRecordSchema],
   ["ConversationRecord", validators.conversationRecordSchema],
   ["MarkReadResult", validators.markReadResultSchema],
+
+  // Phase 7 — offers and agreements
+  ["OfferListFilters", validators.offerListQuerySchema],
+  ["OfferParty", validators.offerPartySchema],
+  ["OfferLoanRequestSummary", validators.offerLoanRequestSummarySchema],
+  ["OfferRecord", validators.offerRecordSchema],
+  ["AcceptOfferResult", validators.acceptOfferResultSchema],
+  ["RepaymentInstallmentPreview", validators.repaymentInstallmentPreviewSchema],
+  ["AgreementTermsSnapshot", validators.agreementTermsSnapshotSchema],
+  ["AgreementSummary", validators.agreementSummarySchema],
 
   // Shared responses
   ["ErrorEnvelope", errorEnvelopeSchema],
