@@ -16,8 +16,9 @@ export const metadata = { title: "Home feed" };
 
 export default async function FeedPage() {
   const user = await requireUser("/feed");
-  const isMember = user.role !== "admin";
-  const [directory, investors, loans, feed] = await Promise.all([listBusinesses(), listInvestors(), listOpenLoanRequests(), isMember ? feedPosts() : Promise.resolve(null)]);
+  const isAdmin = user.role === "admin";
+  // Admins see every post so they can review, edit and remove them.
+  const [directory, investors, loans, feed] = await Promise.all([listBusinesses(), listInvestors(), listOpenLoanRequests(), feedPosts()]);
   const owners = directory.map((entry) => entry.owner);
   const members = [...owners, ...investors];
   const featured = loans.find((loan) => loan.owner.id !== user.id && loan.business.image);
@@ -94,7 +95,7 @@ export default async function FeedPage() {
             loans={loans}
             businesses={directory.map((entry) => entry.business)}
             members={members}
-            posts={feed ? <PostFeed initial={feed.posts} nextCursor={feed.nextCursor} viewer={{ id: user.id, name: user.name, avatar: user.avatar, isOwner: user.role === "business" }} /> : undefined}
+            posts={feed ? <PostFeed initial={feed.posts} nextCursor={feed.nextCursor} viewer={{ id: user.id, name: user.name, avatar: user.avatar, isOwner: user.role === "business", isAdmin }} /> : undefined}
           />
         </div>
       </div>

@@ -293,6 +293,27 @@ function seedRequest(
 }
 
 describe("createLoanRequest", () => {
+  it("allows only one request at a time, drafts included, with a clear reason", async () => {
+    for (const [status, phrase] of [
+      ["DRAFT", "unpublished draft"],
+      ["OPEN", "Only one request is allowed at a time"],
+      ["PAUSED", "paused request"],
+      ["REPAYING", "fully repaid"],
+    ] as const) {
+      const state = createFakeDb();
+      seedRequest(state, owner.id, { status });
+      await expect(createLoanRequest(owner, validInput, deps(state))).rejects.toThrow(phrase);
+    }
+  });
+
+  it("allows a new request once the previous one is completed or cancelled", async () => {
+    for (const status of ["COMPLETED", "CANCELLED"] as const) {
+      const state = createFakeDb();
+      seedRequest(state, owner.id, { status });
+      await expect(createLoanRequest(owner, validInput, deps(state))).resolves.toMatchObject({ status: "DRAFT" });
+    }
+  });
+
   it("creates a DRAFT owned by the session user", async () => {
     const state = createFakeDb();
     const result = await createLoanRequest(owner, validInput, deps(state));

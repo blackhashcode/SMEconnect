@@ -43,7 +43,8 @@ export function UserMenu({ user }: { user: SessionUser }) {
           { label: "My network", href: "/connections", icon: UsersRound },
         ]),
     { label: hub.label, href: hub.href, icon: LayoutDashboard },
-    { label: "Explore members", href: "/explore", icon: Compass },
+    // Admins manage members from the admin members list; everyone else browses Explore.
+    user.role === "admin" ? { label: "Members", href: "/admin/users", icon: UsersRound } : { label: "Explore members", href: "/explore", icon: Compass },
   ];
 
   return (

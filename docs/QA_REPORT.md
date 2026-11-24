@@ -8,7 +8,7 @@
 | --- | --- |
 | Backend unit and service tests (Vitest) | **All pass** (round 2 adds 17 for admin oversight, audit log and Google role handling) |
 | Backend typecheck and ESLint | Pass |
-| End-to-end journey, direct to backend (`pnpm smoke`) | **121 / 121 pass** (67 in round 1) |
+| End-to-end journey, direct to backend (`pnpm smoke`) | **122 / 122 pass** (67 in round 1) |
 | Same journey through the frontend proxy (`:3000/api/v1`) | **Pass** |
 | Bot-user load test (`pnpm bots`, up to 120 simultaneous users) | **0 errors**, 311 req/s, p95 308 ms (see [PERFORMANCE_TEST.md](PERFORMANCE_TEST.md)) |
 | Frontend typecheck and production build | Pass |
@@ -73,6 +73,12 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 | 39 | Profiles | Owners couldn't share monthly sales: onboarding now has monthly sales range, orders per month, running since, growth story and more shop links. Saving highlights and scrolls to empty required fields. Fixed a server error when only some profile fields were updated (upsert required every field). |
 | 40 | Explore | "More filters" did nothing: it now opens location, trust score, verified-only, loan amount, tenure, repayment frequency and sort filters. Investors can view and connect with other investors as well as businesses. |
 | 41 | Admin | Admins can change roles (grant or remove admin access; not their own; one admin always remains), edit any member's profile, restore removed posts and comments, reopen cancelled loan requests, and confirm instalments on an investor's behalf. All logged. |
+| 42 | Profiles | The Report / Block menu on a member's profile was cut off by the header card and barely visible. It now opens fully below the button, wider, with larger text. Same fix for the post menu. |
+| 43 | Admin | The admin profile editor said "Saved" without saving: cleared number fields were dropped, so an empty change was sent. Rewritten to cover every owner and investor field (shop, slug, category, location, sales, links, story; lending range, rates, categories, bio; name and photo). It sends only changed fields, validates them, shows the server's field errors and reports how many changes were saved. |
+| 44 | Feed | Admins now see the home feed with every post, and can edit or remove any post (system posts included) and remove comments. Logged as `admin.post_edited` / `admin.post_removed`. |
+| 45 | Feed | Members can edit their own updates and milestones from the post menu; edited posts show "(edited)". |
+| 46 | Admin | "Explore members" in the admin's account menu went to Explore. It is now "Members" and opens the admin members list. |
+| 47 | Loans | Owners could create request after request (each failed publish left another draft, with no explanation). Only one request is allowed at a time: draft, open, in discussion, paused, funded or repaying. A second attempt gets a clear 422 message saying why and what to do, the form shows it at the top, and `/loans/new` sends the owner to their existing request instead of showing the form. |
 
 ## Scalability and performance measures
 

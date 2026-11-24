@@ -190,9 +190,24 @@ export async function listFeed(
   query: PaginationParams & { type?: PostType },
   deps: ServiceDeps = {},
 ) {
-  assertRole(actor, "OWNER", "INVESTOR");
+  assertRole(actor, "OWNER", "INVESTOR", "ADMIN");
   const db = deps.db ?? prisma;
   const cursor = cursorId(query.cursor);
+
+  // Admins review the whole platform, newest first.
+  if (actor.role === "ADMIN") {
+    const all = await db.post.findMany({
+      where: { deletedAt: null, ...(query.type ? { type: query.type } : {}) },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: query.limit + 1,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: postInclude(),
+    });
+    const adminPage = pageMeta(all as unknown as PostRow[], query.limit);
+    const adminItems = [];
+    for (const row of adminPage.items) adminItems.push(await toPostRecord(row, actor, db));
+    return { items: adminItems, meta: adminPage.meta };
+  }
 
   const [follows, connections] = await Promise.all([
     db.follow.findMany({
@@ -254,13 +269,16 @@ export async function updatePost(
   input: UpdateInput,
   deps: ServiceDeps = {},
 ) {
-  assertRole(actor, "OWNER", "INVESTOR");
+  assertRole(actor, "OWNER", "INVESTOR", "ADMIN");
   const parsed = updatePostSchema.parse(input);
   const db = deps.db ?? prisma;
   const existing = await db.post.findFirst({ where: { id, deletedAt: null } });
   if (!existing) throw new NotFoundError("Post not found");
-  if (existing.authorId !== actor.id) throw new ForbiddenError("You do not own this post");
-  assertEditable(existing.type as PostType);
+  // Admins may edit any post, including system-generated ones (moderation).
+  if (actor.role !== "ADMIN") {
+    if (existing.authorId !== actor.id) throw new ForbiddenError("You do not own this post");
+    assertEditable(existing.type as PostType);
+  }
 
   await db.post.update({ where: { id }, data: parsed });
   return toPostRecord(await loadPost(id, db), actor, db);
@@ -268,12 +286,14 @@ export async function updatePost(
 
 /** Soft-deletes the post and its visible comments in one transaction. */
 export async function deletePost(actor: Actor, id: string, deps: ServiceDeps = {}) {
-  assertRole(actor, "OWNER", "INVESTOR");
+  assertRole(actor, "OWNER", "INVESTOR", "ADMIN");
   const db = deps.db ?? prisma;
   const existing = await db.post.findFirst({ where: { id, deletedAt: null } });
   if (!existing) throw new NotFoundError("Post not found");
-  if (existing.authorId !== actor.id) throw new ForbiddenError("You do not own this post");
-  assertEditable(existing.type as PostType);
+  if (actor.role !== "ADMIN") {
+    if (existing.authorId !== actor.id) throw new ForbiddenError("You do not own this post");
+    assertEditable(existing.type as PostType);
+  }
 
   const now = new Date();
   await db.$transaction(async (tx) => {

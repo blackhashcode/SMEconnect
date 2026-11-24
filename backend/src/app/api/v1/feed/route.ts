@@ -9,7 +9,7 @@ import { feedQuerySchema } from "@/server/validators/social";
 /** Personalized feed: own posts, followed authors, connections + OPEN loan requests. */
 export async function GET(request: NextRequest) {
   return handleRequest(async () => {
-    const session = await requireRole("OWNER", "INVESTOR");
+    const session = await requireRole("OWNER", "INVESTOR", "ADMIN");
     const searchParams = request.nextUrl.searchParams;
     const pagination = parsePagination(searchParams);
     const filters = feedQuerySchema.parse(

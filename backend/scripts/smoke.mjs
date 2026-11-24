@@ -194,9 +194,8 @@ async function main() {
   const publish = await owner.http("POST", `/me/loan-requests/${loanRequestId}/publish`);
   check("owner publishes", publish.status === 200 && publish.json?.data?.status === "OPEN", brief(publish));
   check("published request is public", (await client()("GET", `/loan-requests/${loanRequestId}`)).status === 200);
-  const second = await owner.http("POST", "/me/loan-requests", { amountBdt: 20000, purpose: "Another", fundUsage: "Should not be publishable alongside the first.", tenureDays: 30, repaymentFrequency: "WEEKLY", proposedRatePct: "10" });
-  const secondPublish = await owner.http("POST", `/me/loan-requests/${second.json?.data?.id}/publish`);
-  check("only one active request per owner", secondPublish.status >= 400, brief(secondPublish));
+  const second = await owner.http("POST", "/me/loan-requests", { amountBdt: 20000, purpose: "Another", fundUsage: "Should not be allowed alongside the first.", tenureDays: 30, repaymentFrequency: "WEEKLY", proposedRatePct: "10" });
+  check("only one loan request at a time (no extra drafts)", second.status === 422 && second.json?.error?.code === "BUSINESS_RULE_VIOLATION" && /already/i.test(second.json?.error?.message ?? ""), brief(second));
 
   section("Discovery and filtering");
   const food = await client()("GET", "/businesses?category=food&location=dhaka&limit=50");
@@ -312,15 +311,13 @@ async function main() {
   const ownerActions = new Set((ownerLog.json?.data ?? []).map((entry) => entry.action));
   check("activity log records the owner's sign-up, publish and agreement", ["account.created", "loan_request.published", "agreement.confirmed"].every((a) => ownerActions.has(a)), [...ownerActions].join(","));
   check("non-admin can't read the activity log", (await owner.http("GET", "/admin/audit-logs")).status === 403);
-  const draftId = second.json?.data?.id;
-  const allRequests = await admin.http("GET", "/admin/loan-requests?status=DRAFT");
-  check("admin lists loan requests of any status", allRequests.status === 200 && (allRequests.json?.data ?? []).some((r) => r.id === draftId), brief(allRequests));
-  const noReason = await admin.http("POST", `/admin/loan-requests/${draftId}/cancel`, {});
+  const requestId = draft.json?.data?.id;
+  const allRequests = await admin.http("GET", "/admin/loan-requests?limit=50");
+  check("admin lists loan requests of any status", allRequests.status === 200 && (allRequests.json?.data ?? []).some((r) => r.id === requestId), brief(allRequests));
+  const noReason = await admin.http("POST", `/admin/loan-requests/${requestId}/cancel`, {});
   check("moderation needs a reason", noReason.status === 400, brief(noReason));
-  const cancelled = await admin.http("POST", `/admin/loan-requests/${draftId}/cancel`, { reason: "Smoke test moderation" });
-  check("admin cancels a loan request", cancelled.status === 200 && cancelled.json?.data?.status === "CANCELLED", brief(cancelled));
-  const notices = await owner.http("GET", "/notifications?limit=5");
-  check("owner is notified of the moderation", (notices.json?.data ?? []).some((n) => n.type === "ADMIN_NOTICE"), brief(notices));
+  const fundedCancel = await admin.http("POST", `/admin/loan-requests/${requestId}/cancel`, { reason: "Smoke test moderation" });
+  check("admin can't cancel a funded request", fundedCancel.status === 422, brief(fundedCancel));
   const loans = await admin.http("GET", "/admin/loans");
   check("admin sees every loan with repayment progress", loans.status === 200 && (loans.json?.data ?? []).some((l) => l.id === loanId && l.repayments.total > 0), brief(loans));
   const roleSwitch = await owner.http("PATCH", "/me/role", { role: "INVESTOR" });
@@ -344,6 +341,10 @@ async function main() {
   check("admin removes a post", (await admin.http("DELETE", `/admin/posts/${postId}`)).status === 200);
   const restored = await admin.http("POST", `/admin/posts/${postId}/restore`);
   check("admin restores the removed post", restored.status === 200 && restored.json?.data?.restored === true, brief(restored));
+  const adminFeed = await admin.http("GET", "/feed?limit=50");
+  check("admin reads the feed with every post", adminFeed.status === 200 && (adminFeed.json?.data ?? []).some((p) => p.id === postId), brief(adminFeed));
+  const adminEdit = await admin.http("PATCH", `/posts/${postId}`, { content: "Edited by an admin during the smoke test." });
+  check("admin edits any member's post", adminEdit.status === 200 && adminEdit.json?.data?.content === "Edited by an admin during the smoke test.", brief(adminEdit));
   const instalments = await admin.http("GET", `/admin/loans/${loanId}/repayments`);
   const pending = (instalments.json?.data ?? []).find((r) => r.status !== "CONFIRMED");
   check("admin lists a loan's instalments", instalments.status === 200 && (instalments.json?.data ?? []).length > 0, brief(instalments));
