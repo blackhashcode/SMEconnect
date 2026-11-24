@@ -98,6 +98,7 @@ const investorProfileBaseSchema = z
     preferredRatePctMax: ratePctSchema.optional(),
     district: shortTextSchema.optional(),
     city: shortTextSchema.optional(),
+    coverUrl: profileImageUrlSchema.nullable().optional(),
   })
   .strict();
 
@@ -207,6 +208,7 @@ export const investorProfileRecordSchema = z
     preferredRatePctMax: z.string().nullable(),
     district: z.string().nullable(),
     city: z.string().nullable(),
+    coverUrl: z.string().nullable(),
     trustScore: z.number().int().nonnegative(),
     createdAt: isoDateTimeSchema,
     updatedAt: isoDateTimeSchema,
@@ -259,6 +261,7 @@ export const publicInvestorProfileSchema = z
     preferredRatePctMax: z.string().nullable(),
     district: z.string().nullable(),
     city: z.string().nullable(),
+    coverUrl: z.string().nullable(),
     trustScore: z.number().int().nonnegative(),
   })
   .strict();

@@ -67,6 +67,8 @@ export function AdminProfileEditor({ userId, role, name, image, profile }: { use
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState(name);
   const [removePhoto, setRemovePhoto] = useState(false);
+  const [removeCover, setRemoveCover] = useState(false);
+  const cover = typeof profile?.coverUrl === "string" && profile.coverUrl ? profile.coverUrl : null;
   const [values, setValues] = useState<Record<string, string>>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -77,6 +79,7 @@ export function AdminProfileEditor({ userId, role, name, image, profile }: { use
     setValues(initial);
     setFullName(name);
     setRemovePhoto(false);
+    setRemoveCover(false);
     setErrors({});
     setError(null);
     setSaved(null);
@@ -124,6 +127,7 @@ export function AdminProfileEditor({ userId, role, name, image, profile }: { use
     const body: Record<string, unknown> = {};
     if (fullName.trim() !== name) body.name = fullName.trim();
     if (removePhoto && image) body.image = null;
+    if (removeCover && cover) patch.coverUrl = null;
     if (Object.keys(patch).length) body.profile = patch;
     if (!Object.keys(body).length) return setError("Nothing has changed yet.");
 
@@ -214,6 +218,11 @@ export function AdminProfileEditor({ userId, role, name, image, profile }: { use
         {image && (
           <label className="flex items-end gap-2 pb-2 text-body-sm text-on-surface">
             <input type="checkbox" checked={removePhoto} onChange={(e) => setRemovePhoto(e.target.checked)} className="h-4 w-4 accent-primary" /> Remove profile photo
+          </label>
+        )}
+        {cover && (
+          <label className="flex items-end gap-2 pb-2 text-body-sm text-on-surface">
+            <input type="checkbox" checked={removeCover} onChange={(e) => setRemoveCover(e.target.checked)} className="h-4 w-4 accent-primary" /> Remove cover photo
           </label>
         )}
       </div>

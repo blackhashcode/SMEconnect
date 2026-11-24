@@ -20,7 +20,7 @@ export function registerStorageRoutes() {
     tags: ["Verification"],
     summary: "Upload a verification or public image file",
     description:
-      "Multipart upload with a `file` and a `purpose`. Visibility is derived from purpose: ID_DOCUMENT/SALES_PROOF are private; AVATAR/PRODUCT_IMAGE are public. Maximum 5 MB; JPEG, PNG, WebP and PDF only.",
+      "Multipart upload with a `file` and a `purpose`. Visibility is derived from purpose: ID_DOCUMENT/SALES_PROOF are private; AVATAR/COVER/PRODUCT_IMAGE are public. Maximum 5 MB; JPEG, PNG, WebP and PDF only.",
     security: sessionSecurity,
     requestBody: {
       required: true,

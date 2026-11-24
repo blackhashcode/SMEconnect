@@ -71,4 +71,19 @@ describe("upload size hardening", () => {
       }),
     );
   });
+
+  it("stores cover photos publicly and refuses documents as photos", async () => {
+    const { provider, save } = fakeProvider();
+    const cover = new File([new Uint8Array([1])], "cover.png", { type: "image/png" });
+    await saveUploadedFile({ file: cover, purpose: "COVER" }, { provider });
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ visibility: "public" }));
+
+    const pdf = new File([new Uint8Array([1])], "cover.pdf", { type: "application/pdf" });
+    await expect(
+      saveUploadedFile({ file: pdf, purpose: "COVER" }, { provider }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      saveUploadedFile({ file: pdf, purpose: "SALES_PROOF" }, { provider }),
+    ).resolves.toEqual(stored);
+  });
 });

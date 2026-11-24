@@ -222,7 +222,7 @@ Verify:
   parsed `File.size`. Filenames are randomized UUIDs with an extension derived from the MIME
   type; client filenames are ignored.
 - `purpose` determines visibility: `ID_DOCUMENT` and `SALES_PROOF` are private;
-  `AVATAR` and `PRODUCT_IMAGE` are public.
+  `AVATAR`, `COVER` and `PRODUCT_IMAGE` are public.
 - The upload response contains a relative `url`. Private URLs are under
   `/api/v1/files/private/...` and are never exposed through a public static path.
 - Files are served `inline` (shown in the browser, not downloaded) with a restrictive

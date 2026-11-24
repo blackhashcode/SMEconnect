@@ -67,6 +67,7 @@ interface InvestorRow {
   preferredRatePctMax: unknown;
   district: string | null;
   city: string | null;
+  coverUrl?: string | null;
   trustScore: number;
   createdAt: Date;
   updatedAt: Date;
@@ -114,6 +115,7 @@ const INVESTOR_FIELDS = [
   "preferredRatePctMax",
   "district",
   "city",
+  "coverUrl",
 ] as const;
 
 function toIso(value: Date | null | undefined): string | null {
@@ -246,6 +248,7 @@ function toInvestorProfile(row: InvestorRow) {
     preferredRatePctMax: decimalToString(row.preferredRatePctMax),
     district: row.district ?? null,
     city: row.city ?? null,
+    coverUrl: row.coverUrl ?? null,
     trustScore: row.trustScore,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -498,6 +501,7 @@ export async function getPublicProfile(userId: string, deps: ProfileDeps = {}) {
       preferredRatePctMax: decimalToString(profile.preferredRatePctMax),
       district: profile.district ?? null,
       city: profile.city ?? null,
+      coverUrl: profile.coverUrl ?? null,
       trustScore: profile.trustScore,
     },
   };
