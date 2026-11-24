@@ -8,7 +8,7 @@
 | --- | --- |
 | Backend unit and service tests (Vitest) | **All pass** (round 2 adds 17 for admin oversight, audit log and Google role handling) |
 | Backend typecheck and ESLint | Pass |
-| End-to-end journey, direct to backend (`pnpm smoke`) | **122 / 122 pass** (67 in round 1) |
+| End-to-end journey, direct to backend (`pnpm smoke`) | **123 / 123 pass** (67 in round 1) |
 | Same journey through the frontend proxy (`:3000/api/v1`) | **Pass** |
 | Bot-user load test (`pnpm bots`, up to 120 simultaneous users) | **0 errors**, 311 req/s, p95 308 ms (see [PERFORMANCE_TEST.md](PERFORMANCE_TEST.md)) |
 | Frontend typecheck and production build | Pass |
@@ -79,7 +79,7 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 | 45 | Feed | Members can edit their own updates and milestones from the post menu; edited posts show "(edited)". |
 | 46 | Admin | "Explore members" in the admin's account menu went to Explore. It is now "Members" and opens the admin members list. |
 | 47 | Loans | Owners could create request after request (each failed publish left another draft, with no explanation). Only one request is allowed at a time: draft, open, in discussion, paused, funded or repaying. A second attempt gets a clear 422 message saying why and what to do, the form shows it at the top, and `/loans/new` sends the owner to their existing request instead of showing the form. |
-| 48 | Profiles | Business owners and investors can add an optional cover photo from Profile & verification, change it or remove it; admins can remove one. Investors gained a `coverUrl` (migration `20261125000000`). Photo uploads (avatar, cover, product) now accept images only, not PDFs. |
+| 48 | Profiles | Business owners and investors can add an optional cover photo from Profile & verification, change it or remove it; admins can remove one. Investors gained a `coverUrl` (migration `20261125000000`). Photo uploads (avatar, cover, product) now accept images only, not PDFs. Single profiles are no longer CDN-cached, so a changed or removed cover shows at once (listings stay cached). |
 
 ## Scalability and performance measures
 
