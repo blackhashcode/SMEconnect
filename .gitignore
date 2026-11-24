@@ -23,8 +23,6 @@ coverage/
 next-env.d.ts
 
 # ── Environment variables and secrets (never commit) ────────────────────────
-.env
-.env.*
 !.env.example
 *.pem
 *.key
@@ -55,7 +53,6 @@ yarn-error.log*
 Thumbs.db
 desktop.ini
 .idea/
-.vscode/*
 !.vscode/extensions.json
 *.swp
 *~
@@ -70,3 +67,4 @@ backend/docs/implementation/
 # ── Source photos before compression (optimised copies live in frontend/public/images) ──
 /Photos/
 .neon
+config.bat
