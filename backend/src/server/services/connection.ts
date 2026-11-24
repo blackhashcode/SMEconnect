@@ -61,6 +61,7 @@ async function toRecord(row: ConnectionRow, actor: Actor, db: Db) {
   const verified = await verifiedUserIds([other.id], db);
   return {
     id: row.id,
+    userId: other.id,
     user: toPostAuthor(other, verified.has(other.id)),
     direction: outgoing ? ("outgoing" as const) : ("incoming" as const),
     status: row.status,
@@ -89,16 +90,37 @@ export async function sendConnectionRequest(
     throw new ForbiddenError("You cannot connect with a blocked user");
   }
 
-  const existing = await db.connection.findFirst({
+  const existing = (await db.connection.findFirst({
     where: {
       OR: [
         { requesterId: actor.id, addresseeId: validTarget.id },
         { requesterId: validTarget.id, addresseeId: actor.id },
       ],
     },
-    select: { id: true },
-  });
-  if (existing) throw new ConflictError("A connection already exists with this user");
+    select: { id: true, requesterId: true, status: true },
+  })) as { id: string; requesterId?: string; status?: ConnectionStatus } | null;
+
+  if (existing) {
+    // Already connected: nothing to do, but say so clearly.
+    if (existing.status === "ACCEPTED" || !existing.status) {
+      throw new ConflictError("You're already connected with this member");
+    }
+    // They already asked to connect with you: clicking Connect accepts it.
+    if (existing.status === "PENDING" && existing.requesterId === validTarget.id) {
+      await db.connection.update({ where: { id: existing.id }, data: { status: "ACCEPTED" } });
+      return toRecord(await loadConnection(existing.id, db), actor, db);
+    }
+    // You already sent a request: return it instead of failing.
+    if (existing.status === "PENDING") {
+      return toRecord(await loadConnection(existing.id, db), actor, db);
+    }
+    // A declined request can be sent again, as a fresh request from you.
+    await db.connection.update({
+      where: { id: existing.id },
+      data: { requesterId: actor.id, addresseeId: validTarget.id, status: "PENDING", message: parsed.message ?? null },
+    });
+    return toRecord(await loadConnection(existing.id, db), actor, db);
+  }
 
   try {
     const created = await db.connection.create({
@@ -202,4 +224,33 @@ export async function removeConnection(actor: Actor, id: string, deps: ServiceDe
   const record = await toRecord(existing, actor, db);
   await db.connection.delete({ where: { id } });
   return record;
+}
+
+/**
+ * The actor's relationship with one other member, for profile buttons:
+ * none, outgoing/incoming pending request, connected, or declined.
+ */
+export async function getRelationship(actor: Actor, otherId: string, deps: ServiceDeps = {}) {
+  assertRole(actor, "OWNER", "INVESTOR");
+  const db = deps.db ?? prisma;
+  if (otherId === actor.id) return { userId: otherId, status: "self" as const, connectionId: null };
+  const row = (await db.connection.findFirst({
+    where: {
+      OR: [
+        { requesterId: actor.id, addresseeId: otherId },
+        { requesterId: otherId, addresseeId: actor.id },
+      ],
+    },
+    select: { id: true, requesterId: true, status: true },
+  })) as { id: string; requesterId: string; status: ConnectionStatus } | null;
+  if (!row) return { userId: otherId, status: "none" as const, connectionId: null };
+  const status =
+    row.status === "ACCEPTED"
+      ? ("connected" as const)
+      : row.status === "DECLINED"
+        ? ("declined" as const)
+        : row.requesterId === actor.id
+          ? ("outgoing" as const)
+          : ("incoming" as const);
+  return { userId: otherId, status, connectionId: row.id };
 }

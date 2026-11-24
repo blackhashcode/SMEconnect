@@ -245,6 +245,22 @@ async function main() {
   const confirmed = await investor.http("POST", `/repayments/${first?.id}/confirm`, {});
   check("investor confirms receipt", confirmed.status === 200, brief(confirmed));
 
+  section("Connections");
+  const notes = async (who, type) => ((await who.http("GET", "/notifications?limit=50")).json?.data ?? []).filter((n) => n.type === type);
+  const request1 = await outsider.http("POST", "/connections", { addresseeId: owner.id });
+  check("investor sends a connection request", request1.status === 201 && request1.json?.data?.status === "PENDING" && request1.json?.data?.userId === owner.id, brief(request1));
+  const request2 = await outsider.http("POST", "/connections", { addresseeId: owner.id });
+  check("sending again returns the same request (no 409)", request2.status < 300 && request2.json?.data?.id === request1.json?.data?.id, brief(request2));
+  const incoming = await owner.http("GET", `/connections/with/${outsider.id}`);
+  check("owner sees an incoming request", incoming.json?.data?.status === "incoming", brief(incoming));
+  check("owner is notified of the request", (await notes(owner, "CONNECTION_REQUEST")).some((n) => n.data?.connectionId === request1.json?.data?.id));
+  const mutual = await owner.http("POST", "/connections", { addresseeId: outsider.id });
+  check("connecting back accepts the request", mutual.status < 300 && mutual.json?.data?.status === "ACCEPTED", brief(mutual));
+  check("requester is notified of the acceptance", (await notes(outsider, "CONNECTION_ACCEPTED")).length > 0);
+  check("both now show as connected", (await outsider.http("GET", `/connections/with/${owner.id}`)).json?.data?.status === "connected");
+  const again = await outsider.http("POST", "/connections", { addresseeId: owner.id });
+  check("connecting when already connected is a clear 409", again.status === 409, brief(again));
+
   section("Messaging and notifications");
   const conversation = await investor.http("POST", "/conversations", { participantId: owner.id });
   check("conversation opened", [200, 201].includes(conversation.status), brief(conversation));
@@ -252,6 +268,9 @@ async function main() {
   const sent = await investor.http("POST", `/conversations/${conversationId}/messages`, { body: "Hello <img src=x onerror=alert(1)>" });
   check("message sent and HTML stripped", sent.status === 201 && !/<img/i.test(sent.json?.data?.body ?? "<img"), brief(sent));
   check("outsider can't read the conversation", [403, 404].includes((await outsider.http("GET", `/conversations/${conversationId}/messages`)).status));
+  await investor.http("POST", `/conversations/${conversationId}/messages`, { body: "Second message" });
+  const messageNotes = (await notes(owner, "MESSAGE_RECEIVED")).filter((n) => n.data?.conversationId === conversationId && !n.readAt);
+  check("recipient gets one message notification per conversation (not one per message)", messageNotes.length === 1 && messageNotes[0].body === "Second message", JSON.stringify(messageNotes.map((n) => n.body)));
   const unread = await owner.http("GET", "/notifications/unread-count");
   check("owner has notifications from the deal", unread.status === 200 && (unread.json?.data?.count ?? unread.json?.data?.unread ?? 0) > 0, brief(unread));
 

@@ -64,6 +64,22 @@ export async function getProfile(userId: string) {
 }
 
 /** Landing page: a few open requests, cached for a minute, no session. */
+/** Public lists cached for 30 s and shared between visitors (profile sidebars). */
+export async function cachedOpenLoanRequests(limit = 50) {
+  const data = await backendGetPublic<S["PublicLoanRequest"][]>(`/loan-requests?limit=${limit}`, 30);
+  return (data ?? []).map(loanRequestView);
+}
+
+export async function cachedBusinesses(limit = 12) {
+  const data = await backendGetPublic<S["DiscoveryBusiness"][]>(`/businesses?limit=${limit}`, 30);
+  return (data ?? []).map((b) => ({ owner: businessPerson(b), business: discoveryBusiness(b) }));
+}
+
+export async function cachedInvestors(limit = 12) {
+  const data = await backendGetPublic<S["DiscoveryInvestor"][]>(`/investors?limit=${limit}`, 30);
+  return (data ?? []).map(investorPerson);
+}
+
 export async function featuredLoanRequests(limit = 3) {
   const data = await backendGetPublic<S["PublicLoanRequest"][]>(`/loan-requests?limit=${limit}`);
   return (data ?? []).map(loanRequestView);
@@ -141,4 +157,30 @@ export async function reviewsFor(userId: string) {
 export async function authOptions(): Promise<{ google: boolean }> {
   const data = await backendGetPublic<{ google: boolean }>("/auth-options", 300);
   return { google: data?.google === true };
+}
+
+// ---------- Connections ----------
+
+export type ConnectionStatusResult = { userId: string; status: "none" | "outgoing" | "incoming" | "connected" | "declined" | "self"; connectionId: string | null };
+
+/** The viewer's connection status with one member (null for admins or logged-out visitors). */
+export async function connectionStatus(userId: string): Promise<ConnectionStatusResult | null> {
+  const { data } = await backendGet<ConnectionStatusResult>(`/connections/with/${encodeURIComponent(userId)}`);
+  return data;
+}
+
+export type ConnectionItem = {
+  id: string;
+  userId: string;
+  user: { name: string; image: string | null; role: "OWNER" | "INVESTOR"; verified: boolean; shopName: string | null };
+  direction: "incoming" | "outgoing";
+  status: "PENDING" | "ACCEPTED" | "DECLINED";
+  message: string | null;
+  createdAt: string;
+};
+
+/** The viewer's connections and requests, newest first. */
+export async function myConnections(status?: "PENDING" | "ACCEPTED", direction?: "incoming" | "outgoing") {
+  const { data } = await backendGet<ConnectionItem[]>(`/connections${qs({ status, direction, limit: 50 })}`);
+  return data ?? [];
 }

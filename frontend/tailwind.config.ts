@@ -129,6 +129,14 @@ const config: Config = {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-8px)" },
         },
+        "toast-in": {
+          from: { opacity: "0", transform: "translateX(-24px) scale(0.98)" },
+          to: { opacity: "1", transform: "translateX(0) scale(1)" },
+        },
+        "tray-in": {
+          from: { opacity: "0", transform: "translateY(-6px) scale(0.98)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
         shimmer: {
           from: { backgroundPosition: "200% 0" },
           to: { backgroundPosition: "-200% 0" },
@@ -142,6 +150,8 @@ const config: Config = {
         "grow-x": "grow-x 900ms cubic-bezier(0.16, 1, 0.3, 1) both",
         float: "float 6s ease-in-out infinite",
         shimmer: "shimmer 1.6s linear infinite",
+        "toast-in": "toast-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "tray-in": "tray-in 180ms cubic-bezier(0.16, 1, 0.3, 1) both",
       },
     },
   },

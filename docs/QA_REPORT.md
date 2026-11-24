@@ -8,7 +8,7 @@
 | --- | --- |
 | Backend unit and service tests (Vitest) | **All pass** (round 2 adds 17 for admin oversight, audit log and Google role handling) |
 | Backend typecheck and ESLint | Pass |
-| End-to-end journey, direct to backend (`pnpm smoke`) | **86 / 86 pass** (67 in round 1) |
+| End-to-end journey, direct to backend (`pnpm smoke`) | **98 / 98 pass** (67 in round 1) |
 | Same journey through the frontend proxy (`:3000/api/v1`) | **Pass** |
 | Bot-user load test (`pnpm bots`, up to 120 simultaneous users) | **0 errors**, 311 req/s, p95 308 ms (see [PERFORMANCE_TEST.md](PERFORMANCE_TEST.md)) |
 | Frontend typecheck and production build | Pass |
@@ -62,6 +62,11 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 | 28 | Auth | Google sign-in (Better Auth social provider), hidden until configured. The role chosen on sign-up is carried in a short-lived cookie (never ADMIN). New Google members can switch role until they save a profile. Same-email accounts are linked. |
 | 29 | Performance | Bot test showed the 5-connection pool and Node's 4 hashing threads were bottlenecks. Default pool is now 10; `UV_THREADPOOL_SIZE=16` documented. p95 714 → 153 ms at the same load. |
 | 30 | Admin / security | Verification documents downloaded instead of opening, and a resubmission after rejection overwrote the earlier documents and decision. Documents now open in an in-panel viewer (served `inline` with a strict CSP); every submission and its review is kept in a new `verification_submission` table (backfilled); each time an admin opens a private document it's logged as `admin.document_viewed`. |
+| 31 | Performance | Live site slow (API 1.2–2.1 s): Vercel functions ran in Washington DC (`iad1`) while the database is in Singapore, so every query crossed the Pacific. `vercel.json` now pins functions to `sin1`. Profile sidebars use 30 s cached public lists; reveal animations no longer hide content for long if JavaScript loads slowly. |
+| 32 | Connections | 409 on Connect: requests could never be accepted (no accept UI), so they stayed pending forever. Added Accept/Decline (profile, tray, My network page), connecting back accepts their request, resending returns the existing request, declined requests can be re-sent, plus `GET /connections/with/{userId}` for button state. |
+| 33 | Messaging | DMs required an accepted connection, which was impossible. Owner↔investor pairs can now message directly; same-type members still need a connection; blocks and rate limits still apply. |
+| 34 | Notifications | No notifications for connection requests, acceptances or messages; the bell only updated on reload and had no tray. Added those notifications (one per unread chat), a live bell with a dropdown tray, bottom-left pop-ups for new notifications, and reading a chat clears its notification. |
+| 35 | UI | Header search did nothing (now searches Explore); "Request sent" withdrew the request on a single click (now a separate Withdraw button); broken profile photos now fall back to initials. |
 
 ## Scalability and performance measures
 

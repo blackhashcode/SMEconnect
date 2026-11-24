@@ -13,11 +13,12 @@ export function notificationGroup(type: AppNotification["type"]): NotificationGr
   if (type.startsWith("REPAYMENT_")) return "repayment";
   if (type === "MESSAGE_RECEIVED") return "message";
   if (type === "VERIFICATION_RESULT" || (type as string) === "ADMIN_NOTICE") return "account";
+  if (type === "CONNECTION_REQUEST" || type === "CONNECTION_ACCEPTED") return "network";
   return "network";
 }
 
-const ICONS = { offer: Handshake, repayment: ReceiptText, message: MessageCircle, network: UserPlus, account: ShieldCheck };
-const TONES = {
+export const ICONS = { offer: Handshake, repayment: ReceiptText, message: MessageCircle, network: UserPlus, account: ShieldCheck };
+export const TONES = {
   offer: "bg-primary-fixed text-primary",
   repayment: "bg-success-container text-success",
   message: "bg-secondary-fixed text-secondary",
@@ -39,7 +40,8 @@ export function notificationHref(n: AppNotification): string | null {
   if ((link.startsWith("/repayments") || link.startsWith("/agreements")) && data.loanId) return `/loans/${data.loanId}`;
   if (link.startsWith("/conversations/") && id) return `/messages?conversation=${id}`;
   if (link.startsWith("/verification")) return "/onboarding";
-  if (link.startsWith("/connections") || link.startsWith("/posts")) return "/feed";
+  if (link.startsWith("/connections")) return "/connections";
+  if (link.startsWith("/posts")) return "/feed";
   if (link.startsWith("/business-dashboard")) return "/business-dashboard";
   return null;
 }

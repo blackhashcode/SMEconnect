@@ -11,6 +11,7 @@ export const ADMIN_OVERSIGHT_PATHS = [
   "/api/v1/admin/users/{userId}/sessions",
   "/api/v1/admin/users/{userId}/verification-history",
   "/api/v1/me/role",
+  "/api/v1/connections/with/{userId}",
   "/api/v1/auth-options",
 ] as const;
 
@@ -76,6 +77,12 @@ export function registerAdminOversightRoutes() {
     security,
     request: { body: { content: { "application/json": { schema: { type: "object", required: ["role"], properties: { role: { type: "string", enum: ["OWNER", "INVESTOR"] } } } } } } },
     responses: { 200: single("Role changed"), ...errors, 422: STANDARD_ERROR_RESPONSES[422] },
+  });
+  registry.registerPath({
+    method: "get", path: "/api/v1/connections/with/{userId}", operationId: "getConnectionStatus", tags: ["Feed and networking"],
+    summary: "Your connection status with a member", description: "OWNER/INVESTOR. `status` is none, outgoing, incoming, connected, declined or self, with the connection id when one exists.",
+    security, parameters: [path("userId")],
+    responses: { 200: single("Connection status"), ...errors },
   });
   registry.registerPath({
     method: "get", path: "/api/v1/auth-options", operationId: "getAuthOptions", tags: ["Authentication"],

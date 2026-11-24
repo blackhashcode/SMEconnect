@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 
@@ -34,15 +37,19 @@ export function Avatar({
   className?: string;
 }) {
   const { box, px } = sizes[size];
+  // A missing or broken photo falls back to the member's initials.
+  const [failed, setFailed] = useState(false);
+  const showPhoto = Boolean(src) && !failed;
   return (
     <span className={cn("relative inline-block shrink-0 rounded-full ring-2 ring-surface", box, className)}>
-      {src ? (
+      {showPhoto ? (
         <Image
           src={src}
           alt={alt}
           width={px}
           height={px}
           priority={priority}
+          onError={() => setFailed(true)}
           className="h-full w-full rounded-full bg-surface-container object-cover"
         />
       ) : (

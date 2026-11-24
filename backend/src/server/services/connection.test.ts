@@ -285,3 +285,54 @@ describe("listConnections", () => {
     ).rejects.toThrow(ValidationError);
   });
 });
+
+describe("connection request edge cases", () => {
+  it("accepts their pending request when you click Connect back", async () => {
+    db.connection.findFirst.mockResolvedValue({ id: "con_1", requesterId: addressee.id, status: "PENDING" });
+    currentConnection = connectionRow({ requesterId: addressee.id, addresseeId: requester.id, requester: publicUser(addressee.id, "INVESTOR"), addressee: publicUser(requester.id, "OWNER") });
+    const result = await sendConnectionRequest(requester, { addresseeId: addressee.id } as never, { db: db as never });
+    expect(db.connection.update).toHaveBeenCalledWith({ where: { id: "con_1" }, data: { status: "ACCEPTED" } });
+    expect(result.status).toBe("ACCEPTED");
+    expect(db.connection.create).not.toHaveBeenCalled();
+  });
+
+  it("returns your existing pending request instead of failing", async () => {
+    db.connection.findFirst.mockResolvedValue({ id: "con_1", requesterId: requester.id, status: "PENDING" });
+    const result = await sendConnectionRequest(requester, { addresseeId: addressee.id } as never, { db: db as never });
+    expect(result).toMatchObject({ id: "con_1", status: "PENDING", direction: "outgoing", userId: addressee.id });
+    expect(db.connection.update).not.toHaveBeenCalled();
+    expect(db.connection.create).not.toHaveBeenCalled();
+  });
+
+  it("lets a declined request be sent again", async () => {
+    db.connection.findFirst.mockResolvedValue({ id: "con_1", requesterId: addressee.id, status: "DECLINED" });
+    currentConnection = connectionRow({ status: "DECLINED" });
+    const result = await sendConnectionRequest(requester, { addresseeId: addressee.id, message: "Trying again" } as never, { db: db as never });
+    expect(db.connection.update).toHaveBeenCalledWith({
+      where: { id: "con_1" },
+      data: { requesterId: requester.id, addresseeId: addressee.id, status: "PENDING", message: "Trying again" },
+    });
+    expect(result.status).toBe("PENDING");
+  });
+
+  it("still refuses when you're already connected", async () => {
+    db.connection.findFirst.mockResolvedValue({ id: "con_1", requesterId: requester.id, status: "ACCEPTED" });
+    await expect(sendConnectionRequest(requester, { addresseeId: addressee.id } as never, { db: db as never })).rejects.toThrow(ConflictError);
+  });
+});
+
+describe("getRelationship", () => {
+  it("reports each state from the viewer's side", async () => {
+    const { getRelationship } = await import("@/server/services/connection");
+    db.connection.findFirst.mockResolvedValueOnce(null);
+    expect((await getRelationship(requester, addressee.id, { db: db as never })).status).toBe("none");
+    db.connection.findFirst.mockResolvedValueOnce({ id: "c", requesterId: requester.id, status: "PENDING" });
+    expect((await getRelationship(requester, addressee.id, { db: db as never })).status).toBe("outgoing");
+    db.connection.findFirst.mockResolvedValueOnce({ id: "c", requesterId: addressee.id, status: "PENDING" });
+    expect((await getRelationship(requester, addressee.id, { db: db as never })).status).toBe("incoming");
+    db.connection.findFirst.mockResolvedValueOnce({ id: "c", requesterId: addressee.id, status: "ACCEPTED" });
+    expect((await getRelationship(requester, addressee.id, { db: db as never })).status).toBe("connected");
+    expect((await getRelationship(requester, requester.id, { db: db as never })).status).toBe("self");
+    await expect(getRelationship(admin, addressee.id, { db: db as never })).rejects.toThrow(ForbiddenError);
+  });
+});

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, MessageCircle, Search } from "lucide-react";
+import { MessageCircle, Search } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { BrandLogo } from "./BrandLogo";
 import { useScrolled } from "./useScrolled";
 import { UserMenu } from "./UserMenu";
@@ -10,7 +11,7 @@ import { appNavFor, isActivePath } from "@/data/nav";
 import type { SessionUser } from "@/data/types";
 import { cn } from "@/lib/cn";
 
-export function AppHeader({ user, unreadMessages, unreadNotifications }: { user: SessionUser; unreadMessages: number; unreadNotifications: number }) {
+export function AppHeader({ user, unreadMessages }: { user: SessionUser; unreadMessages: number; unreadNotifications?: number }) {
   const pathname = usePathname();
   const scrolled = useScrolled();
 
@@ -24,15 +25,16 @@ export function AppHeader({ user, unreadMessages, unreadNotifications }: { user:
       <div className="mx-auto flex h-16 w-full max-w-shell items-center gap-space-md px-margin md:px-gutter-desktop lg:h-20">
         <BrandLogo href="/feed" />
 
-        <label className="relative ml-space-sm hidden w-56 xl:block 2xl:w-72">
+        <form action="/explore" role="search" className="relative ml-space-sm hidden w-56 xl:block 2xl:w-72">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-outline" aria-hidden />
           <input
             type="search"
+            name="q"
             placeholder="Search shops and investors…"
             className="w-full rounded-full bg-surface-container-low py-2 pl-9 pr-4 text-body-sm text-on-surface transition-shadow placeholder:text-outline focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary"
             aria-label="Search SME Connect"
           />
-        </label>
+        </form>
 
         <nav
           className="mx-auto hidden items-center gap-1 rounded-full bg-surface-container-low p-1 lg:flex"
@@ -62,14 +64,7 @@ export function AppHeader({ user, unreadMessages, unreadNotifications }: { user:
           <HeaderIcon href="/messages" label="Messages" active={isActivePath(pathname, "/messages")} count={unreadMessages}>
             <MessageCircle className="h-5 w-5" aria-hidden />
           </HeaderIcon>
-          <HeaderIcon
-            href="/notifications"
-            label="Notifications"
-            active={isActivePath(pathname, "/notifications")}
-            count={unreadNotifications}
-          >
-            <Bell className="h-5 w-5" aria-hidden />
-          </HeaderIcon>
+          <NotificationBell />
           <UserMenu user={user} />
         </div>
       </div>

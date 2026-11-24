@@ -99,8 +99,26 @@ async function assertNotBlocked(actorId: string, otherId: string, db: Db): Promi
   if (block) throw new ForbiddenError("Messaging with this user is blocked");
 }
 
-/** Accepted connections and any offer relationship both grant messaging eligibility. */
-async function assertMessagingAllowed(actorId: string, otherId: string, db: Db): Promise<void> {
+/**
+ * Who may message whom. A business owner and an investor can always message each
+ * other directly: that's the point of the network ("message the owner directly").
+ * Two members of the same type need an accepted connection or an offer between
+ * them. Blocks are checked separately and always win.
+ */
+async function assertMessagingAllowed(
+  actor: Actor,
+  otherId: string,
+  db: Db,
+  otherRole?: string | null,
+): Promise<void> {
+  const actorId = actor.id;
+  const role =
+    otherRole ??
+    ((await db.user.findUnique({ where: { id: otherId }, select: { role: true } })) as { role?: string } | null)?.role;
+  const crossRole =
+    (actor.role === "OWNER" && role === "INVESTOR") || (actor.role === "INVESTOR" && role === "OWNER");
+  if (crossRole) return;
+
   const [connection, offer] = await Promise.all([
     db.connection.findFirst({
       where: {
@@ -124,7 +142,7 @@ async function assertMessagingAllowed(actorId: string, otherId: string, db: Db):
   ]);
   if (!connection && !offer) {
     throw new BusinessRuleError(
-      "An accepted connection or an existing offer is required to message this user",
+      "Connect with this member first: members of the same type can message once connected",
     );
   }
 }
@@ -142,7 +160,7 @@ async function assertConversationAccess(
 ): Promise<string> {
   const otherId = otherParticipantId(conversation, actor.id);
   await assertNotBlocked(actor.id, otherId, db);
-  await assertMessagingAllowed(actor.id, otherId, db);
+  await assertMessagingAllowed(actor, otherId, db);
   return otherId;
 }
 
@@ -281,7 +299,7 @@ export async function createOrGetConversation(
   });
   const validTarget = requirePublicTarget(target as PublicUserRow | null, actor);
   await assertNotBlocked(actor.id, validTarget.id, db);
-  await assertMessagingAllowed(actor.id, validTarget.id, db);
+  await assertMessagingAllowed(actor, validTarget.id, db, (validTarget as { role?: string }).role);
 
   const [participantOneId, participantTwoId] = canonicalPair(actor.id, validTarget.id);
   const where = { participantOneId_participantTwoId: { participantOneId, participantTwoId } };
