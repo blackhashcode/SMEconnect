@@ -88,7 +88,7 @@ repayments, with every action recorded in an activity log.
 
 **Accounts and identity**
 - Sign up and sign in with email and password (email verification code) or with Google.
-- Two account types, business owner and investor, plus administrators.
+- Two account types, business owner and investor.
 - Rate-limited sign-in, admin sign-out from every device, and account suspension.
 
 **Profiles**
