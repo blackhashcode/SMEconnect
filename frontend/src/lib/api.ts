@@ -60,7 +60,7 @@ export async function getProfile(userId: string) {
   const { data } = await backendGet<S["PublicProfile"]>(`/profiles/${encodeURIComponent(userId)}`);
   if (!data) return null;
   const investor = data.role === "INVESTOR" ? (data.profile as S["PublicInvestorProfile"] | null) : null;
-  return { person: profilePerson(userId, data), business: profileBusiness(userId, data), investor };
+  return { person: profilePerson(userId, data), business: profileBusiness(userId, data), investor, role: data.role, hasProfile: data.profile !== null };
 }
 
 /** Landing page: a few open requests, cached for a minute, no session. */

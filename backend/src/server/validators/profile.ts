@@ -270,6 +270,7 @@ export const publicProfileSchema = z
     role: z.enum(["OWNER", "INVESTOR"]),
     /** True only for an APPROVED verification; no documents or review notes. */
     verified: z.boolean(),
-    profile: z.union([publicBusinessProfileSchema, publicInvestorProfileSchema]),
+    /** Null until the member completes onboarding; the name, photo and role still show. */
+    profile: z.union([publicBusinessProfileSchema, publicInvestorProfileSchema]).nullable(),
   })
   .strict();

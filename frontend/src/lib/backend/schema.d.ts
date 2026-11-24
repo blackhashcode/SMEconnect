@@ -3474,6 +3474,7 @@ export interface components {
         FeedFilters: {
             /** @enum {string} */
             type?: "UPDATE" | "MILESTONE" | "LOAN_REQUEST" | "REPAYMENT";
+            authorId?: string;
         };
         /**
          * @description Randomized storage filename including its derived extension
@@ -4503,7 +4504,7 @@ export interface components {
                 district: string | null;
                 city: string | null;
                 trustScore: number;
-            };
+            } | null;
         };
         RatePct: number | string;
         Rating: number;
@@ -6095,7 +6096,7 @@ export interface operations {
                                 district: string | null;
                                 city: string | null;
                                 trustScore: number;
-                            };
+                            } | null;
                         };
                         meta?: {
                             [key: string]: unknown;

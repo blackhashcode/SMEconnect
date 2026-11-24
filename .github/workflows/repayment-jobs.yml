@@ -1,9 +1,13 @@
 # Vercel doesn't run background jobs, so GitHub Actions does: mark overdue
-# instalments every 6 hours and send reminder emails once a day (free for
-# public and private repos within the Actions free minutes).
+# instalments every 6 hours and send reminder emails once a day (free within
+# the Actions free minutes).
 #
-# Needs repository secrets: DATABASE_URL, SMTP_HOST, SMTP_PORT, SMTP_USER,
-# SMTP_PASSWORD, EMAIL_FROM (same values as the backend on Vercel).
+# Repository secrets (Settings -> Secrets and variables -> Actions), the same
+# values as the Vercel project:
+#   DATABASE_URL                                   required for both jobs
+#   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM
+#                                                  required for reminder emails
+# Until they're added, runs finish with a warning instead of failing.
 name: Repayment jobs
 
 on:
@@ -12,9 +16,14 @@ on:
     - cron: "0 3 * * *" # reminders, 09:00 Bangladesh time
   workflow_dispatch:
 
+concurrency:
+  group: repayment-jobs
+  cancel-in-progress: false
+
 jobs:
   run:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: backend
@@ -26,18 +35,53 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
     steps:
+      - name: Check configuration
+        id: config
+        working-directory: .
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning title=Repayment jobs skipped::Add the DATABASE_URL repository secret (Settings > Secrets and variables > Actions) to run the repayment jobs. See docs/DEPLOYMENT.md, step 4."
+            echo "database=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "database=true" >> "$GITHUB_OUTPUT"
+          fi
+          if [ -z "$SMTP_HOST" ] || [ -z "$SMTP_USER" ] || [ -z "$SMTP_PASSWORD" ] || [ -z "$EMAIL_FROM" ]; then
+            echo "email=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "email=true" >> "$GITHUB_OUTPUT"
+          fi
+          # Reminders run on the daily schedule or when started by hand.
+          if [ "${{ github.event.schedule }}" = "0 3 * * *" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "reminders=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "reminders=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: actions/checkout@v4
+        if: steps.config.outputs.database == 'true'
       - uses: pnpm/action-setup@v4
+        if: steps.config.outputs.database == 'true'
         with:
           package_json_file: backend/package.json # pnpm version from packageManager
       - uses: actions/setup-node@v4
+        if: steps.config.outputs.database == 'true'
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: backend/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        if: steps.config.outputs.database == 'true'
+        run: pnpm install --frozen-lockfile
+
       - name: Mark overdue instalments
+        if: steps.config.outputs.database == 'true'
         run: pnpm job:overdue
+
       - name: Send repayment reminders
-        if: github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch'
+        if: steps.config.outputs.database == 'true' && steps.config.outputs.reminders == 'true' && steps.config.outputs.email == 'true'
         run: pnpm job:reminders
+
+      - name: Reminders skipped (email not configured)
+        if: steps.config.outputs.database == 'true' && steps.config.outputs.reminders == 'true' && steps.config.outputs.email != 'true'
+        working-directory: .
+        run: echo "::warning title=Reminder emails skipped::Add SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD and EMAIL_FROM repository secrets (the Brevo values) to send reminder emails."

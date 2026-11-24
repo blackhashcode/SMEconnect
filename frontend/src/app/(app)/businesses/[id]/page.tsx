@@ -14,6 +14,7 @@ import { cachedBusinesses, cachedOpenLoanRequests, connectionStatus, getProfile,
 import { LendingHistoryCard } from "@/components/domain/LendingHistoryCard";
 import { PostFeed } from "@/components/social/PostFeed";
 import { ProfileActions } from "@/components/social/ProfileActions";
+import { BasicProfile } from "@/components/domain/BasicProfile";
 
 import { formatBDT, formatBDTCompact, shortDate } from "@/lib/format";
 import { getCurrentUser } from "@/lib/session";
@@ -24,7 +25,9 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
   const { id } = await params;
   const [profile, viewer, openLoans, directory, reviews, relation, history, posts] = await Promise.all([getProfile(id), getCurrentUser(), cachedOpenLoanRequests(), cachedBusinesses(), reviewsFor(id), connectionStatus(id), lendingHistory(id), postsBy(id)]);
   if (!profile) notFound();
-  if (!profile.business) redirect(`/investors/${id}`);
+  if (profile.role === "INVESTOR") redirect(`/investors/${id}`);
+  // A business owner who hasn't finished onboarding yet.
+  if (!profile.business) return <BasicProfile person={profile.person} viewer={viewer} relation={relation} />;
   const { person: owner, business } = profile;
   const isOwnProfile = viewer?.id === owner.id;
   const activeLoan = openLoans.find((loan) => loan.owner.id === id);
