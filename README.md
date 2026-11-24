@@ -41,7 +41,7 @@ investors who might fund them, and no place for owners to build a business netwo
 - Once both sides confirm an agreement, the repayment schedule is tracked in the app until
   the loan is fully repaid, and each side can leave a review.
 
-## Team members
+## Team members (Team Firewall)
 
 - Tausif Mushtaque
 - Sanjida Akter Shorna
