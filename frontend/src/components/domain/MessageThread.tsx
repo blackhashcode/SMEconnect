@@ -10,6 +10,7 @@ import { api } from "@/lib/client-api";
 import type { Conversation, Message } from "@/data/types";
 import { cn } from "@/lib/cn";
 import { firstName } from "@/lib/format";
+import { ReportButton } from "@/components/social/ReportButton";
 
 const POLL_MS = 4000;
 
@@ -116,7 +117,10 @@ export function MessageThread({
             <p className="truncate text-body-sm text-outline">{participant.shopName ?? (participant.role === "INVESTOR" ? "Investor" : "Business owner")}</p>
           </div>
         </div>
-        {participant.verified && <Badge tone="success" className="shrink-0"><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified</Badge>}
+        <div className="flex shrink-0 items-start gap-space-sm">
+          {participant.verified && <Badge tone="success" className="shrink-0"><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Verified</Badge>}
+          <ReportButton targetType="USER" targetId={participant.id} label="Report" />
+        </div>
       </header>
 
       <div ref={scroller} className="no-scrollbar flex-1 space-y-space-md overflow-y-auto bg-surface-container-low/40 px-space-md py-space-lg sm:px-space-lg" aria-live="polite">

@@ -53,3 +53,19 @@ describe("message notifications", () => {
     expect(updateMany.mock.calls[0][0].where).toMatchObject({ userId: "u1", type: "MESSAGE_RECEIVED", readAt: null });
   });
 });
+
+describe("repayment posts", () => {
+  it("posts a confirmed instalment to the owner's feed without amounts", async () => {
+    const { publishRepaymentPost } = await import("@/server/services/notify");
+    const create = vi.fn();
+    const due = new Date("2026-10-10T00:00:00.000Z");
+    await publishRepaymentPost(
+      "r1",
+      asDb({
+        repayment: { findUnique: vi.fn().mockResolvedValue({ installmentNo: 2, status: "CONFIRMED", dueDate: due, markedPaidAt: new Date("2026-10-09T00:00:00.000Z"), confirmedAt: due, loan: { ownerId: "o1", loanRequestId: "lr1", _count: { repayments: 6 } } }) },
+        post: { create },
+      }),
+    );
+    expect(create).toHaveBeenCalledWith({ data: { authorId: "o1", type: "REPAYMENT", content: "Repaid instalment 2 of 6 on time." } });
+  });
+});

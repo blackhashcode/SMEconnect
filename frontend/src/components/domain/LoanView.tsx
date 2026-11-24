@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { FormAlert } from "@/components/auth/FormField";
+import { ReviewForm } from "./ReviewForm";
 import { MessageButton } from "./MessageButton";
 import { api } from "@/lib/client-api";
 import { formatBDT, shortDate, firstName } from "@/lib/format";
@@ -181,6 +182,15 @@ export function LoanView({ loan, agreement, viewerId }: { loan: LoanDetail; agre
                     })}
                   </tbody>
                 </table>
+              </div>
+            </section>
+          )}
+
+          {!awaitingAgreement && (
+            <section className="rounded-2xl border border-surface-container-high p-space-md print:hidden">
+              <h2 className="text-headline-sm text-on-surface">Review</h2>
+              <div className="mt-space-sm">
+                <ReviewForm loanId={loan.id} completed={loan.status === "COMPLETED"} reviewee={{ id: counterpart.id, name: counterpart.name }} />
               </div>
             </section>
           )}

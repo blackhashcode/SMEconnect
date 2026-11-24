@@ -324,8 +324,11 @@ describe("connection request edge cases", () => {
 describe("getRelationship", () => {
   it("reports each state from the viewer's side", async () => {
     const { getRelationship } = await import("@/server/services/connection");
+    Object.assign(db, { follow: { findFirst: vi.fn().mockResolvedValue({ id: "f" }) } });
+    db.block.findFirst.mockResolvedValue(null);
     db.connection.findFirst.mockResolvedValueOnce(null);
-    expect((await getRelationship(requester, addressee.id, { db: db as never })).status).toBe("none");
+    const none = await getRelationship(requester, addressee.id, { db: db as never });
+    expect(none).toMatchObject({ status: "none", following: true, blockedByMe: false });
     db.connection.findFirst.mockResolvedValueOnce({ id: "c", requesterId: requester.id, status: "PENDING" });
     expect((await getRelationship(requester, addressee.id, { db: db as never })).status).toBe("outgoing");
     db.connection.findFirst.mockResolvedValueOnce({ id: "c", requesterId: addressee.id, status: "PENDING" });

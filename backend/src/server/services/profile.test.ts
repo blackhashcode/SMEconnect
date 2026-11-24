@@ -24,10 +24,14 @@ interface FakeDb {
   businessProfile: {
     findUnique: (args: { where: Row }) => Promise<Row | null>;
     upsert: (args: { where: Row; create: Row; update: Row }) => Promise<Row>;
+    create: (args: { data: Row }) => Promise<Row>;
+    update: (args: { where: Row; data: Row }) => Promise<Row>;
   };
   investorProfile: {
     findUnique: (args: { where: Row }) => Promise<Row | null>;
     upsert: (args: { where: Row; create: Row; update: Row }) => Promise<Row>;
+    create: (args: { data: Row }) => Promise<Row>;
+    update: (args: { where: Row; data: Row }) => Promise<Row>;
   };
   userVerification: {
     findFirst: (args: { where: Row }) => Promise<Row | null>;
@@ -106,6 +110,8 @@ function createFakeDb() {
         businesses.set(key, row);
         return businessWithImages(row);
       },
+      create: async ({ data }: { data: Row }) => db.businessProfile.upsert({ where: { ownerId: data.ownerId }, create: data, update: {} }),
+      update: async ({ where, data }: { where: Row; data: Row }) => db.businessProfile.upsert({ where, create: data, update: data }),
     },
     investorProfile: {
       findUnique: async ({ where }: { where: Row }) =>
@@ -119,6 +125,8 @@ function createFakeDb() {
         investors.set(key, row);
         return row;
       },
+      create: async ({ data }: { data: Row }) => db.investorProfile.upsert({ where: { userId: data.userId }, create: data, update: {} }),
+      update: async ({ where, data }: { where: Row; data: Row }) => db.investorProfile.upsert({ where, create: data, update: data }),
     },
     userVerification: {
       findFirst: async ({ where }: { where: Row }) =>
@@ -403,10 +411,10 @@ describe("updateMe", () => {
     seedUser(state, owner);
     seedBusiness(state, owner.id);
     state.businesses.get(owner.id)!.slug = "taken-slug";
-    const originalUpsert = state.db.businessProfile.upsert;
-    state.db.businessProfile.upsert = async (args: { where: Row; create: Row; update: Row }) => {
-      if ((args.create as Row).slug === "taken-slug") throw uniqueError("slug");
-      return originalUpsert(args);
+    const originalUpdate = state.db.businessProfile.update;
+    state.db.businessProfile.update = async (args: { where: Row; data: Row }) => {
+      if ((args.data as Row).slug === "taken-slug") throw uniqueError("slug");
+      return originalUpdate(args);
     };
 
     await expect(

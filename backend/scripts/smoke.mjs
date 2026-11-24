@@ -274,6 +274,35 @@ async function main() {
   const unread = await owner.http("GET", "/notifications/unread-count");
   check("owner has notifications from the deal", unread.status === 200 && (unread.json?.data?.count ?? unread.json?.data?.unread ?? 0) > 0, brief(unread));
 
+  section("Feed, follows and reputation");
+  const post = await owner.http("POST", "/posts", { type: "MILESTONE", content: "We delivered our 500th order!" });
+  check("owner posts a milestone", post.status === 201 && post.json?.data?.authorId === owner.id, brief(post));
+  const postId = post.json?.data?.id;
+  check("investor likes the post", [200, 201].includes((await investor.http("POST", `/posts/${postId}/like`)).status));
+  const comment = await investor.http("POST", `/posts/${postId}/comments`, { content: "Congratulations!" });
+  check("investor comments with their id on the comment", comment.status === 201 && comment.json?.data?.authorId === investor.id, brief(comment));
+  const follow = await investor.http("POST", "/follows", { followeeId: owner.id });
+  check("investor follows the owner", [200, 201].includes(follow.status), brief(follow));
+  const rel = await investor.http("GET", `/connections/with/${owner.id}`);
+  check("status shows following", rel.json?.data?.following === true, JSON.stringify(rel.json?.data));
+  const feed = await investor.http("GET", "/feed?limit=20");
+  check("followed owner's post appears in the investor's feed", (feed.json?.data ?? []).some((p) => p.id === postId && p.likedByMe && p.commentCount === 1), brief(feed));
+  const byAuthor = await investor.http("GET", `/posts?authorId=${owner.id}`);
+  check("posts can be listed by author", (byAuthor.json?.data ?? []).every((p) => p.authorId === owner.id) && byAuthor.json?.data?.length > 0, brief(byAuthor));
+  const repaymentPosts = (byAuthor.json?.data ?? []).filter((p) => p.type === "REPAYMENT");
+  check("confirming a repayment published a repayment post", repaymentPosts.length > 0, JSON.stringify((byAuthor.json?.data ?? []).map((p) => p.type)));
+  const lending = await investor.http("GET", `/profiles/${owner.id}/lending-history`);
+  check("owner's lending history shows the agreed loan", lending.status === 200 && lending.json?.data?.summary?.loans >= 1 && lending.json?.data?.loans?.[0]?.counterparty?.id === investor.id, brief(lending));
+  const peer = await outsider.http("GET", `/profiles/${investor.id}`);
+  check("an investor can view another investor's profile", peer.status === 200, brief(peer));
+  const report = await outsider.http("POST", "/reports", { targetType: "POST", targetId: postId, reason: "Spam or scam: smoke test" });
+  check("a member can report a post", report.status === 201, brief(report));
+  const block = await outsider.http("POST", "/blocks", { userId: owner.id });
+  check("a member can block someone", block.status === 201, brief(block));
+  check("blocked members can't message each other", (await outsider.http("POST", "/conversations", { participantId: owner.id })).status === 403);
+  check("status shows the block", (await outsider.http("GET", `/connections/with/${owner.id}`)).json?.data?.blockedByMe === true);
+  check("a member can unblock", (await outsider.http("DELETE", `/blocks/${owner.id}`)).status === 200);
+
   section("Administration");
   check("non-admin blocked from admin API", (await investor.http("GET", "/admin/stats")).status === 403);
   check("admin reads stats", (await admin.http("GET", "/admin/stats")).status === 200);
@@ -305,6 +334,23 @@ async function main() {
   const docPath = (history.json?.data?.[0]?.idDocumentUrl ?? "").replace("/api/v1", "");
   const doc = await admin.http("GET", docPath);
   check("admin views a document inline (not as a download)", doc.status === 200 && (doc.headers.get("content-disposition") ?? "").startsWith("inline") && /default-src 'none'/.test(doc.headers.get("content-security-policy") ?? ""), `${doc.status} ${doc.headers.get("content-disposition")}`);
+  const promote = await admin.http("PATCH", `/admin/users/${outsider.id}/role`, { role: "ADMIN" });
+  check("admin grants admin access", promote.status === 200 && promote.json?.data?.role === "ADMIN", brief(promote));
+  const demote = await admin.http("PATCH", `/admin/users/${outsider.id}/role`, { role: "INVESTOR" });
+  check("admin changes the role back", demote.status === 200 && demote.json?.data?.role === "INVESTOR", brief(demote));
+  check("non-admins can't change roles", (await owner.http("PATCH", `/admin/users/${investor.id}/role`, { role: "ADMIN" })).status === 403);
+  const edited = await admin.http("PATCH", `/admin/users/${owner.id}/profile`, { profile: { monthlySalesMinBdt: 40000, monthlySalesMaxBdt: 80000 } });
+  check("admin edits a member's profile (monthly sales)", edited.status === 200, brief(edited));
+  check("admin removes a post", (await admin.http("DELETE", `/admin/posts/${postId}`)).status === 200);
+  const restored = await admin.http("POST", `/admin/posts/${postId}/restore`);
+  check("admin restores the removed post", restored.status === 200 && restored.json?.data?.restored === true, brief(restored));
+  const instalments = await admin.http("GET", `/admin/loans/${loanId}/repayments`);
+  const pending = (instalments.json?.data ?? []).find((r) => r.status !== "CONFIRMED");
+  check("admin lists a loan's instalments", instalments.status === 200 && (instalments.json?.data ?? []).length > 0, brief(instalments));
+  if (pending) {
+    const override = await admin.http("POST", `/admin/repayments/${pending.id}/confirm`, { reason: "Payment proof checked by admin" });
+    check("admin confirms an instalment (override)", override.status === 200, brief(override));
+  }
   const adminLog = await admin.http("GET", "/admin/audit-logs?category=admin.");
   check("opening a private document is logged", (adminLog.json?.data ?? []).some((e) => e.action === "admin.document_viewed"), brief(adminLog));
   check("admin actions are in the activity log", (adminLog.json?.data ?? []).some((e) => e.action === "admin.user_suspended" && e.targetId === outsider.id), brief(adminLog));

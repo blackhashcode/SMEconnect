@@ -1898,6 +1898,326 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Activity log
+         * @description ADMIN only. Sign-ups, sign-ins, lending events and admin actions, newest first.
+         */
+        get: operations["listAuditLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/loan-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All loan requests
+         * @description ADMIN only. Any status, searchable by purpose, owner or shop.
+         */
+        get: operations["listAdminLoanRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/loan-requests/{id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Pause, resume or cancel a loan request
+         * @description ADMIN only. `action` is pause | resume | cancel. The owner is notified with the reason.
+         */
+        post: operations["moderateLoanRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/loans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * All loans
+         * @description ADMIN only. Parties and repayment progress for every loan.
+         */
+        get: operations["listAdminLoans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Sign a member out everywhere
+         * @description ADMIN only. Deletes every session for the member.
+         */
+        delete: operations["revokeUserSessions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/verification-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Verification submission history
+         * @description ADMIN only. Every submission a member has made (documents, decision, reviewer), newest first, including ones replaced after a rejection.
+         */
+        get: operations["listVerificationHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Switch account type
+         * @description OWNER ↔ INVESTOR, only while the account has no profile, verification, request or offer.
+         */
+        patch: operations["switchOwnRole"];
+        trace?: never;
+    };
+    "/api/v1/connections/with/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your connection status with a member
+         * @description OWNER/INVESTOR. `status` is none, outgoing, incoming, connected, declined or self, with the connection id when one exists.
+         */
+        get: operations["getConnectionStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Configured sign-in methods
+         * @description Public. `{ google: boolean }` so clients only show working buttons.
+         */
+        get: operations["getAuthOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/profiles/{userId}/lending-history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Lending track record
+         * @description Signed-in members. A member's agreed loans (borrowed or lent), amounts, status and repayment reliability.
+         */
+        get: operations["getLendingHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/role": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a member's role
+         * @description ADMIN only. OWNER, INVESTOR or ADMIN. Not your own role; at least one admin remains.
+         */
+        patch: operations["setUserRole"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{userId}/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit a member's profile
+         * @description ADMIN only. Same body and validation as PATCH /api/v1/me, applied to the member.
+         */
+        patch: operations["adminUpdateProfile"];
+        trace?: never;
+    };
+    "/api/v1/admin/posts/{postId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a removed post
+         * @description ADMIN only.
+         */
+        post: operations["restorePost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/comments/{commentId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore a removed comment
+         * @description ADMIN only.
+         */
+        post: operations["restoreComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/loans/{loanId}/repayments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A loan's instalments
+         * @description ADMIN only.
+         */
+        get: operations["listLoanRepayments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/repayments/{repaymentId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm an instalment (override)
+         * @description ADMIN only. Confirms on the investor's behalf, marking it paid first if needed. Requires a reason.
+         */
+        post: operations["adminConfirmRepayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2491,6 +2811,7 @@ export interface components {
             status?: "ACTIVE" | "SUSPENDED";
             /** @enum {string} */
             role?: "OWNER" | "INVESTOR" | "ADMIN";
+            q?: string;
         };
         AdminUserListSuccessEnvelope: {
             data: {
@@ -2827,6 +3148,7 @@ export interface components {
             id: string;
             postId: string;
             content: string;
+            authorId: string;
             author: {
                 name: string;
                 image: string | null;
@@ -2857,6 +3179,7 @@ export interface components {
         };
         ConnectionRecord: {
             id: string;
+            userId: string;
             user: {
                 name: string;
                 image: string | null;
@@ -2985,7 +3308,7 @@ export interface components {
             type: "UPDATE" | "MILESTONE";
             content: string;
             /** @default [] */
-            imageUrls: string[];
+            imageUrls: (string)[];
         };
         CreateProductImageRequest: {
             url: string;
@@ -3319,7 +3642,7 @@ export interface components {
             recentNotifications: {
                 id: string;
                 /** @enum {string} */
-                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
                 title: string;
                 body: string;
                 link: string | null;
@@ -3687,7 +4010,7 @@ export interface components {
             id: string;
             userId: string;
             /** @enum {string} */
-            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
             title: string;
             body: string;
             link: string | null;
@@ -3703,7 +4026,7 @@ export interface components {
             id: string;
             userId: string;
             /** @enum {string} */
-            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
             title: string;
             body: string;
             link: string | null;
@@ -3716,7 +4039,7 @@ export interface components {
             updatedAt: string;
         }[];
         /** @enum {string} */
-        NotificationType: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+        NotificationType: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
         OfferActionRequest: {
             note?: string;
         };
@@ -3875,7 +4198,7 @@ export interface components {
             recentNotifications: {
                 id: string;
                 /** @enum {string} */
-                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
                 title: string;
                 body: string;
                 link: string | null;
@@ -3975,6 +4298,7 @@ export interface components {
             type: "UPDATE" | "MILESTONE" | "LOAN_REQUEST" | "REPAYMENT";
             content: string;
             imageUrls: string[];
+            authorId: string;
             author: {
                 name: string;
                 image: string | null;
@@ -4186,7 +4510,7 @@ export interface components {
         RecentNotification: {
             id: string;
             /** @enum {string} */
-            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
             title: string;
             body: string;
             link: string | null;
@@ -4578,7 +4902,7 @@ export interface components {
         };
         UpdatePostRequest: {
             content?: string;
-            imageUrls?: string[];
+            imageUrls?: (string)[];
         };
         UpdateProductImageRequest: {
             url?: string;
@@ -7008,6 +7332,7 @@ export interface operations {
                             type: "UPDATE" | "MILESTONE" | "LOAN_REQUEST" | "REPAYMENT";
                             content: string;
                             imageUrls: string[];
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7104,6 +7429,7 @@ export interface operations {
                             type: "UPDATE" | "MILESTONE" | "LOAN_REQUEST" | "REPAYMENT";
                             content: string;
                             imageUrls: string[];
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7190,6 +7516,7 @@ export interface operations {
                             type: "UPDATE" | "MILESTONE" | "LOAN_REQUEST" | "REPAYMENT";
                             content: string;
                             imageUrls: string[];
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7277,6 +7604,7 @@ export interface operations {
                             type: "UPDATE" | "MILESTONE" | "LOAN_REQUEST" | "REPAYMENT";
                             content: string;
                             imageUrls: string[];
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7409,6 +7737,7 @@ export interface operations {
                             type: "UPDATE" | "MILESTONE" | "LOAN_REQUEST" | "REPAYMENT";
                             content: string;
                             imageUrls: string[];
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7587,6 +7916,7 @@ export interface operations {
                             id: string;
                             postId: string;
                             content: string;
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7658,6 +7988,7 @@ export interface operations {
                             id: string;
                             postId: string;
                             content: string;
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7776,6 +8107,7 @@ export interface operations {
                             id: string;
                             postId: string;
                             content: string;
+                            authorId: string;
                             author: {
                                 name: string;
                                 image: string | null;
@@ -7856,6 +8188,7 @@ export interface operations {
                     "application/json": {
                         data: {
                             id: string;
+                            userId: string;
                             user: {
                                 name: string;
                                 image: string | null;
@@ -7929,6 +8262,7 @@ export interface operations {
                     "application/json": {
                         data: {
                             id: string;
+                            userId: string;
                             user: {
                                 name: string;
                                 image: string | null;
@@ -8003,6 +8337,7 @@ export interface operations {
                     "application/json": {
                         data: {
                             id: string;
+                            userId: string;
                             user: {
                                 name: string;
                                 image: string | null;
@@ -8077,6 +8412,7 @@ export interface operations {
                     "application/json": {
                         data: {
                             id: string;
+                            userId: string;
                             user: {
                                 name: string;
                                 image: string | null;
@@ -8151,6 +8487,7 @@ export interface operations {
                     "application/json": {
                         data: {
                             id: string;
+                            userId: string;
                             user: {
                                 name: string;
                                 image: string | null;
@@ -11701,7 +12038,7 @@ export interface operations {
                             id: string;
                             userId: string;
                             /** @enum {string} */
-                            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+                            type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
                             title: string;
                             body: string;
                             link: string | null;
@@ -12200,7 +12537,7 @@ export interface operations {
                             recentNotifications: {
                                 id: string;
                                 /** @enum {string} */
-                                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+                                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
                                 title: string;
                                 body: string;
                                 link: string | null;
@@ -12417,7 +12754,7 @@ export interface operations {
                             recentNotifications: {
                                 id: string;
                                 /** @enum {string} */
-                                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE";
+                                type: "OFFER_RECEIVED" | "OFFER_COUNTERED" | "OFFER_ACCEPTED" | "AGREEMENT_CONFIRMED" | "MESSAGE_RECEIVED" | "CONNECTION_REQUEST" | "CONNECTION_ACCEPTED" | "VERIFICATION_RESULT" | "REPAYMENT_DUE" | "REPAYMENT_OVERDUE" | "REPAYMENT_MARKED_PAID" | "REPAYMENT_CONFIRMED" | "NEW_COMMENT" | "NEW_LIKE" | "ADMIN_NOTICE";
                                 title: string;
                                 body: string;
                                 link: string | null;
@@ -13097,6 +13434,489 @@ export interface operations {
             };
             401: components["responses"]["UnauthorizedResponse"];
             403: components["responses"]["ForbiddenResponse"];
+        };
+    };
+    listAuditLogs: {
+        parameters: {
+            query?: {
+                /** @description Exact action, e.g. auth.sign_in */
+                action?: string;
+                /** @description Action prefix, e.g. admin. */
+                category?: string;
+                /** @description Who did it */
+                actorId?: string;
+                /** @description What it was done to */
+                targetId?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Log page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>[];
+                        meta?: components["schemas"]["PaginationMeta"];
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+        };
+    };
+    listAdminLoanRequests: {
+        parameters: {
+            query?: {
+                /** @description LoanRequestStatus */
+                status?: string;
+                /** @description Search text */
+                q?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Loan request page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>[];
+                        meta?: components["schemas"]["PaginationMeta"];
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+        };
+    };
+    moderateLoanRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                action: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description New status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
+        };
+    };
+    listAdminLoans: {
+        parameters: {
+            query?: {
+                /** @description LoanStatus */
+                status?: string;
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Loan page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>[];
+                        meta?: components["schemas"]["PaginationMeta"];
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+        };
+    };
+    revokeUserSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sessions revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
+        };
+    };
+    listVerificationHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Submission history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>[];
+                        meta?: components["schemas"]["PaginationMeta"];
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+        };
+    };
+    switchOwnRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    role: "OWNER" | "INVESTOR";
+                };
+            };
+        };
+        responses: {
+            /** @description Role changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            422: components["responses"]["BusinessRuleResponse"];
+        };
+    };
+    getConnectionStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Connection status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+        };
+    };
+    getAuthOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sign-in methods */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    getLendingHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lending history */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            401: components["responses"]["UnauthorizedResponse"];
+            404: components["responses"]["NotFoundResponse"];
+        };
+    };
+    setUserRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    role: "OWNER" | "INVESTOR" | "ADMIN";
+                };
+            };
+        };
+        responses: {
+            /** @description Role changed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
+            422: components["responses"]["BusinessRuleResponse"];
+        };
+    };
+    adminUpdateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
+        };
+    };
+    restorePost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restored */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
+        };
+    };
+    restoreComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                commentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Restored */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
+        };
+    };
+    listLoanRepayments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                loanId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Instalments */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>[];
+                        meta?: components["schemas"]["PaginationMeta"];
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
+        };
+    };
+    adminConfirmRepayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                repaymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Confirmed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: Record<string, never>;
+                    };
+                };
+            };
+            400: components["responses"]["ValidationErrorResponse"];
+            401: components["responses"]["UnauthorizedResponse"];
+            403: components["responses"]["ForbiddenResponse"];
+            404: components["responses"]["NotFoundResponse"];
         };
     };
 }

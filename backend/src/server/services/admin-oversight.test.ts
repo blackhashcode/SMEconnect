@@ -179,3 +179,58 @@ describe("switchOwnRole", () => {
     await expect(switchOwnRole(admin, "OWNER", client().db as never)).rejects.toBeInstanceOf(ForbiddenError);
   });
 });
+
+describe("admin overrides", () => {
+  it("changes roles, but never your own or the last admin", async () => {
+    const { setUserRole } = await import("@/server/services/admin-oversight");
+    const update = vi.fn();
+    const db = (role: string, admins = 2) => asDb({ user: { findUnique: vi.fn().mockResolvedValue({ id: "u2", role }), update, count: vi.fn().mockResolvedValue(admins) } });
+    await expect(setUserRole(admin, "u2", "ADMIN", db("INVESTOR"))).resolves.toMatchObject({ role: "ADMIN", previousRole: "INVESTOR" });
+    expect(update).toHaveBeenCalledWith({ where: { id: "u2" }, data: { role: "ADMIN" } });
+    await expect(setUserRole(admin, admin.id, "OWNER", db("ADMIN"))).rejects.toBeInstanceOf(BusinessRuleError);
+    await expect(setUserRole(admin, "u2", "OWNER", db("ADMIN", 1))).rejects.toBeInstanceOf(BusinessRuleError);
+    await expect(setUserRole(owner, "u2", "ADMIN", db("INVESTOR"))).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("restores a removed post with the comments removed alongside it", async () => {
+    const { restorePost } = await import("@/server/services/admin-oversight");
+    const removedAt = new Date("2026-11-20T00:00:00.000Z");
+    const postUpdate = vi.fn();
+    const commentUpdateMany = vi.fn();
+    const db = asDb({
+      post: { findUnique: vi.fn().mockResolvedValue({ id: "p1", deletedAt: removedAt }), update: postUpdate },
+      comment: { updateMany: commentUpdateMany },
+      $transaction: vi.fn(async (ops: unknown[]) => ops),
+    });
+    await expect(restorePost(admin, "p1", db)).resolves.toEqual({ id: "p1", restored: true });
+    expect(postUpdate).toHaveBeenCalledWith({ where: { id: "p1" }, data: { deletedAt: null } });
+    expect(commentUpdateMany).toHaveBeenCalledWith({ where: { postId: "p1", deletedAt: removedAt }, data: { deletedAt: null } });
+  });
+});
+
+describe("lending history", () => {
+  it("summarises loans and on-time repayments from the member's side", async () => {
+    const { getLendingHistory } = await import("@/server/services/lending-history");
+    const due = new Date("2026-10-01T00:00:00.000Z");
+    const db = asDb({
+      user: { findUnique: vi.fn().mockResolvedValue({ id: "o1", role: "OWNER", status: "ACTIVE" }) },
+      loan: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: "l1", principalBdt: 50000, interestRatePct: "10", tenureDays: 90, status: "ACTIVE", startDate: due, createdAt: due,
+            owner: { id: "o1", name: "Owner", businessProfile: { shopName: "Shop" } }, investor: { id: "i1", name: "Investor" },
+            repayments: [
+              { status: "CONFIRMED", dueDate: due, markedPaidAt: new Date("2026-09-30T00:00:00.000Z"), confirmedAt: due },
+              { status: "CONFIRMED", dueDate: due, markedPaidAt: new Date("2026-10-05T00:00:00.000Z"), confirmedAt: due },
+              { status: "UPCOMING", dueDate: new Date("2020-01-01T00:00:00.000Z"), markedPaidAt: null, confirmedAt: null },
+            ],
+          },
+          { id: "l2", principalBdt: 9000, interestRatePct: "9", tenureDays: 30, status: "PENDING_AGREEMENT", startDate: null, createdAt: due, owner: { id: "o1", name: "Owner", businessProfile: null }, investor: { id: "i2", name: "Other" }, repayments: [] },
+        ]),
+      },
+    });
+    const history = await getLendingHistory(owner, "o1", db as never);
+    expect(history.summary).toMatchObject({ loans: 1, active: 1, totalPrincipalBdt: 50000, instalmentsPaid: 2, onTimeRatePct: 50, overdueInstalments: 1 });
+    expect(history.loans[0]).toMatchObject({ role: "borrowed", counterparty: { id: "i1", role: "INVESTOR" } });
+  });
+});

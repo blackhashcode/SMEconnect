@@ -92,10 +92,14 @@ export async function listAdminLoanRequests(
   };
 }
 
-const MODERATION: Record<"pause" | "resume" | "cancel", { to: LoanRequestStatus; from: LoanRequestStatus[]; verb: string }> = {
+export type ModerationAction = "pause" | "resume" | "cancel" | "reopen";
+
+const MODERATION: Record<ModerationAction, { to: LoanRequestStatus; from: LoanRequestStatus[]; verb: string }> = {
   pause: { to: "PAUSED", from: ["OPEN", "IN_DISCUSSION"], verb: "paused" },
   resume: { to: "OPEN", from: ["PAUSED"], verb: "reopened" },
   cancel: { to: "CANCELLED", from: ["DRAFT", "OPEN", "IN_DISCUSSION", "PAUSED"], verb: "cancelled" },
+  // Admin override: bring back a cancelled request (e.g. cancelled by mistake).
+  reopen: { to: "OPEN", from: ["CANCELLED"], verb: "reopened" },
 };
 
 /**
@@ -106,7 +110,7 @@ const MODERATION: Record<"pause" | "resume" | "cancel", { to: LoanRequestStatus;
 export async function moderateLoanRequest(
   actor: Actor,
   id: string,
-  action: "pause" | "resume" | "cancel",
+  action: ModerationAction,
   reason: string,
   db: Db = prisma,
 ) {
@@ -185,4 +189,64 @@ export async function listAdminLoans(actor: Actor, query: PaginationParams & { s
     })),
     meta: page.meta,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Admin overrides: roles, restoring content, editing records, workflow.
+// ---------------------------------------------------------------------------
+
+/** Change a member's role (OWNER / INVESTOR / ADMIN). You can't change your own, and the last admin stays. */
+export async function setUserRole(actor: Actor, userId: string, role: "OWNER" | "INVESTOR" | "ADMIN", db: Db = prisma) {
+  assertRole(actor, "ADMIN");
+  if (userId === actor.id) throw new BusinessRuleError("You can't change your own role");
+  const target = await db.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+  if (!target) throw new NotFoundError("User not found");
+  if (target.role === role) return { id: userId, role, previousRole: target.role };
+  if (target.role === "ADMIN") {
+    const admins = await db.user.count({ where: { role: "ADMIN", status: "ACTIVE" } });
+    if (admins <= 1) throw new BusinessRuleError("At least one admin must remain");
+  }
+  await db.user.update({ where: { id: userId }, data: { role } });
+  return { id: userId, role, previousRole: target.role };
+}
+
+/** Bring back a removed post (and the comments removed with it). */
+export async function restorePost(actor: Actor, postId: string, db: Db = prisma) {
+  assertRole(actor, "ADMIN");
+  const post = await db.post.findUnique({ where: { id: postId }, select: { id: true, deletedAt: true } });
+  if (!post) throw new NotFoundError("Post not found");
+  if (!post.deletedAt) return { id: postId, restored: false };
+  await db.$transaction([
+    db.post.update({ where: { id: postId }, data: { deletedAt: null } }),
+    db.comment.updateMany({ where: { postId, deletedAt: post.deletedAt }, data: { deletedAt: null } }),
+  ]);
+  return { id: postId, restored: true };
+}
+
+/** Bring back a removed comment. */
+export async function restoreComment(actor: Actor, commentId: string, db: Db = prisma) {
+  assertRole(actor, "ADMIN");
+  const comment = await db.comment.findUnique({ where: { id: commentId }, select: { id: true, deletedAt: true } });
+  if (!comment) throw new NotFoundError("Comment not found");
+  if (!comment.deletedAt) return { id: commentId, restored: false };
+  await db.comment.update({ where: { id: commentId }, data: { deletedAt: null } });
+  return { id: commentId, restored: true };
+}
+
+/** Instalments of any loan, for admin review and overrides. */
+export async function listLoanRepayments(actor: Actor, loanId: string, db: Db = prisma) {
+  assertRole(actor, "ADMIN");
+  const loan = await db.loan.findUnique({ where: { id: loanId }, select: { id: true } });
+  if (!loan) throw new NotFoundError("Loan not found");
+  const rows = await db.repayment.findMany({
+    where: { loanId },
+    select: { id: true, installmentNo: true, dueDate: true, amountBdt: true, status: true, markedPaidAt: true, confirmedAt: true, note: true },
+    orderBy: { installmentNo: "asc" },
+  });
+  return rows.map((r) => ({
+    ...r,
+    dueDate: r.dueDate.toISOString(),
+    markedPaidAt: r.markedPaidAt?.toISOString() ?? null,
+    confirmedAt: r.confirmedAt?.toISOString() ?? null,
+  }));
 }

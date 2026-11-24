@@ -503,6 +503,7 @@ Request examples:
 | POST | `/api/v1/connections` | Send a connection request with an optional message |
 | GET | `/api/v1/connections` | List `incoming`, `outgoing` or `all` (default), optional `status` filter |
 | GET | `/api/v1/connections/with/{userId}` | Your status with one member: none, outgoing, incoming, connected, declined or self |
+| GET | `/api/v1/profiles/{userId}/lending-history` | Signed-in members: a member's loans and repayment reliability |
 | POST | `/api/v1/connections/{id}/accept` | Addressee only: PENDING → ACCEPTED |
 | POST | `/api/v1/connections/{id}/decline` | Addressee only: PENDING → DECLINED |
 | DELETE | `/api/v1/connections/{id}` | Requester cancels PENDING; either party removes ACCEPTED |
@@ -963,8 +964,14 @@ service. `OWNER` and `INVESTOR` sessions receive `403 FORBIDDEN`; missing sessio
 | DELETE | `/api/v1/admin/users/{userId}/sessions` | Sign a member out of every device (suspending does this too) |
 | GET | `/api/v1/admin/audit-logs?category=&action=&actorId=&targetId=&cursor=&limit=` | Activity log: sign-ups, sign-ins, lending events and admin actions |
 | GET | `/api/v1/admin/loan-requests?status=&q=&cursor=&limit=` | Every loan request, any status |
-| POST | `/api/v1/admin/loan-requests/{id}/{action}` | `pause`, `resume` or `cancel` with a `reason`; the owner is notified |
+| POST | `/api/v1/admin/loan-requests/{id}/{action}` | `pause`, `resume`, `cancel` or `reopen` (a cancelled request) with a `reason`; the owner is notified |
 | GET | `/api/v1/admin/loans?status=&cursor=&limit=` | Every loan with parties and repayment progress |
+| PATCH | `/api/v1/admin/users/{userId}/role` | Change role (OWNER/INVESTOR/ADMIN); not your own; one admin always remains |
+| PATCH | `/api/v1/admin/users/{userId}/profile` | Edit a member's name, photo or profile (same validation as `PATCH /me`) |
+| POST | `/api/v1/admin/posts/{postId}/restore` | Restore a removed post and the comments removed with it |
+| POST | `/api/v1/admin/comments/{commentId}/restore` | Restore a removed comment |
+| GET | `/api/v1/admin/loans/{loanId}/repayments` | A loan's instalments |
+| POST | `/api/v1/admin/repayments/{repaymentId}/confirm` | Override: confirm an instalment on the investor's behalf (`reason` required) |
 | GET | `/api/v1/admin/verifications/{id}` | Verification submission detail (listed above) |
 
 `status`, `role`, `targetType` and the string boolean `includeDeleted` (`true`/`false` only) are

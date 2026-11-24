@@ -7,7 +7,8 @@ import { LinkButton } from "@/components/ui/Button";
 import { Photo } from "@/components/ui/Photo";
 import { formatBDT, firstName } from "@/lib/format";
 import { tenureLabel } from "@/lib/loans";
-import { listBusinesses, listInvestors, listOpenLoanRequests } from "@/lib/api";
+import { feedPosts, listBusinesses, listInvestors, listOpenLoanRequests } from "@/lib/api";
+import { PostFeed } from "@/components/social/PostFeed";
 import { profileHref } from "@/lib/profile";
 import { requireUser } from "@/lib/session";
 
@@ -15,11 +16,13 @@ export const metadata = { title: "Home feed" };
 
 export default async function FeedPage() {
   const user = await requireUser("/feed");
-  const [directory, investors, loans] = await Promise.all([listBusinesses(), listInvestors(), listOpenLoanRequests()]);
+  const isMember = user.role !== "admin";
+  const [directory, investors, loans, feed] = await Promise.all([listBusinesses(), listInvestors(), listOpenLoanRequests(), isMember ? feedPosts() : Promise.resolve(null)]);
   const owners = directory.map((entry) => entry.owner);
   const members = [...owners, ...investors];
   const featured = loans.find((loan) => loan.owner.id !== user.id && loan.business.image);
-  const suggested = (user.role === "investor" ? owners : investors).filter((person) => person.id !== user.id).slice(0, 4);
+  // Everyone can connect with anyone: suggest a mix of businesses and investors.
+  const suggested = members.filter((person) => person.id !== user.id).slice(0, 4);
   const verified = user.verification === "APPROVED";
   const shortcut = [
     { label: "Loan requests", href: "/explore", icon: FilePlus2, count: loans.length },
@@ -87,7 +90,12 @@ export default async function FeedPage() {
           </div>
         </div>
         <div className="mt-space-md">
-          <FeedTabs loans={loans} businesses={directory.map((entry) => entry.business)} members={members} />
+          <FeedTabs
+            loans={loans}
+            businesses={directory.map((entry) => entry.business)}
+            members={members}
+            posts={feed ? <PostFeed initial={feed.posts} nextCursor={feed.nextCursor} viewer={{ id: user.id, name: user.name, avatar: user.avatar, isOwner: user.role === "business" }} /> : undefined}
+          />
         </div>
       </div>
 

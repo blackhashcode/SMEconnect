@@ -357,12 +357,11 @@ export async function updateMe(
         );
       }
 
+      // Update or create explicitly: an upsert's create half must list every
+      // required field even when the row exists, so partial edits failed.
       writeProfile = async (tx) => {
-        await tx.businessProfile.upsert({
-          where: { ownerId: user.id },
-          create: { ownerId: user.id, trustScore: 0, ...data } as never,
-          update: data,
-        });
+        if (existing) await tx.businessProfile.update({ where: { ownerId: user.id }, data });
+        else await tx.businessProfile.create({ data: { ownerId: user.id, trustScore: 0, ...data } as never });
       };
     } else if (user.role === "INVESTOR") {
       const existing = await db.investorProfile.findUnique({ where: { userId: user.id } });
@@ -387,11 +386,8 @@ export async function updateMe(
       }
 
       writeProfile = async (tx) => {
-        await tx.investorProfile.upsert({
-          where: { userId: user.id },
-          create: { userId: user.id, trustScore: 0, ...data } as never,
-          update: data,
-        });
+        if (existing) await tx.investorProfile.update({ where: { userId: user.id }, data });
+        else await tx.investorProfile.create({ data: { userId: user.id, trustScore: 0, ...data } as never });
       };
     } else {
       throw new ForbiddenError("Administrators do not have owner or investor profiles");

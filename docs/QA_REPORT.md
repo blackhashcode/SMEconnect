@@ -8,7 +8,7 @@
 | --- | --- |
 | Backend unit and service tests (Vitest) | **All pass** (round 2 adds 17 for admin oversight, audit log and Google role handling) |
 | Backend typecheck and ESLint | Pass |
-| End-to-end journey, direct to backend (`pnpm smoke`) | **98 / 98 pass** (67 in round 1) |
+| End-to-end journey, direct to backend (`pnpm smoke`) | **121 / 121 pass** (67 in round 1) |
 | Same journey through the frontend proxy (`:3000/api/v1`) | **Pass** |
 | Bot-user load test (`pnpm bots`, up to 120 simultaneous users) | **0 errors**, 311 req/s, p95 308 ms (see [PERFORMANCE_TEST.md](PERFORMANCE_TEST.md)) |
 | Frontend typecheck and production build | Pass |
@@ -67,6 +67,12 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 | 33 | Messaging | DMs required an accepted connection, which was impossible. Owner↔investor pairs can now message directly; same-type members still need a connection; blocks and rate limits still apply. |
 | 34 | Notifications | No notifications for connection requests, acceptances or messages; the bell only updated on reload and had no tray. Added those notifications (one per unread chat), a live bell with a dropdown tray, bottom-left pop-ups for new notifications, and reading a chat clears its notification. |
 | 35 | UI | Header search did nothing (now searches Explore); "Request sent" withdrew the request on a single click (now a separate Withdraw button); broken profile photos now fall back to initials. |
+| 36 | Feed | Posts, likes, comments and follows existed only in the API. The feed now opens on a Posts tab with a composer (Update / Milestone, photos), likes, comments and delete; profiles show a member's posts and a Follow button. Confirmed repayments publish a REPAYMENT post (no amounts). Posts accept the site's own uploaded photos. |
+| 37 | Reputation | No way to leave reviews: both sides of a completed loan can now rate each other from the loan page. Profiles show a lending history (loans, totals, on-time rate, each loan) from a new `GET /profiles/{userId}/lending-history`. |
+| 38 | Safety | No block or report options: profiles have Report / Block (and Unblock), posts and comments can be reported, and conversations have Report. |
+| 39 | Profiles | Owners couldn't share monthly sales: onboarding now has monthly sales range, orders per month, running since, growth story and more shop links. Saving highlights and scrolls to empty required fields. Fixed a server error when only some profile fields were updated (upsert required every field). |
+| 40 | Explore | "More filters" did nothing: it now opens location, trust score, verified-only, loan amount, tenure, repayment frequency and sort filters. Investors can view and connect with other investors as well as businesses. |
+| 41 | Admin | Admins can change roles (grant or remove admin access; not their own; one admin always remains), edit any member's profile, restore removed posts and comments, reopen cancelled loan requests, and confirm instalments on an investor's behalf. All logged. |
 
 ## Scalability and performance measures
 

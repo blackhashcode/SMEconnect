@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Building2, LayoutGrid, Search, SearchX, SlidersHorizontal, Star, TrendingUp, UserRound, Wallet } from "lucide-react";
+import { Building2, LayoutGrid, Search, SearchX, SlidersHorizontal, Star, TrendingUp, UserRound, Wallet, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
 import { BusinessCard } from "./BusinessCard";
@@ -19,24 +19,62 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+type Filters = { location: string; verifiedOnly: boolean; minTrust: number; minAmount: string; maxAmount: string; maxTenure: number; frequency: string; sort: "newest" | "amount-asc" | "amount-desc" | "trust" };
+const NO_FILTERS: Filters = { location: "", verifiedOnly: false, minTrust: 0, minAmount: "", maxAmount: "", maxTenure: 0, frequency: "", sort: "newest" };
+const countActive = (f: Filters) =>
+  [f.location.trim(), f.verifiedOnly, f.minTrust > 0, f.minAmount, f.maxAmount, f.maxTenure > 0, f.frequency, f.sort !== "newest"].filter(Boolean).length;
+
 export function ExploreBrowser({ businesses, people, loans, initialQuery = "" }: { businesses: Business[]; people: Person[]; loans: LoanRequestView[]; initialQuery?: string }) {
   const [active, setActive] = useState<TabId>("all");
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState("All categories");
+  const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
+  const set = <K extends keyof Filters>(key: K, value: Filters[K]) => setFilters((f) => ({ ...f, [key]: value }));
+  const activeCount = countActive(filters);
+  const place = filters.location.trim().toLowerCase();
+  const minAmount = Number(filters.minAmount) || 0;
+  const maxAmount = Number(filters.maxAmount) || Infinity;
   const categories = useMemo(() => ["All categories", ...new Set(businesses.map((business) => business.category))], [businesses]);
 
   const filteredBusinesses = businesses.filter((business) => {
     const matchesQuery = `${business.name} ${business.category} ${business.location} ${business.tagline}`.toLowerCase().includes(query.toLowerCase());
-    return matchesQuery && (category === "All categories" || business.category === category);
-  });
+    return (
+      matchesQuery &&
+      (category === "All categories" || business.category === category) &&
+      (!place || business.location.toLowerCase().includes(place)) &&
+      (!filters.verifiedOnly || business.verified) &&
+      business.trustScore >= filters.minTrust
+    );
+  }).sort((a, b) => (filters.sort === "trust" ? b.trustScore - a.trustScore : 0));
   const filteredPeople = people.filter((person) => {
     const matchesQuery = `${person.name} ${person.headline} ${person.location}`.toLowerCase().includes(query.toLowerCase());
-    return person.role === "investor" && matchesQuery;
-  });
+    return (
+      person.role === "investor" &&
+      matchesQuery &&
+      (!place || person.location.toLowerCase().includes(place)) &&
+      (!filters.verifiedOnly || person.verified) &&
+      person.trustScore >= filters.minTrust
+    );
+  }).sort((a, b) => (filters.sort === "trust" ? b.trustScore - a.trustScore : 0));
   const filteredLoans = loans.filter((loan) => {
     const matchesQuery = `${loan.title} ${loan.description} ${loan.business.name}`.toLowerCase().includes(query.toLowerCase());
-    return matchesQuery && (category === "All categories" || loan.business.category === category);
-  });
+    return (
+      matchesQuery &&
+      (category === "All categories" || loan.business.category === category) &&
+      (!place || loan.business.location.toLowerCase().includes(place)) &&
+      (!filters.verifiedOnly || loan.business.verified) &&
+      loan.business.trustScore >= filters.minTrust &&
+      loan.amount >= minAmount &&
+      loan.amount <= maxAmount &&
+      (!filters.maxTenure || loan.tenureDays <= filters.maxTenure) &&
+      (!filters.frequency || loan.frequency === filters.frequency)
+    );
+  }).sort((a, b) =>
+    filters.sort === "amount-asc" ? a.amount - b.amount
+      : filters.sort === "amount-desc" ? b.amount - a.amount
+        : filters.sort === "trust" ? b.business.trustScore - a.business.trustScore
+          : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const showBusinesses = active === "all" || active === "businesses";
   const showInvestors = active === "all" || active === "investors";
@@ -74,10 +112,70 @@ export function ExploreBrowser({ businesses, people, loans, initialQuery = "" }:
           >
             {categories.map((item) => <option key={item}>{item}</option>)}
           </select>
-          <button type="button" className="flex items-center justify-center gap-2 rounded-full bg-surface-container-high px-space-md py-2.5 text-label-md font-semibold text-on-surface-variant hover:text-primary">
-            <SlidersHorizontal className="h-4 w-4" aria-hidden /> More filters
+          <button
+            type="button"
+            onClick={() => setShowFilters((v) => !v)}
+            aria-expanded={showFilters}
+            aria-controls="explore-filters"
+            className={cn("flex items-center justify-center gap-2 rounded-full px-space-md py-2.5 text-label-md font-semibold transition-colors", showFilters || activeCount ? "bg-primary-fixed text-primary" : "bg-surface-container-high text-on-surface-variant hover:text-primary")}
+          >
+            <SlidersHorizontal className="h-4 w-4" aria-hidden /> {showFilters ? "Hide filters" : "More filters"}
+            {activeCount > 0 && <span className="rounded-full bg-primary px-1.5 text-[11px] font-bold leading-5 text-on-primary">{activeCount}</span>}
           </button>
         </div>
+
+        {showFilters && (
+          <div id="explore-filters" className="mt-space-md grid animate-fade-in gap-space-md border-t border-surface-container-high pt-space-md sm:grid-cols-2 lg:grid-cols-4">
+            <label className="block">
+              <span className="mb-1 block text-label-sm font-semibold text-on-surface-variant">Location</span>
+              <input value={filters.location} onChange={(e) => set("location", e.target.value)} placeholder="e.g. Dhaka, Sylhet" className="h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-sm text-body-sm focus:border-primary focus:outline-none" />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-label-sm font-semibold text-on-surface-variant">Minimum trust score</span>
+              <select value={filters.minTrust} onChange={(e) => set("minTrust", Number(e.target.value))} className="h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-sm text-body-sm focus:border-primary focus:outline-none">
+                <option value={0}>Any</option><option value={50}>50+</option><option value={70}>70+</option><option value={85}>85+</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-label-sm font-semibold text-on-surface-variant">Sort by</span>
+              <select value={filters.sort} onChange={(e) => set("sort", e.target.value as Filters["sort"])} className="h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-sm text-body-sm focus:border-primary focus:outline-none">
+                <option value="newest">Newest requests</option>
+                <option value="amount-asc">Loan amount: low to high</option>
+                <option value="amount-desc">Loan amount: high to low</option>
+                <option value="trust">Highest trust score</option>
+              </select>
+            </label>
+            <label className="flex items-end gap-space-sm pb-2 text-body-sm text-on-surface">
+              <input type="checkbox" checked={filters.verifiedOnly} onChange={(e) => set("verifiedOnly", e.target.checked)} className="h-4 w-4 accent-primary" /> Verified members only
+            </label>
+            <div className="block sm:col-span-2">
+              <span className="mb-1 block text-label-sm font-semibold text-on-surface-variant">Loan amount (৳)</span>
+              <div className="flex items-center gap-space-sm">
+                <input type="number" min={0} inputMode="numeric" value={filters.minAmount} onChange={(e) => set("minAmount", e.target.value)} placeholder="Min" aria-label="Minimum loan amount" className="h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-sm text-body-sm focus:border-primary focus:outline-none" />
+                <span className="text-outline">to</span>
+                <input type="number" min={0} inputMode="numeric" value={filters.maxAmount} onChange={(e) => set("maxAmount", e.target.value)} placeholder="Max" aria-label="Maximum loan amount" className="h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-sm text-body-sm focus:border-primary focus:outline-none" />
+              </div>
+            </div>
+            <label className="block">
+              <span className="mb-1 block text-label-sm font-semibold text-on-surface-variant">Longest tenure</span>
+              <select value={filters.maxTenure} onChange={(e) => set("maxTenure", Number(e.target.value))} className="h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-sm text-body-sm focus:border-primary focus:outline-none">
+                <option value={0}>Any</option><option value={30}>1 month</option><option value={90}>3 months</option><option value={180}>6 months</option><option value={365}>1 year</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-label-sm font-semibold text-on-surface-variant">Repayments</span>
+              <select value={filters.frequency} onChange={(e) => set("frequency", e.target.value)} className="h-10 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-sm text-body-sm focus:border-primary focus:outline-none">
+                <option value="">Any</option><option value="WEEKLY">Weekly</option><option value="BIWEEKLY">Every 2 weeks</option><option value="MONTHLY">Monthly</option>
+              </select>
+            </label>
+            <p className="text-body-sm text-on-surface-variant sm:col-span-2 lg:col-span-3">Amount, tenure and repayment filters apply to loan requests.</p>
+            {activeCount > 0 && (
+              <button type="button" onClick={() => setFilters(NO_FILTERS)} className="inline-flex items-center gap-1 justify-self-start text-label-md font-semibold text-primary hover:underline lg:justify-self-end">
+                <X className="h-4 w-4" aria-hidden /> Clear filters
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-space-md grid gap-space-lg lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -146,7 +244,7 @@ export function ExploreBrowser({ businesses, people, loans, initialQuery = "" }:
               <div className="rounded-2xl bg-surface-container-lowest p-space-xl text-center card-shadow">
                 <SearchX className="mx-auto h-8 w-8 text-outline" aria-hidden />
                 <p className="mt-space-sm text-headline-sm text-on-surface">No matches yet</p>
-                <p className="mt-1 text-body-md text-on-surface-variant">Try another keyword or clear the category filter.</p>
+                <p className="mt-1 text-body-md text-on-surface-variant">Try another keyword, or clear the category and filters.</p>
               </div>
             )}
           </div>
