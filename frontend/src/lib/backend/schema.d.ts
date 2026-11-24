@@ -505,7 +505,7 @@ export interface paths {
         put?: never;
         /**
          * Upload a verification or public image file
-         * @description Multipart upload with a `file` and a `purpose`. Visibility is derived from purpose: ID_DOCUMENT/SALES_PROOF are private; AVATAR/PRODUCT_IMAGE are public. Maximum 5 MB; JPEG, PNG, WebP and PDF only.
+         * @description Multipart upload with a `file` and a `purpose`. Visibility is derived from purpose: ID_DOCUMENT/SALES_PROOF are private; AVATAR/COVER/PRODUCT_IMAGE are public. Maximum 5 MB; JPEG, PNG, WebP and PDF only.
          */
         post: operations["uploadFile"];
         delete?: never;
@@ -3282,6 +3282,7 @@ export interface components {
             preferredRatePctMax?: number | string;
             district?: string;
             city?: string;
+            coverUrl?: string | null;
         };
         CreateLoanRequestRequest: {
             amountBdt: number;
@@ -3670,6 +3671,7 @@ export interface components {
             preferredRatePctMax: string | null;
             district: string | null;
             city: string | null;
+            coverUrl: string | null;
             trustScore: number;
             /** Format: date-time */
             createdAt: string;
@@ -3901,6 +3903,7 @@ export interface components {
                 preferredRatePctMax: string | null;
                 district: string | null;
                 city: string | null;
+                coverUrl: string | null;
                 trustScore: number;
                 /** Format: date-time */
                 createdAt: string;
@@ -4374,6 +4377,7 @@ export interface components {
             preferredRatePctMax: string | null;
             district: string | null;
             city: string | null;
+            coverUrl: string | null;
             trustScore: number;
         };
         PublicLoanRequest: {
@@ -4503,6 +4507,7 @@ export interface components {
                 preferredRatePctMax: string | null;
                 district: string | null;
                 city: string | null;
+                coverUrl: string | null;
                 trustScore: number;
             } | null;
         };
@@ -4851,6 +4856,7 @@ export interface components {
             preferredRatePctMax?: number | string;
             district?: string;
             city?: string;
+            coverUrl?: string | null;
         };
         UpdateLoanRequestRequest: {
             amountBdt?: number;
@@ -4899,6 +4905,7 @@ export interface components {
                 preferredRatePctMax?: number | string;
                 district?: string;
                 city?: string;
+                coverUrl?: string | null;
             };
         };
         UpdatePostRequest: {
@@ -4929,7 +4936,7 @@ export interface components {
             size: number;
         };
         /** @enum {string} */
-        UploadPurpose: "ID_DOCUMENT" | "SALES_PROOF" | "AVATAR" | "PRODUCT_IMAGE";
+        UploadPurpose: "ID_DOCUMENT" | "SALES_PROOF" | "AVATAR" | "COVER" | "PRODUCT_IMAGE";
         /** Format: uri */
         Url: string;
         UserIdRequest: {
@@ -5682,6 +5689,7 @@ export interface operations {
                                 preferredRatePctMax: string | null;
                                 district: string | null;
                                 city: string | null;
+                                coverUrl: string | null;
                                 trustScore: number;
                                 /** Format: date-time */
                                 createdAt: string;
@@ -5831,6 +5839,7 @@ export interface operations {
                                 preferredRatePctMax: string | null;
                                 district: string | null;
                                 city: string | null;
+                                coverUrl: string | null;
                                 trustScore: number;
                                 /** Format: date-time */
                                 createdAt: string;
@@ -6095,6 +6104,7 @@ export interface operations {
                                 preferredRatePctMax: string | null;
                                 district: string | null;
                                 city: string | null;
+                                coverUrl: string | null;
                                 trustScore: number;
                             } | null;
                         };

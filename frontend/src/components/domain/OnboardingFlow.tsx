@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, BadgeCheck, CheckCircle2, FileUp, Hourglass, ImageUp, LoaderCircle, ShieldAlert, ShieldCheck, UserRound, XCircle } from "lucide-react";
+import { ArrowLeftRight, BadgeCheck, CheckCircle2, FileUp, Hourglass, ImageMinus, ImageUp, LoaderCircle, ShieldAlert, ShieldCheck, UserRound, XCircle } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -26,7 +26,7 @@ const CATEGORIES = ["Food", "Fashion", "Handicrafts", "Cosmetics", "Gadgets", "H
 const slugify = (value: string) => value.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 const blank = (value: string) => (value.trim() ? value.trim() : undefined);
 
-async function uploadFile(file: File, purpose: "AVATAR" | "ID_DOCUMENT" | "SALES_PROOF") {
+async function uploadFile(file: File, purpose: "AVATAR" | "COVER" | "ID_DOCUMENT" | "SALES_PROOF") {
   const form = new FormData();
   form.append("purpose", purpose);
   form.append("file", await compressImage(file));
@@ -216,6 +216,35 @@ export function OnboardingFlow({
     setPhotoDone(true);
   }
 
+  // ---------- Cover photo (optional; needs a saved profile to attach to) ----------
+  const [cover, setCover] = useState(typeof p.coverUrl === "string" ? p.coverUrl : "");
+  const [coverBusy, setCoverBusy] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+  const canSetCover = user.hasProfile || profileSaved;
+  async function saveCover(url: string | null) {
+    const saved = await api.patch("/me", { profile: { coverUrl: url } });
+    if (!saved.ok) return saved.error;
+    setCover(url ?? "");
+    router.refresh();
+    return null;
+  }
+  async function changeCover(file: File | undefined) {
+    if (!file) return;
+    setCoverBusy(true);
+    setCoverError(null);
+    const uploaded = await uploadFile(file, "COVER");
+    const problem = uploaded.ok ? await saveCover(uploaded.data.url) : uploaded.error;
+    setCoverBusy(false);
+    if (problem) setCoverError(problem);
+  }
+  async function removeCover() {
+    setCoverBusy(true);
+    setCoverError(null);
+    const problem = await saveCover(null);
+    setCoverBusy(false);
+    if (problem) setCoverError(problem);
+  }
+
   // ---------- Account type (new accounts only, e.g. after Google sign-up) ----------
   const [roleBusy, setRoleBusy] = useState(false);
   const [roleError, setRoleError] = useState<string | null>(null);
@@ -329,6 +358,33 @@ export function OnboardingFlow({
           </div>
         </div>
         <p className="mt-space-sm text-label-sm text-outline">JPG, PNG or WebP, up to 5 MB. Large photos are resized automatically.</p>
+
+        <div className="mt-space-lg border-t border-surface-container-high pt-space-md">
+          <h3 className="text-label-md font-bold text-on-surface">Cover photo <span className="font-normal text-outline">(optional)</span></h3>
+          <p className="mt-1 text-body-sm text-on-surface-variant">
+            The wide banner at the top of your profile{isOwner ? ", for example your shop, stall or products" : ""}. Skip it if you like; a plain banner is shown instead.
+          </p>
+          {coverError && <div className="mt-space-sm"><FormAlert>{coverError}</FormAlert></div>}
+          <div className="mt-space-sm h-28 w-full overflow-hidden rounded-xl bg-gradient-to-r from-primary-fixed via-surface-container-high to-secondary-fixed sm:h-36">
+            {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded file served by our API */}
+            {cover && <img src={cover} alt="Your cover photo" className="h-full w-full object-cover" />}
+          </div>
+          {canSetCover ? (
+            <div className="mt-space-sm flex flex-wrap gap-space-sm">
+              <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-outline-variant px-space-md py-2 text-label-md font-semibold text-primary transition-colors hover:bg-primary-fixed">
+                {coverBusy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <ImageUp className="h-4 w-4" aria-hidden />} {cover ? "Change cover" : "Upload a cover"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => changeCover(event.target.files?.[0])} disabled={coverBusy} />
+              </label>
+              {cover && (
+                <Button variant="ghost" onClick={removeCover} disabled={coverBusy}>
+                  <ImageMinus className="h-4 w-4" aria-hidden /> Remove cover
+                </Button>
+              )}
+            </div>
+          ) : (
+            <p className="mt-space-sm text-body-sm text-outline">Save your {isOwner ? "business details" : "lending preferences"} below first, then you can add a cover.</p>
+          )}
+        </div>
       </section>
 
       {/* Step 2: profile */}

@@ -24,6 +24,7 @@ export const uploadPurposeSchema = z.enum([
   "ID_DOCUMENT",
   "SALES_PROOF",
   "AVATAR",
+  "COVER",
   "PRODUCT_IMAGE",
 ]);
 

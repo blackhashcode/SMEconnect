@@ -307,6 +307,7 @@ model InvestorProfile {
   preferredRatePctMax Decimal?  @db.Decimal(5, 2)
   district            String?
   city                String?
+  coverUrl            String?
   trustScore          Int       @default(0)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt

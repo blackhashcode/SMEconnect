@@ -79,6 +79,7 @@ fails in production, or weakens a control · **Low** = hygiene or performance.
 | 45 | Feed | Members can edit their own updates and milestones from the post menu; edited posts show "(edited)". |
 | 46 | Admin | "Explore members" in the admin's account menu went to Explore. It is now "Members" and opens the admin members list. |
 | 47 | Loans | Owners could create request after request (each failed publish left another draft, with no explanation). Only one request is allowed at a time: draft, open, in discussion, paused, funded or repaying. A second attempt gets a clear 422 message saying why and what to do, the form shows it at the top, and `/loans/new` sends the owner to their existing request instead of showing the form. |
+| 48 | Profiles | Business owners and investors can add an optional cover photo from Profile & verification, change it or remove it; admins can remove one. Investors gained a `coverUrl` (migration `20261125000000`). Photo uploads (avatar, cover, product) now accept images only, not PDFs. |
 
 ## Scalability and performance measures
 

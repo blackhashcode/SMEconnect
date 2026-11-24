@@ -19,6 +19,7 @@ export type UploadPurpose =
   | "ID_DOCUMENT"
   | "SALES_PROOF"
   | "AVATAR"
+  | "COVER"
   | "PRODUCT_IMAGE";
 
 const PRIVATE_PURPOSES: ReadonlySet<UploadPurpose> = new Set([
@@ -49,6 +50,11 @@ export async function saveUploadedFile(
 
   if (file.size <= 0 || file.size > MAX_UPLOAD_BYTES) {
     throw new ValidationError("Uploaded file must be between 1 byte and 5 MB");
+  }
+
+  // Photos shown on profiles and posts must be images, not documents.
+  if (!PRIVATE_PURPOSES.has(purpose) && !file.type.startsWith("image/")) {
+    throw new ValidationError("Photos must be JPEG, PNG or WebP images");
   }
 
   return provider.save({
