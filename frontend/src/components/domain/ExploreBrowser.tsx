@@ -19,9 +19,9 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-export function ExploreBrowser({ businesses, people, loans }: { businesses: Business[]; people: Person[]; loans: LoanRequestView[] }) {
+export function ExploreBrowser({ businesses, people, loans, initialQuery = "" }: { businesses: Business[]; people: Person[]; loans: LoanRequestView[]; initialQuery?: string }) {
   const [active, setActive] = useState<TabId>("all");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState("All categories");
   const categories = useMemo(() => ["All categories", ...new Set(businesses.map((business) => business.category))], [businesses]);
 

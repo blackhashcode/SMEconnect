@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useNotifications } from "@/components/notifications/NotificationsProvider";
 import { Bell, Compass, House, LayoutDashboard, MessageCircle } from "lucide-react";
 import { hubFor, isActivePath } from "@/data/nav";
 import { useSessionUser } from "@/components/auth/SessionProvider";
@@ -18,7 +19,8 @@ function tabsFor(unreadMessages: number, unreadNotifications: number, role: stri
 }
 
 /** Bottom navigation for phones and tablets, where the header pill is hidden. */
-export function MobileTabBar({ unreadMessages, unreadNotifications }: { unreadMessages: number; unreadNotifications: number }) {
+export function MobileTabBar({ unreadMessages }: { unreadMessages: number; unreadNotifications?: number }) {
+  const { unread: unreadNotifications } = useNotifications();
   const pathname = usePathname();
   const role = useSessionUser()?.role ?? "investor";
   const tabs = tabsFor(unreadMessages, unreadNotifications, role);

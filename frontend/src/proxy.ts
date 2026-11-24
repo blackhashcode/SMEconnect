@@ -18,6 +18,7 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/feed/:path*",
+    "/connections/:path*",
     "/explore/:path*",
     "/messages/:path*",
     "/notifications/:path*",

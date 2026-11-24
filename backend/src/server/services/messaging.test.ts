@@ -446,9 +446,13 @@ describe("createOrGetConversation", () => {
       createOrGetConversation(owner, { participantId: admin.id }, { db: db as never }),
     ).rejects.toThrow(NotFoundError);
 
+    // An owner and an investor may message directly; two owners need a connection.
     state.connections.clear();
     await expect(
       createOrGetConversation(owner, { participantId: investor.id }, { db: db as never }),
+    ).resolves.toMatchObject({ id: expect.any(String) });
+    await expect(
+      createOrGetConversation(owner, { participantId: stranger.id }, { db: db as never }),
     ).rejects.toThrow(BusinessRuleError);
 
     state.connections.add(pairKey(owner.id, investor.id));
@@ -646,11 +650,10 @@ describe("sendMessage", () => {
       ForbiddenError,
     );
 
+    // Owner and investor stay allowed without a connection once unblocked.
     state.blocks.clear();
     state.connections.clear();
-    await expect(sendMessage(owner, "con_1", { body: "hi" }, { db: db as never })).rejects.toThrow(
-      BusinessRuleError,
-    );
+    await expect(sendMessage(owner, "con_1", { body: "hi" }, { db: db as never })).resolves.toBeDefined();
 
     state.connections.add(pairKey(owner.id, investor.id));
     await expect(sendMessage(stranger, "con_1", { body: "hi" }, { db: db as never })).rejects.toThrow(

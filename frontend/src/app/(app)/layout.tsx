@@ -4,6 +4,8 @@ import { MobileTabBar } from "@/components/layout/MobileTabBar";
 import { Footer } from "@/components/layout/Footer";
 import { SessionProvider } from "@/components/auth/SessionProvider";
 import { requireUser } from "@/lib/session";
+import { NotificationsProvider } from "@/components/notifications/NotificationsProvider";
+import { NotificationToaster } from "@/components/notifications/NotificationToaster";
 
 /**
  * Shared shell for every logged-in screen. Because it lives in a layout, the
@@ -16,6 +18,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider user={user}>
+      <NotificationsProvider initialUnread={unreadNotifications}>
       <div className="flex min-h-screen flex-col">
         <AppHeader user={user} unreadMessages={unreadMessages} unreadNotifications={unreadNotifications} />
         <main className="mx-auto w-full max-w-shell flex-1 px-margin pb-space-xl pt-24 md:px-gutter-desktop lg:pt-28">
@@ -26,6 +29,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </div>
         <MobileTabBar unreadMessages={unreadMessages} unreadNotifications={unreadNotifications} />
       </div>
+      <NotificationToaster />
+      </NotificationsProvider>
     </SessionProvider>
   );
 }

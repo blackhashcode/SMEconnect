@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
-import { getProfile, listInvestors, reviewsFor } from "@/lib/api";
+import { cachedInvestors, connectionStatus, getProfile, reviewsFor } from "@/lib/api";
 import { formatBDT, shortDate } from "@/lib/format";
 import { tenureLabel } from "@/lib/loans";
 import { getCurrentUser } from "@/lib/session";
@@ -18,7 +18,7 @@ export const metadata = { title: "Investor profile" };
 
 export default async function InvestorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [profile, viewer, investors, reviews] = await Promise.all([getProfile(id), getCurrentUser(), listInvestors(), reviewsFor(id)]);
+  const [profile, viewer, investors, reviews, relation] = await Promise.all([getProfile(id), getCurrentUser(), cachedInvestors(), reviewsFor(id), connectionStatus(id)]);
   if (!profile) notFound();
   // Business owners' public page is their business profile.
   if (profile.business) redirect(`/businesses/${id}`);
@@ -47,7 +47,7 @@ export default async function InvestorProfilePage({ params }: { params: Promise<
             <LinkButton href="/onboarding" variant="outline">Edit profile</LinkButton>
           ) : viewer && viewer.role !== "admin" ? (
             <>
-              <ConnectButton userId={investor.id} name={investor.name} />
+              <ConnectButton userId={investor.id} name={investor.name} initialStatus={relation?.status} connectionId={relation?.connectionId} />
               <MessageButton participantId={investor.id}><MessageCircle className="h-4 w-4" aria-hidden /> Message</MessageButton>
             </>
           ) : null

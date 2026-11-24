@@ -18,6 +18,9 @@ export interface AuditEntry {
 // Loaded lazily so modules that only need the types (and their unit tests)
 // don't require DATABASE_URL at import time.
 const defaultDb = async (): Promise<Db> => (await import("@/server/db")).prisma;
+// Without a database (unit tests) there's nothing to write to; skip instead of
+// loading the database client, which is slow and only to fail anyway.
+const noDatabase = (db?: unknown) => !db && !process.env.DATABASE_URL;
 
 /** Visitor IP from proxy headers (Vercel / the frontend rewrite), first hop only. */
 export function clientIp(headers: Headers): string | null {
@@ -30,6 +33,7 @@ export function clientIp(headers: Headers): string | null {
  * undo or block the action it describes, so errors are reported and swallowed.
  */
 export async function recordAudit(entry: AuditEntry, db?: Db): Promise<void> {
+  if (noDatabase(db)) return;
   try {
     const client = db ?? (await defaultDb());
     await client.auditLog.create({

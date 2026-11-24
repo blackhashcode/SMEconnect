@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Tabs } from "@/components/ui/Tabs";
 import { NotificationItem, notificationGroup, type NotificationGroup } from "./NotificationItem";
-import { api } from "@/lib/client-api";
+import { useNotifications } from "@/components/notifications/NotificationsProvider";
 import type { AppNotification } from "@/data/types";
 
 type TabId = "all" | NotificationGroup;
 
 export function NotificationCenter({ notifications: initial }: { notifications: AppNotification[] }) {
   const router = useRouter();
+  const shared = useNotifications();
   const [active, setActive] = useState<TabId>("all");
   const [notifications, setNotifications] = useState(initial);
 
@@ -24,19 +25,20 @@ export function NotificationCenter({ notifications: initial }: { notifications: 
     { id: "offer", label: "Offers" },
     { id: "repayment", label: "Repayments" },
     { id: "message", label: "Messages" },
+    { id: "network", label: "Network" },
     { id: "account", label: "Account" },
   ];
 
   const stamp = new Date().toISOString();
   async function markAllRead() {
     setNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? stamp })));
-    await api.patch("/notifications/read-all", {});
+    await shared.markAllRead();
     router.refresh();
   }
 
   async function markRead(id: string) {
     setNotifications((items) => items.map((item) => (item.id === id ? { ...item, readAt: item.readAt ?? stamp } : item)));
-    await api.patch(`/notifications/${id}/read`, {});
+    await shared.markRead(id);
   }
 
   return (

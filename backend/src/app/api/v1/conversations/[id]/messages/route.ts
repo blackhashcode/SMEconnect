@@ -2,6 +2,7 @@ import { parsePagination } from "@/lib/pagination";
 import type { NextRequest } from "next/server";
 import { requireRole } from "@/server/auth/guards";
 import type { Actor } from "@/server/auth/policy";
+import { notifyMessageRecipient } from "@/server/services/notify";
 import { created, handleRequest, ok } from "@/server/http/response";
 import { enforceRateLimit } from "@/server/rate-limit";
 import { listMessages, sendMessage } from "@/server/services/messaging";
@@ -42,6 +43,9 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     const { id } = await params;
     await enforceRateLimit("message:send", session.user.id);
     const input = sendMessageSchema.parse(await request.json());
-    return created(await sendMessage(session.user as Actor, idSchema.parse(id), input));
+    const conversationId = idSchema.parse(id);
+    const result = await sendMessage(session.user as Actor, conversationId, input);
+    await notifyMessageRecipient(conversationId, { id: session.user.id, name: session.user.name }, input.body);
+    return created(result);
   });
 }

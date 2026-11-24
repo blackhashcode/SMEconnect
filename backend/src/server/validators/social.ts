@@ -153,6 +153,8 @@ export const deleteResultSchema = z
 export const connectionRecordSchema = z
   .object({
     id: z.string(),
+    /** The other member's id (for profile links and replies). */
+    userId: z.string(),
     user: postAuthorSchema,
     direction: z.enum(["incoming", "outgoing"]),
     status: connectionStatusSchema,

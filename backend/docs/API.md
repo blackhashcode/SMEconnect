@@ -502,6 +502,7 @@ Request examples:
 |---|---|---|
 | POST | `/api/v1/connections` | Send a connection request with an optional message |
 | GET | `/api/v1/connections` | List `incoming`, `outgoing` or `all` (default), optional `status` filter |
+| GET | `/api/v1/connections/with/{userId}` | Your status with one member: none, outgoing, incoming, connected, declined or self |
 | POST | `/api/v1/connections/{id}/accept` | Addressee only: PENDING → ACCEPTED |
 | POST | `/api/v1/connections/{id}/decline` | Addressee only: PENDING → DECLINED |
 | DELETE | `/api/v1/connections/{id}` | Requester cancels PENDING; either party removes ACCEPTED |

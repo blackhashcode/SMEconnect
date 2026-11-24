@@ -135,6 +135,7 @@ describe("public response allow-lists", () => {
               }
             : {
                 id: "con_1",
+                userId: "usr_2",
                 user: author,
                 direction: "incoming",
                 status: "PENDING",

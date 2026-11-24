@@ -10,7 +10,7 @@ import { LinkButton } from "@/components/ui/Button";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { Photo } from "@/components/ui/Photo";
 import { StatCard } from "@/components/ui/StatCard";
-import { getProfile, listBusinesses, listOpenLoanRequests, reviewsFor } from "@/lib/api";
+import { cachedBusinesses, cachedOpenLoanRequests, connectionStatus, getProfile, reviewsFor } from "@/lib/api";
 import { formatBDT, formatBDTCompact, shortDate } from "@/lib/format";
 import { getCurrentUser } from "@/lib/session";
 
@@ -18,7 +18,7 @@ export const metadata = { title: "Business profile" };
 
 export default async function BusinessProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [profile, viewer, openLoans, directory, reviews] = await Promise.all([getProfile(id), getCurrentUser(), listOpenLoanRequests(), listBusinesses(), reviewsFor(id)]);
+  const [profile, viewer, openLoans, directory, reviews, relation] = await Promise.all([getProfile(id), getCurrentUser(), cachedOpenLoanRequests(), cachedBusinesses(), reviewsFor(id), connectionStatus(id)]);
   if (!profile) notFound();
   if (!profile.business) redirect(`/investors/${id}`);
   const { person: owner, business } = profile;
@@ -41,7 +41,7 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
             </>
           ) : viewer && viewer.role !== "admin" ? (
             <>
-              <ConnectButton userId={owner.id} name={owner.name} />
+              <ConnectButton userId={owner.id} name={owner.name} initialStatus={relation?.status} connectionId={relation?.connectionId} />
               <MessageButton participantId={owner.id}><MessageCircle className="h-4 w-4" aria-hidden /> Message</MessageButton>
               {activeLoan && viewer.role === "investor" && (
                 <LinkButton href={`/loan-requests/${activeLoan.id}/offer`} variant="secondary"><Handshake className="h-4 w-4" aria-hidden /> Make an offer</LinkButton>
