@@ -49,18 +49,6 @@ investors who might fund them, and no place for owners to build a business netwo
 - MD Fahim Bin Imam Nahid
 - MD. Mahadi Hasan
 
-### Contributors in the git history
-
-| Team member | Git author name(s) |
-| --- | --- |
-| Tausif Mushtaque | `Tausif Mushtaque`, `blackhashcode` |
-| MD Fahim Bin Imam Nahid | `NahidWorld`, `Nahid` |
-| Afsana Akter Mim | `Afsanameem0` |
-| MD. Mahadi Hasan | `Md. Mahadi Hasan` |
-| Sanjida Akter Shorna | — (no commits in the repository) |
-
-Run `git shortlog -sn --all` to see the current commit counts.
-
 ---
 
 ## How the application works
