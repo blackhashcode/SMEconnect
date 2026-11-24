@@ -7,8 +7,9 @@ import type { Person } from "@/data/types";
 
 export function ProfileHeader({ person, actions }: { person: Person; actions?: ReactNode }) {
   return (
-    <section className="overflow-hidden rounded-3xl bg-surface-container-lowest card-shadow">
-      <div className="relative h-40 md:h-56">
+    <section className="relative rounded-3xl bg-surface-container-lowest card-shadow">
+      {/* The card itself doesn't clip, so action dropdowns (Report / Block) aren't cut off; only the cover does. */}
+      <div className="relative h-40 overflow-hidden rounded-t-3xl md:h-56">
         <Photo src={person.cover} alt="" className="absolute inset-0" sizes="(min-width: 1400px) 1400px, 100vw" priority>
           <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface/40 to-transparent" />
         </Photo>

@@ -20,7 +20,7 @@ export function PostFeed({
 }: {
   initial: Post[];
   nextCursor: string | null;
-  viewer: { id: string; name: string; avatar: string; isOwner: boolean };
+  viewer: { id: string; name: string; avatar: string; isOwner: boolean; isAdmin?: boolean };
   /** API path to page through: /feed, or /posts?authorId=... on a profile. */
   source?: string;
   showComposer?: boolean;
@@ -42,11 +42,11 @@ export function PostFeed({
 
   return (
     <div className="space-y-space-md">
-      {showComposer && <PostComposer name={viewer.name} avatar={viewer.avatar} isOwner={viewer.isOwner} onPosted={(post) => setPosts((list) => [post, ...list])} />}
+      {showComposer && !viewer.isAdmin && <PostComposer name={viewer.name} avatar={viewer.avatar} isOwner={viewer.isOwner} onPosted={(post) => setPosts((list) => [post, ...list])} />}
       {posts.length === 0 ? (
         <EmptyState icon={Newspaper} title="No posts yet" description="Follow or connect with members to see their updates and milestones here. Open loan requests appear here automatically." />
       ) : (
-        posts.map((post) => <PostCard key={post.id} post={post} viewerId={viewer.id} onDeleted={(id) => setPosts((list) => list.filter((p) => p.id !== id))} />)
+        posts.map((post) => <PostCard key={post.id} post={post} viewerId={viewer.id} viewerIsAdmin={viewer.isAdmin} onDeleted={(id) => setPosts((list) => list.filter((p) => p.id !== id))} />)
       )}
       {cursor && (
         <div className="flex justify-center">

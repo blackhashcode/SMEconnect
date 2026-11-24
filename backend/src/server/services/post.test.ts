@@ -215,6 +215,20 @@ describe("post ownership and soft deletion", () => {
     expect(db.$transaction).toHaveBeenCalledTimes(1);
   });
 
+  it("lets an admin edit or remove any post, system posts included", async () => {
+    await expect(
+      updatePost(admin, "post_1", { content: "moderated" }, { db: db as never }),
+    ).resolves.toBeDefined();
+    db.post.findFirst.mockResolvedValue(postRow({ type: "LOAN_REQUEST" }));
+    await expect(
+      updatePost(admin, "post_1", { content: "moderated" }, { db: db as never }),
+    ).resolves.toBeDefined();
+    await expect(deletePost(admin, "post_1", { db: db as never })).resolves.toEqual({
+      id: "post_1",
+      deleted: true,
+    });
+  });
+
   it("hides soft-deleted posts from detail lookups", async () => {
     db.post.findFirst.mockResolvedValue(null);
     await expect(getPost("post_1", undefined, { db: db as never })).rejects.toThrow(
@@ -319,6 +333,14 @@ describe("pagination and public data protection", () => {
         }),
       }),
     );
+  });
+
+  it("shows admins every live post so they can review them", async () => {
+    db.post.findMany.mockResolvedValue([postRow()]);
+    await listFeed(admin, { limit: 20 }, { db: db as never });
+    const where = db.post.findMany.mock.calls.at(-1)?.[0]?.where;
+    expect(where).toMatchObject({ deletedAt: null });
+    expect(where?.OR).toBeUndefined();
   });
 
   it("marks posts liked by the acting user only", async () => {

@@ -268,6 +268,9 @@ async function syncFeedPost(
   }
 }
 
+/** Statuses that count as "the owner's current request"; only one may exist. */
+export const ONE_AT_A_TIME_STATUSES = ["DRAFT", "OPEN", "IN_DISCUSSION", "PAUSED", "FUNDED", "REPAYING"] as const;
+
 export async function createLoanRequest(
   actor: Actor,
   input: CreateInput,
@@ -276,6 +279,25 @@ export async function createLoanRequest(
   assertRole(actor, "OWNER");
   const parsed = createLoanRequestSchema.parse(input);
   const db = deps.db ?? prisma;
+
+  // One request at a time: drafts included, so failed publishes can't pile up.
+  const current = (await db.loanRequest.findFirst({
+    where: { ownerId: actor.id, status: { in: [...ONE_AT_A_TIME_STATUSES] } },
+    select: { id: true, status: true, purpose: true },
+    orderBy: { createdAt: "desc" },
+  })) as { id: string; status: string; purpose: string } | null;
+  if (current) {
+    const hint: Record<string, string> = {
+      DRAFT: "You already have an unpublished draft. Publish it or cancel it from your dashboard before starting a new one.",
+      PAUSED: "You have a paused request. Resume it or cancel it from your dashboard before starting a new one.",
+      FUNDED: "Your current request has been funded. You can start a new one once that loan is repaid.",
+      REPAYING: "You're repaying a loan from your current request. You can start a new one once it's fully repaid.",
+    };
+    throw new BusinessRuleError(
+      hint[current.status] ?? "You already have an active loan request. Only one request is allowed at a time.",
+      { field: "ownerId", existingRequestId: current.id, existingStatus: current.status },
+    );
+  }
 
   const row = await db.loanRequest.create({
     data: {

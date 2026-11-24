@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Heart, LoaderCircle, MessageSquare, MoreHorizontal, Send, Trash2, Trophy, Wallet, Megaphone, HandCoins } from "lucide-react";
+import { Heart, LoaderCircle, MessageSquare, MoreHorizontal, Pencil, Send, Trash2, Trophy, Wallet, Megaphone, HandCoins } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { VerifiedBadge } from "@/components/ui/Badge";
 import { Photo } from "@/components/ui/Photo";
@@ -27,7 +27,10 @@ const TYPE = {
 const profileHref = (role: "OWNER" | "INVESTOR", id: string) => (role === "OWNER" ? `/businesses/${id}` : `/investors/${id}`);
 
 /** One feed post: author, type, content, photos, loan summary, likes, comments, report/delete. */
-export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: string; onDeleted?: (id: string) => void }) {
+export function PostCard({ post: initialPost, viewerId, viewerIsAdmin = false, onDeleted }: { post: Post; viewerId: string; viewerIsAdmin?: boolean; onDeleted?: (id: string) => void }) {
+  const [post, setPost] = useState(initialPost);
+  const [editing, setEditing] = useState(false);
+  const [editText, setEditText] = useState(initialPost.content);
   const [liked, setLiked] = useState(post.likedByMe);
   const [likes, setLikes] = useState(post.likeCount);
   const [commentCount, setCommentCount] = useState(post.commentCount);
@@ -39,6 +42,9 @@ export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: 
   const [error, setError] = useState<string | null>(null);
   const type = TYPE[post.type] ?? TYPE.UPDATE;
   const mine = post.authorId === viewerId;
+  // Authors edit their own updates and milestones; admins can edit or remove any post.
+  const canEdit = viewerIsAdmin || (mine && (post.type === "UPDATE" || post.type === "MILESTONE"));
+  const canDelete = canEdit;
 
   async function toggleLike() {
     const next = !liked;
@@ -73,7 +79,8 @@ export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: 
   }
 
   async function removeComment(id: string) {
-    const result = await api.delete(`/posts/${post.id}/comments/${id}`);
+    // Admins remove any comment through the moderation endpoint (logged).
+    const result = viewerIsAdmin ? await api.delete(`/admin/comments/${id}`) : await api.delete(`/posts/${post.id}/comments/${id}`);
     if (result.ok) {
       setComments((list) => (list ?? []).filter((c) => c.id !== id));
       setCommentCount((n) => Math.max(0, n - 1));
@@ -81,9 +88,22 @@ export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: 
   }
 
   async function removePost() {
+    setMenu(false);
     const result = await api.delete(`/posts/${post.id}`);
     if (result.ok) onDeleted?.(post.id);
     else setError(result.error);
+  }
+
+  async function saveEdit() {
+    const content = editText.trim();
+    if (!content) return setError("A post can't be empty.");
+    setBusy(true);
+    setError(null);
+    const result = await api.patch<Post>(`/posts/${post.id}`, { content });
+    setBusy(false);
+    if (!result.ok) return setError(result.error);
+    setPost(result.data);
+    setEditing(false);
   }
 
   return (
@@ -109,18 +129,34 @@ export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: 
             <MoreHorizontal className="h-4 w-4" aria-hidden />
           </button>
           {menu && (
-            <div className="absolute right-0 top-8 z-30 w-72 rounded-2xl border border-surface-container-high bg-surface-container-lowest p-space-sm shadow-card-hover">
-              {mine ? (
-                <button type="button" onClick={removePost} className="flex items-center gap-1.5 text-body-sm text-error"><Trash2 className="h-4 w-4" aria-hidden /> Delete post</button>
-              ) : (
-                <ReportButton targetType="POST" targetId={post.id} label="Report post" />
-              )}
+            <div role="menu" className="absolute right-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-surface-container-high bg-surface-container-lowest p-space-md shadow-card-hover">
+              <div className="space-y-space-sm">
+                {canEdit && (
+                  <button type="button" onClick={() => { setEditText(post.content); setEditing(true); setMenu(false); }} className="flex items-center gap-1.5 text-body-sm text-on-surface hover:text-primary"><Pencil className="h-4 w-4" aria-hidden /> Edit post</button>
+                )}
+                {canDelete && (
+                  <button type="button" onClick={removePost} className="flex items-center gap-1.5 text-body-sm text-error"><Trash2 className="h-4 w-4" aria-hidden /> {mine ? "Delete post" : "Remove post"}</button>
+                )}
+                {!mine && !viewerIsAdmin && <ReportButton targetType="POST" targetId={post.id} label="Report post" className="w-full sm:w-full" />}
+              </div>
             </div>
           )}
         </div>
       </header>
 
-      {post.content && <p className="mt-space-sm whitespace-pre-wrap text-body-md text-on-surface">{post.content}</p>}
+      {editing ? (
+        <div className="mt-space-sm space-y-space-sm">
+          <textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={3} maxLength={5000} aria-label="Edit post" className="w-full resize-y rounded-xl border border-outline-variant bg-surface-container-lowest px-space-md py-2 text-body-md focus:border-primary focus:outline-none" />
+          <div className="flex gap-space-sm">
+            <button type="button" onClick={saveEdit} disabled={busy} className="inline-flex items-center gap-1 rounded-full bg-primary px-space-md py-1.5 text-label-md font-semibold text-on-primary disabled:opacity-60">
+              {busy && <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />} Save
+            </button>
+            <button type="button" onClick={() => { setEditing(false); setError(null); }} className="rounded-full px-space-md py-1.5 text-label-md text-on-surface-variant hover:bg-surface-container-high">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        post.content && <p className="mt-space-sm whitespace-pre-wrap text-body-md text-on-surface">{post.content}{post.updatedAt !== post.createdAt && <span className="ml-1 text-label-sm text-outline">(edited)</span>}</p>
+      )}
 
       {post.imageUrls.length > 0 && (
         <div className={cn("mt-space-sm grid gap-1 overflow-hidden rounded-xl", post.imageUrls.length > 1 && "grid-cols-2")}>
@@ -139,7 +175,7 @@ export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: 
       )}
 
       <footer className="mt-space-sm flex items-center gap-space-md border-t border-surface-container-high pt-space-sm">
-        <button type="button" onClick={toggleLike} aria-pressed={liked} className={cn("inline-flex items-center gap-1.5 text-label-md", liked ? "font-bold text-secondary" : "text-on-surface-variant hover:text-secondary")}>
+        <button type="button" onClick={toggleLike} aria-pressed={liked} disabled={viewerIsAdmin} className={cn("inline-flex items-center gap-1.5 text-label-md", liked ? "font-bold text-secondary" : "text-on-surface-variant hover:text-secondary")}>
           <Heart className={cn("h-4 w-4", liked && "fill-current")} aria-hidden /> {likes > 0 ? likes : ""} Like{likes === 1 || likes === 0 ? "" : "s"}
         </button>
         <button type="button" onClick={openComments} aria-expanded={showComments} className="inline-flex items-center gap-1.5 text-label-md text-on-surface-variant hover:text-primary">
@@ -160,7 +196,7 @@ export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: 
                     <Link href={profileHref(c.author.role, c.authorId)} className="text-label-md font-bold text-on-surface hover:text-primary">{c.author.name}</Link>
                     <TimeAgo iso={c.createdAt} className="text-label-sm text-outline" />
                     <span className="ml-auto">
-                      {c.authorId === viewerId ? (
+                      {c.authorId === viewerId || viewerIsAdmin ? (
                         <button type="button" aria-label="Delete comment" onClick={() => removeComment(c.id)} className="text-outline hover:text-error"><Trash2 className="h-3.5 w-3.5" aria-hidden /></button>
                       ) : (
                         <ReportButton targetType="COMMENT" targetId={c.id} label="" className="text-outline" />
@@ -172,12 +208,12 @@ export function PostCard({ post, viewerId, onDeleted }: { post: Post; viewerId: 
               </div>
             ))
           )}
-          <div className="flex gap-space-sm">
+          {!viewerIsAdmin && <div className="flex gap-space-sm">
             <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void addComment()} maxLength={2000} placeholder="Write a comment…" aria-label="Write a comment" className="h-10 flex-1 rounded-full border border-outline-variant bg-surface-container-lowest px-space-md text-body-sm focus:border-primary focus:outline-none" />
             <button type="button" onClick={addComment} disabled={busy || !draft.trim()} aria-label="Post comment" className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-on-primary disabled:opacity-50">
               {busy ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
             </button>
-          </div>
+          </div>}
         </div>
       )}
       {error && <p role="alert" className="mt-space-sm text-body-sm text-error">{error}</p>}

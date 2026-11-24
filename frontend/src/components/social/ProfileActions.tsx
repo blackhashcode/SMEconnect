@@ -68,10 +68,10 @@ export function ProfileActions({ userId, name, following: initialFollowing, bloc
         </Button>
       </span>
       {menu && (
-        <div className="absolute right-0 top-12 z-40 w-72 space-y-space-sm rounded-2xl border border-surface-container-high bg-surface-container-lowest p-space-sm shadow-card-hover">
-          <ReportButton targetType="USER" targetId={userId} label={`Report ${short}`} className="w-full" />
+        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] space-y-space-sm rounded-2xl border border-surface-container-high bg-surface-container-lowest p-space-md shadow-card-hover">
+          <ReportButton targetType="USER" targetId={userId} label={`Report ${short}`} className="w-full py-1 text-body-md text-on-surface sm:w-full" />
           {!blocked && !confirmBlock && (
-            <button type="button" onClick={() => setConfirmBlock(true)} className="flex w-full items-center gap-1.5 text-body-sm text-on-surface-variant hover:text-error">
+            <button type="button" onClick={() => setConfirmBlock(true)} className="flex w-full items-center gap-1.5 py-1 text-body-md text-on-surface hover:text-error">
               <Ban className="h-4 w-4" aria-hidden /> Block {short}
             </button>
           )}

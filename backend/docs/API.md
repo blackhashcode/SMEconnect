@@ -457,12 +457,12 @@ Request example:
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/v1/feed` | Personalized feed (auth) — own posts, followed authors, accepted connections and OPEN loan-request posts |
+| GET | `/api/v1/feed` | Personalized feed (auth) — own posts, followed authors, accepted connections and OPEN loan-request posts; admins see every live post |
 | GET | `/api/v1/posts` | Public recent posts (optionally authenticated for `likedByMe`) |
 | POST | `/api/v1/posts` | Create an `UPDATE` or `MILESTONE` post (auth) |
 | GET | `/api/v1/posts/{id}` | Post detail |
-| PATCH | `/api/v1/posts/{id}` | Edit own user-created post (auth) |
-| DELETE | `/api/v1/posts/{id}` | Soft-delete own user-created post (auth) |
+| PATCH | `/api/v1/posts/{id}` | Edit own user-created post (auth); admins can edit any post (logged) |
+| DELETE | `/api/v1/posts/{id}` | Soft-delete own user-created post (auth); admins can remove any post (logged) |
 | POST | `/api/v1/posts/{id}/like` | Like a post (auth) |
 | DELETE | `/api/v1/posts/{id}/like` | Unlike a post (auth) |
 | GET | `/api/v1/posts/{id}/comments` | List comments (oldest first, cursor pagination) |

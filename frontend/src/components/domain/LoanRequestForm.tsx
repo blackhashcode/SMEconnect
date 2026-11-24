@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Hourglass, LoaderCircle, ShieldCheck } from "lucide-react";
@@ -26,6 +26,7 @@ export function LoanRequestForm({ owner, businessName }: { owner: SessionUser; b
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldErrors>({});
   const [result, setResult] = useState<{ request: OwnLoanRequest; published: boolean; reason?: string } | null>(null);
+  const alertRef = useRef<HTMLDivElement>(null);
   const verified = owner.verification === "APPROVED";
   const estimate = repaymentEstimate(Number(terms.amount) || 0, Number(terms.rate) || 0, Number(terms.tenureDays) || 0, terms.frequency);
 
@@ -43,6 +44,8 @@ export function LoanRequestForm({ owner, businessName }: { owner: SessionUser; b
     if (!draft.ok) {
       setPending(false);
       setError(draft.code === "VALIDATION_ERROR" ? "Please fix the highlighted fields." : draft.error);
+      // Make sure the reason is seen, e.g. "you already have an active request".
+      requestAnimationFrame(() => alertRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
       setFields({ ...draft.fields, interestRatePct: draft.fields.proposedRatePct });
       return;
     }
@@ -91,7 +94,7 @@ export function LoanRequestForm({ owner, businessName }: { owner: SessionUser; b
       </div>
 
       <section className="mt-space-md rounded-2xl bg-surface-container-lowest p-space-lg card-shadow">
-        {error && <div className="mb-space-md"><FormAlert>{error}</FormAlert></div>}
+        {error && <div ref={alertRef} className="mb-space-md"><FormAlert>{error}</FormAlert></div>}
         <div className="space-y-space-md">
           <FormField label="What is the loan for?" placeholder="e.g. Buy a second deck oven" maxLength={200} value={purpose} onChange={(event) => setPurpose(event.target.value)} error={fieldError(fields, "purpose")} />
           <label className="block">
