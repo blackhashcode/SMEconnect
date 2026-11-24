@@ -30,7 +30,7 @@ investors who might fund them, and no place for owners to build a business netwo
 
 ## Solution
 
-**SME Connect** is that bridge: a LinkedIn-style network for business owners and investors.
+**SME Connect** is that bridge that creates a network for SME business owners and investors.
 
 - Business owners find investors that suit them, and investors find the businesses they
   prefer: by category, location, loan size, tenure and trust score.
