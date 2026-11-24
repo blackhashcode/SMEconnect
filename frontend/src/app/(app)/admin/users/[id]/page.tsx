@@ -2,6 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, LogOut, ShieldBan, ShieldCheck } from "lucide-react";
 import { DocumentViewer } from "@/components/admin/DocumentViewer";
+import { AdminProfileEditor } from "@/components/admin/AdminProfileEditor";
+import { AdminRoleControl } from "@/components/admin/AdminRoleControl";
+import { backendGet } from "@/lib/backend/server";
 import { AdminAction } from "@/components/admin/AdminAction";
 import { AdminTable, Cell, StatusBadge, dateTime } from "@/components/admin/AdminTable";
 import { Avatar } from "@/components/ui/Avatar";
@@ -22,6 +25,8 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
     getCurrentUser(),
     verificationHistory(id),
   ]);
+  // Raw profile fields for the admin editor.
+  const rawProfile = user && user.role !== "ADMIN" ? ((await backendGet<{ profile: Record<string, unknown> | null }>(`/profiles/${id}`)).data?.profile ?? null) : null;
   if (!user) notFound();
   const publicHref = user.role === "OWNER" ? `/businesses/${id}` : user.role === "INVESTOR" ? `/investors/${id}` : null;
   const canModerate = user.role !== "ADMIN" && viewer?.id !== id;
@@ -57,6 +62,8 @@ export default async function AdminUserPage({ params }: { params: Promise<{ id: 
             ) : (
               <AdminAction endpoint={`/admin/users/${id}/reactivate`} label="Reactivate" variant="success" confirm={`Reactivate ${user.name}?`} icon={<ShieldCheck className="h-4 w-4" aria-hidden />} />
             ))}
+            {viewer?.id !== id && <AdminRoleControl userId={id} name={user.name} role={user.role} />}
+            {user.role !== "ADMIN" && <AdminProfileEditor userId={id} role={user.role} name={user.name} profile={rawProfile} />}
             {canModerate && (
               <AdminAction endpoint={`/admin/users/${id}/sessions`} method="DELETE" label="Sign out everywhere" variant="ghost" confirm={`Sign ${user.name} out of every device?`} icon={<LogOut className="h-4 w-4" aria-hidden />} />
             )}

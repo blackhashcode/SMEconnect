@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { AdminAction } from "@/components/admin/AdminAction";
 import { AdminTable, Cell, NextPage, StatusBadge, dateTime } from "@/components/admin/AdminTable";
 import { adminComments, adminPosts } from "@/lib/admin";
@@ -33,7 +33,9 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
                 <Cell><Link href={`/admin/users/${post.authorId}`} className="text-primary hover:underline">View author</Link></Cell>
                 <Cell className="whitespace-nowrap text-on-surface-variant">{dateTime(post.createdAt)}</Cell>
                 <Cell>
-                  {post.deletedAt ? <span className="text-outline">Removed</span> : (
+                  {post.deletedAt ? (
+                    <AdminAction endpoint={`/admin/posts/${post.id}/restore`} label="Restore" variant="ghost" confirm="Restore this post (and the comments removed with it)?" icon={<RotateCcw className="h-4 w-4" aria-hidden />} />
+                  ) : (
                     <AdminAction endpoint={`/admin/posts/${post.id}`} method="DELETE" label="Remove" variant="ghost" confirm="Remove this post and its comments from the feed?" icon={<Trash2 className="h-4 w-4" aria-hidden />} />
                   )}
                 </Cell>
@@ -53,7 +55,9 @@ export default async function AdminContentPage({ searchParams }: { searchParams:
                 <Cell><Link href={`/admin/users/${comment.authorId}`} className="text-primary hover:underline">View author</Link></Cell>
                 <Cell className="whitespace-nowrap text-on-surface-variant">{dateTime(comment.createdAt)}</Cell>
                 <Cell>
-                  {comment.deletedAt ? <span className="text-outline">Removed</span> : (
+                  {comment.deletedAt ? (
+                    <AdminAction endpoint={`/admin/comments/${comment.id}/restore`} label="Restore" variant="ghost" confirm="Restore this comment?" icon={<RotateCcw className="h-4 w-4" aria-hidden />} />
+                  ) : (
                     <AdminAction endpoint={`/admin/comments/${comment.id}`} method="DELETE" label="Remove" variant="ghost" confirm="Remove this comment?" icon={<Trash2 className="h-4 w-4" aria-hidden />} />
                   )}
                 </Cell>

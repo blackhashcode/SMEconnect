@@ -12,7 +12,14 @@ import { compressImage } from "@/lib/image-compress";
 import { clearOnboardingDraft, readOnboardingDraft } from "@/lib/onboarding-draft";
 import type { SessionUser, UploadedFile, Verification } from "@/data/types";
 
-type BusinessProfile = { shopName: string; slug: string; category: string; district: string; city: string; description: string; facebookUrl: string };
+type BusinessProfile = {
+  shopName: string; slug: string; category: string; district: string; city: string; description: string;
+  facebookUrl: string; instagramUrl: string; whatsappUrl: string; websiteUrl: string;
+  runningSince: string; monthlyOrdersRange: string; monthlySalesMin: string; monthlySalesMax: string; growthStory: string;
+};
+
+const ORDER_RANGES = ["Under 50 orders/month", "50–100 orders/month", "100–300 orders/month", "300–1,000 orders/month", "1,000+ orders/month"];
+const isUrl = (value: string) => /^https?:\/\/\S+\.\S+/i.test(value.trim());
 type InvestorProfile = { minLendBdt: string; maxLendBdt: string; preferredCategories: string[]; district: string; city: string; bio: string };
 
 const CATEGORIES = ["Food", "Fashion", "Handicrafts", "Cosmetics", "Gadgets", "Home Décor", "Other"];
@@ -51,6 +58,14 @@ export function OnboardingFlow({
     city: String(p.city ?? ""),
     description: String(p.description ?? ""),
     facebookUrl: String(p.facebookUrl ?? ""),
+    instagramUrl: String(p.instagramUrl ?? ""),
+    whatsappUrl: String(p.whatsappUrl ?? ""),
+    websiteUrl: String(p.websiteUrl ?? ""),
+    runningSince: p.runningSince ? String(p.runningSince).slice(0, 10) : "",
+    monthlyOrdersRange: String(p.monthlyOrdersRange ?? ""),
+    monthlySalesMin: p.monthlySalesMinBdt ? String(p.monthlySalesMinBdt) : "",
+    monthlySalesMax: p.monthlySalesMaxBdt ? String(p.monthlySalesMaxBdt) : "",
+    growthStory: String(p.growthStory ?? ""),
   });
   const [investor, setInvestor] = useState<InvestorProfile>({
     minLendBdt: String(p.minLendBdt ?? "20000"),
@@ -77,9 +92,54 @@ export function OnboardingFlow({
   const [profileError, setProfileError] = useState<string | null>(null);
   const [fields, setFields] = useState<FieldErrors>({});
 
+  /** Checks required fields before saving, so empty ones are highlighted right away. */
+  function validate(): FieldErrors {
+    const errors: FieldErrors = {};
+    const need = (key: string, value: string, message: string) => {
+      if (!value.trim()) errors[key] = [message];
+    };
+    if (isOwner) {
+      need("shopName", business.shopName, "Enter your shop name.");
+      if (business.shopName.trim() && business.shopName.trim().length < 2) errors.shopName = ["Use at least 2 characters."];
+      need("category", business.category, "Choose a category.");
+      need("district", business.district, "Enter your area or district.");
+      need("city", business.city, "Enter your city.");
+      const slug = business.slug.trim() || slugify(business.shopName);
+      if (slug.length < 3) errors.slug = ["Use at least 3 letters or numbers."];
+      const min = Number(business.monthlySalesMin);
+      const max = Number(business.monthlySalesMax);
+      if (business.monthlySalesMin && (!Number.isFinite(min) || min <= 0)) errors.monthlySalesMin = ["Enter an amount in taka."];
+      if (business.monthlySalesMax && (!Number.isFinite(max) || max <= 0)) errors.monthlySalesMax = ["Enter an amount in taka."];
+      if (min > 0 && max > 0 && min > max) errors.monthlySalesMax = ["Must be at least the lowest amount."];
+      if (Boolean(business.monthlySalesMin) !== Boolean(business.monthlySalesMax)) errors[business.monthlySalesMin ? "monthlySalesMax" : "monthlySalesMin"] = ["Enter both the lowest and highest month."];
+      for (const key of ["facebookUrl", "instagramUrl", "whatsappUrl", "websiteUrl"] as const) {
+        if (business[key].trim() && !isUrl(business[key])) errors[key] = ["Use a full link starting with https://"];
+      }
+    } else {
+      const min = Number(investor.minLendBdt);
+      const max = Number(investor.maxLendBdt);
+      if (!investor.minLendBdt || !(min > 0)) errors.minLendBdt = ["Enter the smallest amount you'd lend."];
+      if (!investor.maxLendBdt || !(max > 0)) errors.maxLendBdt = ["Enter the largest amount you'd lend."];
+      if (min > 0 && max > 0 && min > max) errors.maxLendBdt = ["Must be at least the smallest amount."];
+    }
+    return errors;
+  }
+
   async function saveProfile() {
-    setSavingProfile(true);
     setProfileError(null);
+    const local = validate();
+    if (Object.keys(local).length) {
+      setFields(local);
+      setProfileError("Please fill in the highlighted fields.");
+      // Bring the first problem into view.
+      requestAnimationFrame(() => {
+        const first = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+        first?.scrollIntoView({ behavior: "smooth", block: "center" });
+        first?.focus({ preventScroll: true });
+      });
+      return;
+    }
+    setSavingProfile(true);
     setFields({});
     const profile = isOwner
       ? {
@@ -90,6 +150,14 @@ export function OnboardingFlow({
           city: business.city.trim(),
           description: blank(business.description),
           facebookUrl: blank(business.facebookUrl),
+          instagramUrl: blank(business.instagramUrl),
+          whatsappUrl: blank(business.whatsappUrl),
+          websiteUrl: blank(business.websiteUrl),
+          runningSince: blank(business.runningSince),
+          monthlyOrdersRange: blank(business.monthlyOrdersRange),
+          monthlySalesMinBdt: business.monthlySalesMin ? Number(business.monthlySalesMin) : undefined,
+          monthlySalesMaxBdt: business.monthlySalesMax ? Number(business.monthlySalesMax) : undefined,
+          growthStory: blank(business.growthStory),
         }
       : {
           minLendBdt: Number(investor.minLendBdt),
@@ -272,7 +340,7 @@ export function OnboardingFlow({
         {profileError && <div className="mt-space-md"><FormAlert>{profileError}</FormAlert></div>}
         {isOwner ? (
           <div className="mt-space-md grid gap-space-md sm:grid-cols-2">
-            <FormField label="Shop name" value={business.shopName} maxLength={200} onChange={(e) => setBusiness({ ...business, shopName: e.target.value, slug: profileSaved ? business.slug : slugify(e.target.value) })} error={fieldError(fields, "shopName")} />
+            <FormField label="Shop name *" value={business.shopName} maxLength={200} onChange={(e) => setBusiness({ ...business, shopName: e.target.value, slug: profileSaved ? business.slug : slugify(e.target.value) })} error={fieldError(fields, "shopName")} />
             <FormField label="Profile address" hint={`smeconnect/${business.slug || "your-shop"}`} value={business.slug} maxLength={60} onChange={(e) => setBusiness({ ...business, slug: slugify(e.target.value) })} error={fieldError(fields, "slug")} />
             <label className="block">
               <span className="mb-1.5 block text-label-md font-semibold text-on-surface">Category</span>
@@ -281,17 +349,38 @@ export function OnboardingFlow({
               </select>
             </label>
             <FormField label="Facebook page (optional)" placeholder="https://facebook.com/yourshop" value={business.facebookUrl} onChange={(e) => setBusiness({ ...business, facebookUrl: e.target.value })} error={fieldError(fields, "facebookUrl")} />
-            <FormField label="Area / district" placeholder="e.g. Dhanmondi" value={business.district} maxLength={200} onChange={(e) => setBusiness({ ...business, district: e.target.value })} error={fieldError(fields, "district")} />
-            <FormField label="City" placeholder="e.g. Dhaka" value={business.city} maxLength={200} onChange={(e) => setBusiness({ ...business, city: e.target.value })} error={fieldError(fields, "city")} />
+            <FormField label="Area / district *" placeholder="e.g. Dhanmondi" value={business.district} maxLength={200} onChange={(e) => setBusiness({ ...business, district: e.target.value })} error={fieldError(fields, "district")} />
+            <FormField label="City *" placeholder="e.g. Dhaka" value={business.city} maxLength={200} onChange={(e) => setBusiness({ ...business, city: e.target.value })} error={fieldError(fields, "city")} />
             <label className="block sm:col-span-2">
               <span className="mb-1.5 block text-label-md font-semibold text-on-surface">About your business (optional)</span>
               <textarea rows={3} maxLength={5000} value={business.description} onChange={(e) => setBusiness({ ...business, description: e.target.value })} className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-md py-3 text-body-md text-on-surface focus:border-primary focus:outline-none" />
             </label>
+            <div className="sm:col-span-2 border-t border-surface-container-high pt-space-md">
+              <p className="text-label-md font-bold text-on-surface">Sales and track record (optional, but investors look for it)</p>
+              <p className="text-body-sm text-on-surface-variant">Shown on your profile. Add a bKash, Nagad or bank statement in verification below to back it up.</p>
+            </div>
+            <FormField label="Lowest monthly sales (৳)" type="number" inputMode="numeric" placeholder="e.g. 40000" value={business.monthlySalesMin} onChange={(e) => setBusiness({ ...business, monthlySalesMin: e.target.value })} error={fieldError(fields, "monthlySalesMin") ?? fieldError(fields, "monthlySalesMinBdt")} />
+            <FormField label="Highest monthly sales (৳)" type="number" inputMode="numeric" placeholder="e.g. 80000" value={business.monthlySalesMax} onChange={(e) => setBusiness({ ...business, monthlySalesMax: e.target.value })} error={fieldError(fields, "monthlySalesMax") ?? fieldError(fields, "monthlySalesMaxBdt")} />
+            <label className="block">
+              <span className="mb-1.5 block text-label-md font-semibold text-on-surface">Orders per month</span>
+              <select value={business.monthlyOrdersRange} onChange={(e) => setBusiness({ ...business, monthlyOrdersRange: e.target.value })} className="h-12 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-md text-body-md text-on-surface focus:border-primary focus:outline-none">
+                <option value="">Choose a range</option>
+                {ORDER_RANGES.map((range) => <option key={range}>{range}</option>)}
+              </select>
+            </label>
+            <FormField label="Running since" type="date" max={new Date().toISOString().slice(0, 10)} value={business.runningSince} onChange={(e) => setBusiness({ ...business, runningSince: e.target.value })} error={fieldError(fields, "runningSince")} />
+            <FormField label="Instagram (optional)" placeholder="https://instagram.com/yourshop" value={business.instagramUrl} onChange={(e) => setBusiness({ ...business, instagramUrl: e.target.value })} error={fieldError(fields, "instagramUrl")} />
+            <FormField label="WhatsApp link (optional)" placeholder="https://wa.me/8801XXXXXXXXX" value={business.whatsappUrl} onChange={(e) => setBusiness({ ...business, whatsappUrl: e.target.value })} error={fieldError(fields, "whatsappUrl")} />
+            <FormField label="Website (optional)" placeholder="https://yourshop.com" value={business.websiteUrl} onChange={(e) => setBusiness({ ...business, websiteUrl: e.target.value })} error={fieldError(fields, "websiteUrl")} className="sm:col-span-2" />
+            <label className="block sm:col-span-2">
+              <span className="mb-1.5 block text-label-md font-semibold text-on-surface">Your growth story (optional)</span>
+              <textarea rows={3} maxLength={5000} value={business.growthStory} onChange={(e) => setBusiness({ ...business, growthStory: e.target.value })} placeholder="How you started, how you've grown, what the loan will help you do next." className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-space-md py-3 text-body-md text-on-surface focus:border-primary focus:outline-none" />
+            </label>
           </div>
         ) : (
           <div className="mt-space-md grid gap-space-md sm:grid-cols-2">
-            <FormField label="Smallest offer (৳)" type="number" value={investor.minLendBdt} onChange={(e) => setInvestor({ ...investor, minLendBdt: e.target.value })} error={fieldError(fields, "minLendBdt")} />
-            <FormField label="Largest offer (৳)" type="number" value={investor.maxLendBdt} onChange={(e) => setInvestor({ ...investor, maxLendBdt: e.target.value })} error={fieldError(fields, "maxLendBdt")} />
+            <FormField label="Smallest offer (৳) *" type="number" value={investor.minLendBdt} onChange={(e) => setInvestor({ ...investor, minLendBdt: e.target.value })} error={fieldError(fields, "minLendBdt")} />
+            <FormField label="Largest offer (৳) *" type="number" value={investor.maxLendBdt} onChange={(e) => setInvestor({ ...investor, maxLendBdt: e.target.value })} error={fieldError(fields, "maxLendBdt")} />
             <div className="sm:col-span-2">
               <span className="mb-1.5 block text-label-md font-semibold text-on-surface">Categories you like (optional)</span>
               <div className="flex flex-wrap gap-space-sm">

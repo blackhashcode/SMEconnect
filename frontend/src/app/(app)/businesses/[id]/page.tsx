@@ -10,7 +10,11 @@ import { LinkButton } from "@/components/ui/Button";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { Photo } from "@/components/ui/Photo";
 import { StatCard } from "@/components/ui/StatCard";
-import { cachedBusinesses, cachedOpenLoanRequests, connectionStatus, getProfile, reviewsFor } from "@/lib/api";
+import { cachedBusinesses, cachedOpenLoanRequests, connectionStatus, getProfile, lendingHistory, postsBy, reviewsFor } from "@/lib/api";
+import { LendingHistoryCard } from "@/components/domain/LendingHistoryCard";
+import { PostFeed } from "@/components/social/PostFeed";
+import { ProfileActions } from "@/components/social/ProfileActions";
+
 import { formatBDT, formatBDTCompact, shortDate } from "@/lib/format";
 import { getCurrentUser } from "@/lib/session";
 
@@ -18,7 +22,7 @@ export const metadata = { title: "Business profile" };
 
 export default async function BusinessProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [profile, viewer, openLoans, directory, reviews, relation] = await Promise.all([getProfile(id), getCurrentUser(), cachedOpenLoanRequests(), cachedBusinesses(), reviewsFor(id), connectionStatus(id)]);
+  const [profile, viewer, openLoans, directory, reviews, relation, history, posts] = await Promise.all([getProfile(id), getCurrentUser(), cachedOpenLoanRequests(), cachedBusinesses(), reviewsFor(id), connectionStatus(id), lendingHistory(id), postsBy(id)]);
   if (!profile) notFound();
   if (!profile.business) redirect(`/investors/${id}`);
   const { person: owner, business } = profile;
@@ -43,6 +47,7 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
             <>
               <ConnectButton userId={owner.id} name={owner.name} initialStatus={relation?.status} connectionId={relation?.connectionId} />
               <MessageButton participantId={owner.id}><MessageCircle className="h-4 w-4" aria-hidden /> Message</MessageButton>
+              <ProfileActions userId={owner.id} name={owner.name} following={relation?.following ?? false} blocked={relation?.blockedByMe ?? false} />
               {activeLoan && viewer.role === "investor" && (
                 <LinkButton href={`/loan-requests/${activeLoan.id}/offer`} variant="secondary"><Handshake className="h-4 w-4" aria-hidden /> Make an offer</LinkButton>
               )}
@@ -59,6 +64,8 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
             <StatCard icon={Star} label="Reviews" value={averageRating ?? "New"} hint={`${reviews.length} from completed loans`} tone="warning" />
             <StatCard icon={ShieldCheck} label="Trust score" value={String(business.trustScore)} hint={business.verified ? "Identity verified" : "Verification pending"} tone="success" />
           </div>
+
+          <LendingHistoryCard history={history} name={business.name} />
 
           <Card className="p-space-lg">
             <SectionHeading eyebrow="About" title={`About ${business.name}`} />
@@ -93,9 +100,16 @@ export default async function BusinessProfilePage({ params }: { params: Promise<
             </Card>
           )}
 
+          {viewer && viewer.role !== "admin" && posts.length > 0 && (
+            <section className="space-y-space-sm">
+              <h2 className="text-headline-sm text-on-surface">Posts from {business.name}</h2>
+              <PostFeed initial={posts} nextCursor={null} viewer={{ id: viewer.id, name: viewer.name, avatar: viewer.avatar, isOwner: viewer.role === "business" }} showComposer={false} />
+            </section>
+          )}
+
           {reviews.length > 0 && (
             <Card className="p-space-lg">
-              <SectionHeading eyebrow="Reputation" title="Reviews from investors" />
+              <SectionHeading eyebrow="Reputation" title="Reviews" />
               <ul className="mt-space-md space-y-space-sm">
                 {reviews.map((review) => (
                   <li key={review.id} className="rounded-xl bg-surface-container-low p-space-md">

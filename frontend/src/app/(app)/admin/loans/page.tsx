@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Ban, Pause, Play, Search } from "lucide-react";
+import { Ban, Pause, Play, RotateCcw, Search } from "lucide-react";
+import { AdminLoanRepayments } from "@/components/admin/AdminLoanRepayments";
 import { AdminAction } from "@/components/admin/AdminAction";
 import { AdminTable, Cell, FilterChips, NextPage, StatusBadge, dateTime } from "@/components/admin/AdminTable";
 import { LOAN_REQUEST_STATUSES, adminLoanRequests, adminLoans, statusLabel } from "@/lib/admin";
@@ -60,6 +61,9 @@ async function RequestsView({ params }: { params: Params }) {
                 {r.status === "PAUSED" && (
                   <AdminAction endpoint={`/admin/loan-requests/${r.id}/resume`} label="Reopen" variant="success" confirm="Reopen this request?" reason="Note to the owner" icon={<Play className="h-4 w-4" aria-hidden />} />
                 )}
+                {r.status === "CANCELLED" && (
+                  <AdminAction endpoint={`/admin/loan-requests/${r.id}/reopen`} label="Reopen" variant="success" confirm="Reopen this cancelled request? It becomes visible to investors again." reason="Note to the owner" icon={<RotateCcw className="h-4 w-4" aria-hidden />} />
+                )}
                 {["DRAFT", "OPEN", "IN_DISCUSSION", "PAUSED"].includes(r.status) && (
                   <AdminAction endpoint={`/admin/loan-requests/${r.id}/cancel`} label="Cancel" variant="ghost" confirm="Cancel this request? Pending offers are withdrawn. This can't be undone." reason="Reason shown to the owner" icon={<Ban className="h-4 w-4" aria-hidden />} />
                 )}
@@ -78,7 +82,7 @@ async function LoansView({ params }: { params: Params }) {
   return (
     <>
       <FilterChips base="/admin/loans" param="status" current={params.status} extra={{ view: "loans" }} options={["PENDING_AGREEMENT", "ACTIVE", "COMPLETED", "DEFAULTED"].map((s) => ({ value: s, label: statusLabel(s) }))} />
-      <AdminTable head={["Loan", "Owner", "Investor", "Status", "Repayments", "Started"]} empty={items.length === 0}>
+      <AdminTable head={["Loan", "Owner", "Investor", "Status", "Repayments", "Started", "Instalments"]} empty={items.length === 0}>
         {items.map((loan) => (
           <tr key={loan.id}>
             <Cell className="whitespace-nowrap"><p className="font-semibold">{formatBDT(loan.principalBdt)}</p><p className="text-on-surface-variant">{loan.interestRatePct}% · {tenureLabel(loan.tenureDays)}</p></Cell>
@@ -90,6 +94,7 @@ async function LoansView({ params }: { params: Params }) {
               {loan.repayments.overdue > 0 && <p className="font-semibold text-error">{loan.repayments.overdue} overdue</p>}
             </Cell>
             <Cell className="whitespace-nowrap text-on-surface-variant">{loan.startDate ? dateTime(loan.startDate) : "Not started"}</Cell>
+            <Cell><AdminLoanRepayments loanId={loan.id} /></Cell>
           </tr>
         ))}
       </AdminTable>

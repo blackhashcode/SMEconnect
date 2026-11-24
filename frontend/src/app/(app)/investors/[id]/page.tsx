@@ -9,7 +9,10 @@ import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { Card, SectionHeading } from "@/components/ui/Card";
 import { StatCard } from "@/components/ui/StatCard";
-import { cachedInvestors, connectionStatus, getProfile, reviewsFor } from "@/lib/api";
+import { cachedInvestors, connectionStatus, getProfile, lendingHistory, postsBy, reviewsFor } from "@/lib/api";
+import { LendingHistoryCard } from "@/components/domain/LendingHistoryCard";
+import { PostFeed } from "@/components/social/PostFeed";
+import { ProfileActions } from "@/components/social/ProfileActions";
 import { formatBDT, shortDate } from "@/lib/format";
 import { tenureLabel } from "@/lib/loans";
 import { getCurrentUser } from "@/lib/session";
@@ -18,7 +21,7 @@ export const metadata = { title: "Investor profile" };
 
 export default async function InvestorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [profile, viewer, investors, reviews, relation] = await Promise.all([getProfile(id), getCurrentUser(), cachedInvestors(), reviewsFor(id), connectionStatus(id)]);
+  const [profile, viewer, investors, reviews, relation, history, posts] = await Promise.all([getProfile(id), getCurrentUser(), cachedInvestors(), reviewsFor(id), connectionStatus(id), lendingHistory(id), postsBy(id)]);
   if (!profile) notFound();
   // Business owners' public page is their business profile.
   if (profile.business) redirect(`/businesses/${id}`);
@@ -49,6 +52,7 @@ export default async function InvestorProfilePage({ params }: { params: Promise<
             <>
               <ConnectButton userId={investor.id} name={investor.name} initialStatus={relation?.status} connectionId={relation?.connectionId} />
               <MessageButton participantId={investor.id}><MessageCircle className="h-4 w-4" aria-hidden /> Message</MessageButton>
+              <ProfileActions userId={investor.id} name={investor.name} following={relation?.following ?? false} blocked={relation?.blockedByMe ?? false} />
             </>
           ) : null
         }
@@ -76,9 +80,18 @@ export default async function InvestorProfilePage({ params }: { params: Promise<
             </Card>
           )}
 
+          <LendingHistoryCard history={history} name={investor.name} />
+
+          {viewer && viewer.role !== "admin" && posts.length > 0 && (
+            <section className="space-y-space-sm">
+              <h2 className="text-headline-sm text-on-surface">Posts from {investor.name}</h2>
+              <PostFeed initial={posts} nextCursor={null} viewer={{ id: viewer.id, name: viewer.name, avatar: viewer.avatar, isOwner: viewer.role === "business" }} showComposer={false} />
+            </section>
+          )}
+
           {reviews.length > 0 && (
             <Card className="p-space-lg">
-              <SectionHeading eyebrow="Reputation" title="Reviews from businesses" />
+              <SectionHeading eyebrow="Reputation" title="Reviews" />
               <ul className="mt-space-md space-y-space-sm">
                 {reviews.map((review) => (
                   <li key={review.id} className="rounded-xl bg-surface-container-low p-space-md">

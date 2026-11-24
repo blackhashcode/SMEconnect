@@ -87,3 +87,37 @@ export async function clearMessageNotifications(userId: string, conversationId: 
     console.error(JSON.stringify({ level: "warn", message: "clearing message notifications failed", error: error instanceof Error ? error.message : String(error) }));
   }
 }
+
+/**
+ * After an instalment is confirmed, the business publishes a REPAYMENT post to
+ * the feed ("repaid instalment 2 of 6, on time"). No amounts are shown. Never
+ * throws: the confirmation itself must not fail because of the post.
+ */
+export async function publishRepaymentPost(repaymentId: string, db?: Db): Promise<void> {
+  if (noDatabase(db)) return;
+  try {
+    const client = db ?? (await defaultDb());
+    const r = await client.repayment.findUnique({
+      where: { id: repaymentId },
+      select: {
+        installmentNo: true,
+        status: true,
+        dueDate: true,
+        markedPaidAt: true,
+        confirmedAt: true,
+        loan: { select: { ownerId: true, loanRequestId: true, _count: { select: { repayments: true } } } },
+      },
+    });
+    if (!r || r.status !== "CONFIRMED") return;
+    const paidAt = r.markedPaidAt ?? r.confirmedAt;
+    const onTime = paidAt ? paidAt.getTime() <= r.dueDate.getTime() : false;
+    const total = r.loan._count.repayments;
+    const content =
+      r.installmentNo === total
+        ? `Fully repaid a loan on SME Connect: all ${total} instalments done${onTime ? ", the last one on time" : ""}.`
+        : `Repaid instalment ${r.installmentNo} of ${total}${onTime ? " on time" : ""}.`;
+    await client.post.create({ data: { authorId: r.loan.ownerId, type: "REPAYMENT", content } });
+  } catch (error) {
+    console.error(JSON.stringify({ level: "warn", message: "repayment post failed", error: error instanceof Error ? error.message : String(error) }));
+  }
+}

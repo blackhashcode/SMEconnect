@@ -230,20 +230,28 @@ export async function removeConnection(actor: Actor, id: string, deps: ServiceDe
  * The actor's relationship with one other member, for profile buttons:
  * none, outgoing/incoming pending request, connected, or declined.
  */
+
 export async function getRelationship(actor: Actor, otherId: string, deps: ServiceDeps = {}) {
   assertRole(actor, "OWNER", "INVESTOR");
   const db = deps.db ?? prisma;
-  if (otherId === actor.id) return { userId: otherId, status: "self" as const, connectionId: null };
-  const row = (await db.connection.findFirst({
-    where: {
-      OR: [
-        { requesterId: actor.id, addresseeId: otherId },
-        { requesterId: otherId, addresseeId: actor.id },
-      ],
-    },
-    select: { id: true, requesterId: true, status: true },
-  })) as { id: string; requesterId: string; status: ConnectionStatus } | null;
-  if (!row) return { userId: otherId, status: "none" as const, connectionId: null };
+  if (otherId === actor.id) {
+    return { userId: otherId, status: "self" as const, connectionId: null, following: false, blockedByMe: false };
+  }
+  const [row, follow, block] = await Promise.all([
+    db.connection.findFirst({
+      where: {
+        OR: [
+          { requesterId: actor.id, addresseeId: otherId },
+          { requesterId: otherId, addresseeId: actor.id },
+        ],
+      },
+      select: { id: true, requesterId: true, status: true },
+    }) as Promise<{ id: string; requesterId: string; status: ConnectionStatus } | null>,
+    db.follow.findFirst({ where: { followerId: actor.id, followeeId: otherId }, select: { id: true } }),
+    db.block.findFirst({ where: { blockerId: actor.id, blockedId: otherId }, select: { id: true } }),
+  ]);
+  const extra = { following: Boolean(follow), blockedByMe: Boolean(block) };
+  if (!row) return { userId: otherId, status: "none" as const, connectionId: null, ...extra };
   const status =
     row.status === "ACCEPTED"
       ? ("connected" as const)
@@ -252,5 +260,5 @@ export async function getRelationship(actor: Actor, otherId: string, deps: Servi
         : row.requesterId === actor.id
           ? ("outgoing" as const)
           : ("incoming" as const);
-  return { userId: otherId, status, connectionId: row.id };
+  return { userId: otherId, status, connectionId: row.id, ...extra };
 }

@@ -161,7 +161,7 @@ export async function authOptions(): Promise<{ google: boolean }> {
 
 // ---------- Connections ----------
 
-export type ConnectionStatusResult = { userId: string; status: "none" | "outgoing" | "incoming" | "connected" | "declined" | "self"; connectionId: string | null };
+export type ConnectionStatusResult = { userId: string; status: "none" | "outgoing" | "incoming" | "connected" | "declined" | "self"; connectionId: string | null; following: boolean; blockedByMe: boolean };
 
 /** The viewer's connection status with one member (null for admins or logged-out visitors). */
 export async function connectionStatus(userId: string): Promise<ConnectionStatusResult | null> {
@@ -183,4 +183,53 @@ export type ConnectionItem = {
 export async function myConnections(status?: "PENDING" | "ACCEPTED", direction?: "incoming" | "outgoing") {
   const { data } = await backendGet<ConnectionItem[]>(`/connections${qs({ status, direction, limit: 50 })}`);
   return data ?? [];
+}
+
+// ---------- Feed ----------
+
+export type FeedPost = S["PostRecord"];
+
+/** Posts from people you follow or are connected with, your own, and open loan requests. */
+export async function feedPosts(limit = 20) {
+  const { data, meta } = await backendGet<FeedPost[]>(`/feed?limit=${limit}`);
+  return { posts: data ?? [], nextCursor: meta?.nextCursor ?? null };
+}
+
+/** A member's own posts, newest first (for their profile). */
+export async function postsBy(authorId: string, limit = 10) {
+  const { data } = await backendGet<FeedPost[]>(`/posts${qs({ authorId, limit })}`);
+  return data ?? [];
+}
+
+// ---------- Lending history ----------
+
+export type LendingHistory = {
+  userId: string;
+  role: "OWNER" | "INVESTOR";
+  summary: {
+    loans: number;
+    completed: number;
+    active: number;
+    defaulted: number;
+    totalPrincipalBdt: number;
+    instalmentsPaid: number;
+    onTimeRatePct: number | null;
+    overdueInstalments: number;
+  };
+  loans: {
+    id: string;
+    role: "borrowed" | "lent";
+    counterparty: { id: string; name: string; role: "OWNER" | "INVESTOR" };
+    principalBdt: number;
+    interestRatePct: number;
+    tenureDays: number;
+    status: string;
+    startDate: string | null;
+    repayments: { total: number; paid: number; overdue: number };
+  }[];
+};
+
+export async function lendingHistory(userId: string) {
+  const { data } = await backendGet<LendingHistory>(`/profiles/${encodeURIComponent(userId)}/lending-history`);
+  return data;
 }

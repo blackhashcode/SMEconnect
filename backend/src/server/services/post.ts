@@ -106,6 +106,7 @@ async function toPostRecord(row: PostRow, actor: Actor | undefined, db: Db) {
     type: row.type,
     content: row.content,
     imageUrls: row.imageUrls ?? [],
+    authorId: row.author.id,
     author: toPostAuthor(row.author, verified.has(row.author.id)),
     likeCount: row.likes.length,
     commentCount: row.comments.length,
@@ -129,6 +130,7 @@ async function toCommentRecord(row: CommentRow, db: Db) {
     id: row.id,
     postId: row.postId,
     content: row.content,
+    authorId: row.author.id,
     author: toPostAuthor(row.author, verified.has(row.author.id)),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -158,7 +160,7 @@ export async function createPost(
 
 /** Public recent posts; anonymous callers simply see `likedByMe: false`. */
 export async function listPosts(
-  query: PaginationParams & { type?: PostType },
+  query: PaginationParams & { type?: PostType; authorId?: string },
   actor: Actor | undefined,
   deps: ServiceDeps = {},
 ) {
@@ -168,6 +170,7 @@ export async function listPosts(
     where: {
       deletedAt: null,
       ...(query.type ? { type: query.type } : {}),
+      ...(query.authorId ? { authorId: query.authorId } : {}),
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: query.limit + 1,

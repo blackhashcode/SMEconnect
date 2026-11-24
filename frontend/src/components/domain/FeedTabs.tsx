@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Tabs } from "@/components/ui/Tabs";
 import { LoanCard } from "./LoanCard";
 import { BusinessCard } from "./BusinessCard";
@@ -9,12 +9,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { FileSearch } from "lucide-react";
 import type { Business, LoanRequestView, Person } from "@/data/types";
 
-type TabId = "requests" | "businesses" | "investors";
+type TabId = "posts" | "requests" | "businesses" | "investors";
 
-export function FeedTabs({ loans, businesses, members }: { loans: LoanRequestView[]; businesses: Business[]; members: Person[] }) {
+export function FeedTabs({ loans, businesses, members, posts }: { loans: LoanRequestView[]; businesses: Business[]; members: Person[]; /** The posts feed; shown as the first tab when present. */ posts?: ReactNode }) {
   const investors = members.filter((person) => person.role === "investor");
-  const [active, setActive] = useState<TabId>("requests");
+  const [active, setActive] = useState<TabId>(posts ? "posts" : "requests");
   const items: { id: TabId; label: string; count?: number }[] = [
+    ...(posts ? [{ id: "posts" as TabId, label: "Posts" }] : []),
     { id: "requests", label: "Loan requests", count: loans.length },
     { id: "businesses", label: "Businesses" },
     { id: "investors", label: "Investors" },
@@ -23,6 +24,7 @@ export function FeedTabs({ loans, businesses, members }: { loans: LoanRequestVie
   return (
     <div>
       <Tabs items={items} active={active} onChange={setActive} className="mb-space-md" />
+      {active === "posts" && posts}
       {active === "requests" && (
         <div key="requests" className="stagger space-y-space-md">
           {loans.length === 0 && (

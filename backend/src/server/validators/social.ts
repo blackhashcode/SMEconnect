@@ -1,5 +1,6 @@
 import "@/server/openapi/setup";
 import { z } from "zod";
+import { publicFileUrlSchema } from "@/server/validators/storage";
 import {
   bdtAmountSchema,
   idSchema,
@@ -8,7 +9,7 @@ import {
   optionalTextSchema,
   ratingSchema,
   shortTextSchema,
-  urlArraySchema,
+  urlSchema,
 } from "@/server/validators/common";
 import {
   connectionStatusSchema,
@@ -17,6 +18,9 @@ import {
   reportTargetTypeSchema,
 } from "@/server/validators/enums";
 
+/** Post photos: external https images or the site's own public uploads. */
+const postImagesSchema = z.array(z.union([urlSchema, publicFileUrlSchema])).max(10);
+
 /** Clients may only author these post types; loan/repayment posts are system-owned. */
 export const userPostTypeSchema = z.enum(["UPDATE", "MILESTONE"]);
 
@@ -24,14 +28,14 @@ export const createPostSchema = z
   .object({
     type: userPostTypeSchema,
     content: longTextSchema,
-    imageUrls: urlArraySchema(10).default([]),
+    imageUrls: postImagesSchema.default([]),
   })
   .strict();
 
 export const updatePostSchema = z
   .object({
     content: longTextSchema.optional(),
-    imageUrls: urlArraySchema(10).optional(),
+    imageUrls: postImagesSchema.optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, {
@@ -65,7 +69,7 @@ export const connectionListQuerySchema = z
   .strict();
 
 export const feedQuerySchema = z
-  .object({ type: postTypeSchema.optional() })
+  .object({ type: postTypeSchema.optional(), authorId: idSchema.optional() })
   .strict();
 
 export const createReviewSchema = z
@@ -117,6 +121,8 @@ export const postRecordSchema = z
     type: postTypeSchema,
     content: z.string(),
     imageUrls: z.array(z.string()),
+    /** The author's user id, for profile links and follow buttons. */
+    authorId: z.string(),
     author: postAuthorSchema,
     likeCount: z.number().int().nonnegative(),
     commentCount: z.number().int().nonnegative(),
@@ -132,6 +138,7 @@ export const commentRecordSchema = z
     id: z.string(),
     postId: z.string(),
     content: z.string(),
+    authorId: z.string(),
     author: postAuthorSchema,
     createdAt: isoDateTimeSchema,
     updatedAt: isoDateTimeSchema,

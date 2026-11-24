@@ -56,7 +56,9 @@ describe("social input validators", () => {
     expect(connectionListQuerySchema.safeParse({ direction: "sideways" }).success).toBe(false);
     expect(connectionListQuerySchema.safeParse({ userId: "usr_other" }).success).toBe(false);
     expect(feedQuerySchema.safeParse({ type: "UPDATE" }).success).toBe(true);
-    expect(feedQuerySchema.safeParse({ authorId: "usr_other" }).success).toBe(false);
+    // Profiles list a member's posts by author; unknown keys are still rejected.
+    expect(feedQuerySchema.safeParse({ authorId: "usr_other" }).success).toBe(true);
+    expect(feedQuerySchema.safeParse({ ownerId: "usr_other" }).success).toBe(false);
     expect(createCommentSchema.safeParse({ content: "nice", postId: "post_1" }).success).toBe(
       false,
     );
@@ -116,6 +118,7 @@ describe("public response allow-lists", () => {
               type: "UPDATE",
               content: "hi",
               imageUrls: [],
+              authorId: "usr_1",
               author,
               likeCount: 0,
               commentCount: 0,
@@ -129,6 +132,7 @@ describe("public response allow-lists", () => {
                 id: "cmt_1",
                 postId: "post_1",
                 content: "hi",
+                authorId: "usr_1",
                 author,
                 createdAt: "2026-11-23T10:00:00.000Z",
                 updatedAt: "2026-11-23T10:00:00.000Z",

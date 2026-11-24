@@ -13,6 +13,13 @@ export const ADMIN_OVERSIGHT_PATHS = [
   "/api/v1/me/role",
   "/api/v1/connections/with/{userId}",
   "/api/v1/auth-options",
+  "/api/v1/profiles/{userId}/lending-history",
+  "/api/v1/admin/users/{userId}/role",
+  "/api/v1/admin/users/{userId}/profile",
+  "/api/v1/admin/posts/{postId}/restore",
+  "/api/v1/admin/comments/{commentId}/restore",
+  "/api/v1/admin/loans/{loanId}/repayments",
+  "/api/v1/admin/repayments/{repaymentId}/confirm",
 ] as const;
 
 const security = [{ [SECURITY_SCHEME_NAME]: [] }];
@@ -88,5 +95,46 @@ export function registerAdminOversightRoutes() {
     method: "get", path: "/api/v1/auth-options", operationId: "getAuthOptions", tags: ["Authentication"],
     summary: "Configured sign-in methods", description: "Public. `{ google: boolean }` so clients only show working buttons.",
     responses: { 200: single("Sign-in methods") },
+  });
+
+  registry.registerPath({
+    method: "get", path: "/api/v1/profiles/{userId}/lending-history", operationId: "getLendingHistory", tags: ["Reviews"],
+    summary: "Lending track record", description: "Signed-in members. A member's agreed loans (borrowed or lent), amounts, status and repayment reliability.",
+    security, parameters: [path("userId")],
+    responses: { 200: single("Lending history"), 401: STANDARD_ERROR_RESPONSES[401], 404: STANDARD_ERROR_RESPONSES[404] },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/admin/users/{userId}/role", operationId: "setUserRole", tags: ["Administration"],
+    summary: "Change a member's role", description: "ADMIN only. OWNER, INVESTOR or ADMIN. Not your own role; at least one admin remains.",
+    security, parameters: [path("userId")],
+    request: { body: { content: { "application/json": { schema: { type: "object", required: ["role"], properties: { role: { type: "string", enum: ["OWNER", "INVESTOR", "ADMIN"] } } } } } } },
+    responses: { 200: single("Role changed"), ...errors, 404: STANDARD_ERROR_RESPONSES[404], 422: STANDARD_ERROR_RESPONSES[422] },
+  });
+  registry.registerPath({
+    method: "patch", path: "/api/v1/admin/users/{userId}/profile", operationId: "adminUpdateProfile", tags: ["Administration"],
+    summary: "Edit a member's profile", description: "ADMIN only. Same body and validation as PATCH /api/v1/me, applied to the member.",
+    security, parameters: [path("userId")],
+    responses: { 200: single("Updated profile"), ...errors, 404: STANDARD_ERROR_RESPONSES[404] },
+  });
+  for (const [kind, param] of [["posts", "postId"], ["comments", "commentId"]] as const) {
+    registry.registerPath({
+      method: "post", path: `/api/v1/admin/${kind}/{${param}}/restore`, operationId: kind === "posts" ? "restorePost" : "restoreComment", tags: ["Administration"],
+      summary: kind === "posts" ? "Restore a removed post" : "Restore a removed comment", description: "ADMIN only.",
+      security, parameters: [path(param)],
+      responses: { 200: single("Restored"), ...errors, 404: STANDARD_ERROR_RESPONSES[404] },
+    });
+  }
+  registry.registerPath({
+    method: "get", path: "/api/v1/admin/loans/{loanId}/repayments", operationId: "listLoanRepayments", tags: ["Administration"],
+    summary: "A loan's instalments", description: "ADMIN only.",
+    security, parameters: [path("loanId")],
+    responses: { 200: page("Instalments"), ...errors, 404: STANDARD_ERROR_RESPONSES[404] },
+  });
+  registry.registerPath({
+    method: "post", path: "/api/v1/admin/repayments/{repaymentId}/confirm", operationId: "adminConfirmRepayment", tags: ["Administration"],
+    summary: "Confirm an instalment (override)", description: "ADMIN only. Confirms on the investor's behalf, marking it paid first if needed. Requires a reason.",
+    security, parameters: [path("repaymentId")],
+    request: { body: { content: { "application/json": { schema: { type: "object", required: ["reason"], properties: { reason: { type: "string", minLength: 5, maxLength: 500 } } } } } } },
+    responses: { 200: single("Confirmed"), ...errors, 404: STANDARD_ERROR_RESPONSES[404] },
   });
 }

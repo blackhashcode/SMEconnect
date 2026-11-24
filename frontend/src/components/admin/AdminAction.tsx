@@ -23,6 +23,7 @@ export function AdminAction({
   extraBody,
   variant = "outline",
   icon,
+  onDone,
 }: {
   endpoint: string;
   method?: "POST" | "DELETE";
@@ -34,6 +35,8 @@ export function AdminAction({
   extraBody?: Record<string, unknown>;
   variant?: Variant;
   icon?: ReactNode;
+  /** Called after the action succeeds (e.g. to reload client-side data). */
+  onDone?: () => void;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -51,6 +54,7 @@ export function AdminAction({
     if (!result.ok) return setError(result.error);
     setOpen(false);
     setText("");
+    onDone?.();
     router.refresh();
   }
 
