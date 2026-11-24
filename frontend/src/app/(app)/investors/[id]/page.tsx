@@ -13,6 +13,7 @@ import { cachedInvestors, connectionStatus, getProfile, lendingHistory, postsBy,
 import { LendingHistoryCard } from "@/components/domain/LendingHistoryCard";
 import { PostFeed } from "@/components/social/PostFeed";
 import { ProfileActions } from "@/components/social/ProfileActions";
+import { BasicProfile } from "@/components/domain/BasicProfile";
 import { formatBDT, shortDate } from "@/lib/format";
 import { tenureLabel } from "@/lib/loans";
 import { getCurrentUser } from "@/lib/session";
@@ -24,7 +25,9 @@ export default async function InvestorProfilePage({ params }: { params: Promise<
   const [profile, viewer, investors, reviews, relation, history, posts] = await Promise.all([getProfile(id), getCurrentUser(), cachedInvestors(), reviewsFor(id), connectionStatus(id), lendingHistory(id), postsBy(id)]);
   if (!profile) notFound();
   // Business owners' public page is their business profile.
-  if (profile.business) redirect(`/businesses/${id}`);
+  if (profile.role === "OWNER") redirect(`/businesses/${id}`);
+  // An investor who hasn't finished onboarding yet.
+  if (!profile.hasProfile) return <BasicProfile person={profile.person} viewer={viewer} relation={relation} />;
   const { person: investor, investor: prefs } = profile;
   const isOwnProfile = viewer?.id === investor.id;
   const peers = investors.filter((person) => person.id !== id).slice(0, 3);

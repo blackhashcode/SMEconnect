@@ -113,13 +113,30 @@ own rewrite forwards `/api/v1/*` (or run `vercel dev` to emulate the services se
 ## 4. Scheduled jobs: GitHub Actions
 
 Vercel doesn't run background jobs, so
-[`.github/workflows/repayment-jobs.yml`](../.github/workflows/repayment-jobs.yml) does.
-In GitHub, go to **Settings → Secrets and variables → Actions** and add these repository
-secrets: `DATABASE_URL` (use the Neon **direct** string), `SMTP_HOST`, `SMTP_PORT`,
-`SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM`.
+[`.github/workflows/repayment-jobs.yml`](../.github/workflows/repayment-jobs.yml) does: it marks
+overdue instalments every 6 hours and emails repayment reminders daily at 09:00 Bangladesh time.
+It needs these repository secrets (**Settings → Secrets and variables → Actions → New repository
+secret**), the same values as the Vercel project:
 
-Test it from **Actions → Repayment jobs → Run workflow**. Scheduled workflows run only from
-the default branch (`main`).
+| Secret | Value | Needed for |
+| --- | --- | --- |
+| `DATABASE_URL` | Neon connection string | both jobs |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` | Brevo values | reminder emails |
+
+Until they're added, each run finishes with a yellow warning saying what's missing, instead of
+failing. Or add them from PowerShell with the GitHub CLI (each command asks you to paste the value):
+
+```powershell
+gh secret set DATABASE_URL --repo blackhashcode/SMEconnect
+gh secret set SMTP_HOST --repo blackhashcode/SMEconnect
+gh secret set SMTP_PORT --repo blackhashcode/SMEconnect
+gh secret set SMTP_USER --repo blackhashcode/SMEconnect
+gh secret set SMTP_PASSWORD --repo blackhashcode/SMEconnect
+gh secret set EMAIL_FROM --repo blackhashcode/SMEconnect
+```
+
+Test it from **Actions → Repayment jobs → Run workflow**. Scheduled runs only start from the
+default branch (`main`).
 
 ## 5. Create the admin account
 

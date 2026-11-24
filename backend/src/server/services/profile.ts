@@ -442,7 +442,8 @@ export async function getPublicProfile(userId: string, deps: ProfileDeps = {}) {
       where: { ownerId: userId },
       include: { productImages: { orderBy: { position: "asc" } } },
     });
-    if (!row) throw new NotFoundError("Profile not found");
+    // Not set up yet: still show who they are, so links to them never 404.
+    if (!row) return { name: user.name, image: user.image ?? null, role: "OWNER" as const, verified, profile: null };
     const profile = row as BusinessRow;
 
     return {
@@ -479,7 +480,7 @@ export async function getPublicProfile(userId: string, deps: ProfileDeps = {}) {
   }
 
   const row = await db.investorProfile.findUnique({ where: { userId } });
-  if (!row) throw new NotFoundError("Profile not found");
+  if (!row) return { name: user.name, image: user.image ?? null, role: "INVESTOR" as const, verified, profile: null };
   const profile = row as InvestorRow;
 
   return {

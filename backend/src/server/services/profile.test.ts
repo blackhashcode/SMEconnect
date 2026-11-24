@@ -508,7 +508,7 @@ describe("getPublicProfile", () => {
     expect(serialized).not.toContain(investor.id);
   });
 
-  it("returns 404 for admins, suspended users, missing users and missing profiles", async () => {
+  it("returns 404 for admins, suspended users and missing users", async () => {
     const adminState = createFakeDb();
     seedUser(adminState, admin);
     await expect(getPublicProfile(admin.id, deps(adminState))).rejects.toBeInstanceOf(NotFoundError);
@@ -521,9 +521,12 @@ describe("getPublicProfile", () => {
     const noUserState = createFakeDb();
     await expect(getPublicProfile(owner.id, deps(noUserState))).rejects.toBeInstanceOf(NotFoundError);
 
+  });
+
+  it("returns a basic profile (no details) for members who haven't set one up", async () => {
     const noProfileState = createFakeDb();
     seedUser(noProfileState, owner);
-    await expect(getPublicProfile(owner.id, deps(noProfileState))).rejects.toBeInstanceOf(NotFoundError);
+    await expect(getPublicProfile(owner.id, deps(noProfileState))).resolves.toMatchObject({ role: "OWNER", profile: null, verified: false });
   });
 });
 
