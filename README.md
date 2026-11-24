@@ -146,7 +146,7 @@ repayments, with every action recorded in an activity log.
 | Email | Brevo SMTP in production, Mailpit locally (via Nodemailer) |
 | File storage | Uploaded files stored in Postgres behind access rules (local disk in development) |
 | Scheduled jobs and CI | GitHub Actions (checks on every push, daily repayment reminder and overdue jobs) |
-| Testing | Vitest unit and service tests, an end-to-end smoke test, a bot-user load test |
+| Testing | Vitest unit and service tests, an end-to-end smoke test, a bot-user load test, SwaggerUI |
 | Local tooling | Docker Compose (Postgres and Mailpit), pnpm (backend), npm (frontend) |
 
 ---
