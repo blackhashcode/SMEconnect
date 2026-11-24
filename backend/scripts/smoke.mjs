@@ -206,6 +206,8 @@ async function main() {
   check("bad pagination returns 400, not 500", (await client()("GET", "/businesses?limit=9999")).status === 400);
   const cached = await client()("GET", "/loan-requests?limit=5");
   check("public listings are CDN-cacheable", /s-maxage=/.test(cached.headers.get("cache-control") ?? ""));
+  const profileFresh = await client()("GET", `/profiles/${owner.id}`);
+  check("single profiles are never served stale from the CDN", profileFresh.status === 200 && !/s-maxage=/.test(profileFresh.headers.get("cache-control") ?? ""), profileFresh.headers.get("cache-control") ?? "none");
 
   section("Validation");
   const offerBody = { loanRequestId, amountBdt: 50000, interestRatePct: 12, tenureDays: 90, repaymentFrequency: "MONTHLY" };
